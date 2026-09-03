@@ -28,7 +28,7 @@ function getPrimaryNav(role: UserRole): BottomNavItem[] {
         { href: '/admin/dashboard', label: 'Home', icon: House },
         { href: '/admin/users', label: 'Users', icon: Users },
         { href: '/admin/tasks', label: 'Tasks', icon: CheckSquare },
-        { href: '/admin/surveys', label: 'Surveys', icon: ClipboardText },
+        { href: '/admin/leave', label: 'Leave', icon: ClipboardText },
         { href: '/admin/config', label: 'Config', icon: GearSix },
       ];
     case 'pc':

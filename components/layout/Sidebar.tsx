@@ -37,7 +37,6 @@ function getNavItems(role: UserRole): NavItem[] {
       { href: `/${prefix}/dashboard`, label: 'Dashboard', icon: House },
       { href: `/${prefix}/users`, label: 'Users', icon: Users },
       { href: `/${prefix}/tasks`, label: 'Tasks', icon: CheckSquare },
-      { href: `/${prefix}/surveys`, label: 'Surveys', icon: ClipboardText },
       { href: `/${prefix}/attendance`, label: 'Attendance', icon: Fingerprint },
       { href: `/${prefix}/leave`, label: 'Leave', icon: ClipboardText },
       { href: `/${prefix}/exit`, label: 'Exit', icon: ArrowCircleUpRight },
