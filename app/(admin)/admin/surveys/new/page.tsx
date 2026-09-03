@@ -1020,7 +1020,12 @@ export default function AdminNewSurveyPage() {
           </div>
 
           {/* Bottom Add Question Shortcut Bar */}
-          <div className="flex items-center justify-center p-3 sm:p-4 border-2 border-dashed border-slate-200/90 hover:border-indigo-300 rounded-2xl transition-all bg-slate-50/40">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 p-3 sm:p-4 border-2 border-dashed border-slate-200/90 hover:border-indigo-300 rounded-2xl transition-all bg-slate-50/40">
+            <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5 shrink-0 select-none">
+              <Plus size={14} weight="bold" className="text-indigo-600" />
+              Add Question:
+            </span>
+            <div className="h-4 w-[1px] bg-slate-200 hidden sm:block shrink-0" />
             <div className="flex items-center justify-center gap-2 sm:gap-2.5 flex-wrap">
               {QUESTION_TYPES.map(cfg => {
                 const Icon = cfg.icon;
