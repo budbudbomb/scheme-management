@@ -1022,8 +1022,8 @@ export default function AdminNewSurveyPage() {
           </div>
         )}
 
-        {/* Add Question Card (Always appears below added questions) */}
-        <div className="card p-4 sm:p-5 border border-indigo-100/80 bg-gradient-to-br from-indigo-50/60 via-white to-purple-50/40 shadow-xs space-y-3">
+        {/* Desktop View: Full Add Question Card */}
+        <div className="hidden sm:block card p-5 border border-indigo-100/80 bg-gradient-to-br from-indigo-50/60 via-white to-purple-50/40 shadow-xs space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0">
@@ -1041,8 +1041,8 @@ export default function AdminNewSurveyPage() {
             </span>
           </div>
 
-          {/* Desktop View: 5 Question Type Rich Cards */}
-          <div className="hidden sm:grid grid-cols-5 gap-2.5 pt-1">
+          {/* 5 Question Type Rich Cards */}
+          <div className="grid grid-cols-5 gap-2.5 pt-1">
             {QUESTION_TYPES.map(cfg => {
               const Icon = cfg.icon;
               return (
@@ -1073,10 +1073,27 @@ export default function AdminNewSurveyPage() {
               );
             })}
           </div>
+        </div>
 
-          {/* Mobile View: Horizontally Scrollable Pill-Shaped Buttons */}
-          <div className="sm:hidden -mx-4 px-4 overflow-x-auto no-scrollbar pt-0.5">
-            <div className="flex items-center gap-2 pb-1 shrink-0 w-max">
+        {/* Mobile View: Ultra-slim card with pinned "+" button on extreme left and horizontally scrollable pills */}
+        <div className="sm:hidden card p-2 border border-indigo-100/80 bg-white/95 backdrop-blur-xs shadow-xs flex items-center gap-2 overflow-hidden">
+          {/* Stable '+' button on extreme left */}
+          <button
+            type="button"
+            onClick={() => addQuestion('single_choice')}
+            className="w-9 h-9 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs active:scale-90 transition-transform cursor-pointer"
+            title="Add Question"
+            aria-label="Add question"
+          >
+            <Plus size={18} weight="bold" />
+          </button>
+
+          {/* Vertical divider */}
+          <div className="w-[1px] h-6 bg-slate-200 shrink-0" />
+
+          {/* Horizontally scrollable pill buttons */}
+          <div className="flex-1 overflow-x-auto no-scrollbar py-0.5">
+            <div className="flex items-center gap-1.5 shrink-0 w-max pr-1">
               {QUESTION_TYPES.map(cfg => {
                 const Icon = cfg.icon;
                 return (
@@ -1085,15 +1102,14 @@ export default function AdminNewSurveyPage() {
                     type="button"
                     onClick={() => addQuestion(cfg.type)}
                     className={cn(
-                      'inline-flex items-center gap-2 px-3.5 py-2 rounded-full border text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer bg-white text-slate-800 border-slate-200/90 shrink-0 hover:border-indigo-300',
+                      'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer bg-white text-slate-800 border-slate-200/90 shrink-0 hover:border-indigo-300',
                       cfg.borderHover
                     )}
                   >
-                    <div className={cn('w-5 h-5 rounded-full flex items-center justify-center bg-gradient-to-br text-white shrink-0 shadow-2xs', cfg.gradient)}>
-                      <Icon size={12} weight="bold" />
+                    <div className={cn('w-4 h-4 rounded-full flex items-center justify-center bg-gradient-to-br text-white shrink-0 shadow-2xs', cfg.gradient)}>
+                      <Icon size={10} weight="bold" />
                     </div>
                     <span className="whitespace-nowrap">{cfg.label}</span>
-                    <Plus size={12} className="text-slate-400 shrink-0" weight="bold" />
                   </button>
                 );
               })}
