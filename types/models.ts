@@ -230,6 +230,9 @@ export interface SurveyQuestion {
   dichotomousLabels?: [string, string];
   placeholder?: string;
   required?: boolean;
+  allowVoice?: boolean;
+  allowVideo?: boolean;
+  allowImage?: boolean;
 }
 
 export interface SurveyDocument {
@@ -264,12 +267,22 @@ export interface StakeholderDetails {
   notes?: string;
 }
 
+export interface QuestionMediaAnswer {
+  voiceUrl?: string;
+  voiceName?: string;
+  videoUrl?: string;
+  videoName?: string;
+  imageUrl?: string;
+  imageName?: string;
+}
+
 export interface SurveyResponse {
   id: string;
   surveyId: string;
   respondent: AssigneeRef;
   stakeholder?: StakeholderDetails;
   answers: Record<string, string | string[] | number>;
+  mediaAnswers?: Record<string, QuestionMediaAnswer>;
   submittedAt: string;
   fileUrls?: string[];
 }

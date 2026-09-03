@@ -33,6 +33,9 @@ import {
   FileText,
   Paperclip,
   File,
+  Microphone,
+  VideoCamera,
+  Camera,
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils/formatters';
 import { surveysApi } from '@/lib/api/surveys';
@@ -1176,6 +1179,68 @@ export default function AdminNewSurveyPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* ── Media Capture Options (Voice, Video, Image) ── */}
+                  <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2.5">
+                    <div>
+                      <span className="text-xs font-bold text-slate-700 block">
+                        Participant Media Capture
+                      </span>
+                      <span className="text-[11px] text-slate-400">
+                        Allow surveyor to capture voice note, video, or participant photo
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Voice */}
+                      <button
+                        type="button"
+                        onClick={() => updateQuestion(qIndex, { ...q, allowVoice: !q.allowVoice })}
+                        className={cn(
+                          'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer select-none',
+                          q.allowVoice
+                            ? 'bg-purple-50 text-purple-700 border-purple-300 shadow-2xs'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                        )}
+                      >
+                        <Microphone size={14} weight={q.allowVoice ? 'fill' : 'bold'} className={q.allowVoice ? 'text-purple-600' : 'text-slate-400'} />
+                        <span>Voice Note</span>
+                        {q.allowVoice && <Check size={12} weight="bold" className="text-purple-600 ml-0.5" />}
+                      </button>
+
+                      {/* Video */}
+                      <button
+                        type="button"
+                        onClick={() => updateQuestion(qIndex, { ...q, allowVideo: !q.allowVideo })}
+                        className={cn(
+                          'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer select-none',
+                          q.allowVideo
+                            ? 'bg-blue-50 text-blue-700 border-blue-300 shadow-2xs'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                        )}
+                      >
+                        <VideoCamera size={14} weight={q.allowVideo ? 'fill' : 'bold'} className={q.allowVideo ? 'text-blue-600' : 'text-slate-400'} />
+                        <span>Video Note</span>
+                        {q.allowVideo && <Check size={12} weight="bold" className="text-blue-600 ml-0.5" />}
+                      </button>
+
+                      {/* Image */}
+                      <button
+                        type="button"
+                        onClick={() => updateQuestion(qIndex, { ...q, allowImage: !q.allowImage })}
+                        className={cn(
+                          'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer select-none',
+                          q.allowImage
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-2xs'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                        )}
+                      >
+                        <Camera size={14} weight={q.allowImage ? 'fill' : 'bold'} className={q.allowImage ? 'text-emerald-600' : 'text-slate-400'} />
+                        <span>Photo / Image</span>
+                        {q.allowImage && <Check size={12} weight="bold" className="text-emerald-600 ml-0.5" />}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               );
             })}
