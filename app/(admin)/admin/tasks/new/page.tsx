@@ -651,84 +651,58 @@ function NewTaskForm() {
                 )}
               </div>
 
-              {/* Row 2: Search Input + Filter Dropdown + Select Visible */}
+              {/* Row 2: Expanded Search Bar + Icon-Only Filter Dropdown */}
               <div className="flex items-center gap-2">
-                {/* Search Input */}
+                {/* Search Input (Expanded length) */}
                 <div className="relative flex-1 min-w-0">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                    <MagnifyingGlass size={15} weight="bold" />
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <MagnifyingGlass size={16} weight="bold" />
                   </div>
                   <input
                     type="search"
-                    placeholder="Search assignees…"
+                    placeholder="Search assignees by name or email…"
                     value={userSearch}
                     onChange={e => setUserSearch(e.target.value)}
-                    className={cn(inputCls(), 'pl-9 h-9 sm:h-10 text-xs sm:text-sm bg-white')}
+                    className={cn(inputCls(), 'pl-10 h-10 text-xs sm:text-sm bg-white w-full shadow-2xs')}
                   />
                   {userSearch && (
                     <button
                       type="button"
                       onClick={() => setUserSearch('')}
-                      className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
                     >
-                      <X size={13} weight="bold" />
+                      <X size={14} weight="bold" />
                     </button>
                   )}
                 </div>
 
-                {/* Role Filter Dropdown */}
+                {/* Filter Button (Icon-Only) with Native Select Overlay */}
                 <div className="relative shrink-0">
-                  <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
-                    <FunnelSimple size={14} weight={roleFilter !== 'all' ? 'bold' : 'regular'} className={roleFilter !== 'all' ? 'text-indigo-600' : 'text-slate-400'} />
+                  <div
+                    className={cn(
+                      'w-10 h-10 rounded-[var(--radius)] border flex items-center justify-center transition-colors shadow-2xs',
+                      roleFilter !== 'all'
+                        ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    )}
+                  >
+                    <FunnelSimple size={18} weight={roleFilter !== 'all' ? 'bold' : 'regular'} />
+                    {roleFilter !== 'all' && (
+                      <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-indigo-600 ring-2 ring-white" />
+                    )}
                   </div>
                   <select
                     value={roleFilter}
                     onChange={(e) => setRoleFilter(e.target.value as any)}
                     aria-label="Filter assignees by role"
-                    className="h-9 sm:h-10 pl-7 pr-6 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-[var(--radius)] hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer shadow-2xs"
+                    className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
                   >
-                    <option value="all">Filter: All ({users.length})</option>
+                    <option value="all">All Roles ({users.length})</option>
                     <option value="intern">Interns ({internCount})</option>
                     <option value="fellow">Fellows ({fellowCount})</option>
                     <option value="pc">PCs ({pcCount})</option>
                   </select>
                 </div>
-
-                {/* Quick Select All Filtered */}
-                {filteredUsers.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const allVisibleSelected = filteredUsers.every(u => selectedUsers.some(s => s.id === u.id));
-                      if (allVisibleSelected) {
-                        const filteredIds = new Set(filteredUsers.map(u => u.id));
-                        const updated = selectedUsers.filter(u => !filteredIds.has(u.id));
-                        setSelectedUsers(updated);
-                        setValue('assignedToIds', updated.map(u => u.id), { shouldValidate: true });
-                      } else {
-                        const existingIds = new Set(selectedUsers.map(u => u.id));
-                        const toAdd = filteredUsers.filter(u => !existingIds.has(u.id));
-                        const updated = [...selectedUsers, ...toAdd];
-                        setSelectedUsers(updated);
-                        setValue('assignedToIds', updated.map(u => u.id), { shouldValidate: true });
-                      }
-                    }}
-                    className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-[var(--radius)] border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors flex items-center gap-1.5 shrink-0 shadow-2xs cursor-pointer"
-                    title={filteredUsers.every(u => selectedUsers.some(s => s.id === u.id)) ? 'Deselect visible' : 'Select all visible'}
-                  >
-                    <Checks size={14} className="text-indigo-600" weight="bold" />
-                    <span className="hidden sm:inline">
-                      {filteredUsers.every(u => selectedUsers.some(s => s.id === u.id))
-                        ? 'Deselect'
-                        : `Select All (${filteredUsers.length})`}
-                    </span>
-                    <span className="sm:hidden">
-                      {filteredUsers.every(u => selectedUsers.some(s => s.id === u.id))
-                        ? 'Deselect'
-                        : `All (${filteredUsers.length})`}
-                    </span>
-                  </button>
-                )}
               </div>
             </div>
 
