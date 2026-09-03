@@ -294,29 +294,33 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
   return (
     <div className="max-w-3xl mx-auto space-y-5 pb-36 sm:pb-24">
       {/* ══════════════════════════════════════════════════════════════════════
-          STEP 0 HEADER: ONLY SHOWN BEFORE QUESTIONS START
+          FROZEN TOP BAR (STEP 0: GENERAL & STAKEHOLDER DETAILS)
          ══════════════════════════════════════════════════════════════════════ */}
       {currentStepIndex === 0 && (
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              if (typeof window !== 'undefined' && window.history.length > 1) {
-                router.back();
-              } else {
-                router.push(backHref);
-              }
-            }}
-            className="w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-600 flex items-center justify-center hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer shrink-0"
-            aria-label="Back"
-          >
-            <ArrowLeft size={17} weight="bold" />
-          </button>
-          <div className="min-w-0">
-            <h1 className="text-base sm:text-lg font-bold text-slate-900 truncate">
-              {survey.title}
-            </h1>
-            <p className="text-xs text-slate-500">General &amp; Stakeholder Details</p>
+        <div className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-md -mx-4 px-4 pt-2.5 pb-2.5 border-b border-slate-200/80 shadow-2xs">
+          <div className="flex items-center gap-2.5 max-w-3xl mx-auto">
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.history.length > 1) {
+                  router.back();
+                } else {
+                  router.push(backHref);
+                }
+              }}
+              className="w-10 h-10 rounded-full border border-slate-200 bg-white text-slate-700 flex items-center justify-center hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer shrink-0 active:scale-95"
+              aria-label="Back"
+            >
+              <ArrowLeft size={18} weight="bold" />
+            </button>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-base sm:text-lg font-bold text-slate-900 truncate leading-snug">
+                {survey.title}
+              </h1>
+              <p className="text-[11px] text-slate-400 font-medium leading-none mt-0.5">
+                General &amp; Stakeholder Details
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -327,28 +331,28 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
       {currentStepIndex > 0 && (
         <div className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-md -mx-4 px-4 pt-2.5 pb-2.5 border-b border-slate-200/80 shadow-2xs space-y-2">
           <div className="flex items-center justify-between gap-3 max-w-3xl mx-auto">
-            {/* Back Button + Participant's Name */}
+            {/* Back Button + Participant's Name (Matches font size of survey's name) */}
             <div className="flex items-center gap-2.5 min-w-0">
               <button
                 type="button"
                 onClick={handlePrevQuestion}
-                className="w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-700 flex items-center justify-center hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer shrink-0"
+                className="w-10 h-10 rounded-full border border-slate-200 bg-white text-slate-700 flex items-center justify-center hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer shrink-0 active:scale-95"
                 aria-label="Previous question"
               >
-                <ArrowLeft size={17} weight="bold" />
+                <ArrowLeft size={18} weight="bold" />
               </button>
               <div className="min-w-0">
-                <div className="text-sm sm:text-base font-bold text-slate-900 truncate leading-snug">
+                <h1 className="text-base sm:text-lg font-bold text-slate-900 truncate leading-snug">
                   {stakeholderName}
-                </div>
-                <div className="text-[11px] text-slate-400 font-medium leading-none mt-0.5">
+                </h1>
+                <p className="text-[11px] text-slate-400 font-medium leading-none mt-0.5">
                   Participant
-                </div>
+                </p>
               </div>
             </div>
 
             {/* Question Counter Pill */}
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-white border border-slate-200 text-slate-700 shadow-2xs shrink-0">
+            <span className="text-xs font-bold px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 shadow-2xs shrink-0">
               {currentStepIndex} / {totalQuestions}
             </span>
           </div>
@@ -471,24 +475,68 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
             </div>
           </div>
 
-          {/* Bottom Action: "Start Survey" Button */}
-          <div className="pt-2 flex items-center justify-between gap-3">
-            <Link
-              href={backHref}
-              className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors"
+          {/* Desktop Inline Action Bar for Step 0 */}
+          <div className="hidden sm:flex items-center gap-3 pt-3 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.history.length > 1) {
+                  router.back();
+                } else {
+                  router.push(backHref);
+                }
+              }}
+              className="w-11 h-11 rounded-full bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 flex items-center justify-center shrink-0 shadow-xs cursor-pointer active:scale-95 transition-all"
+              aria-label="Cancel"
+              title="Cancel"
             >
-              Cancel
-            </Link>
+              <X size={18} weight="bold" />
+            </button>
 
             <button
               type="button"
               onClick={handleStartSurvey}
-              className="px-8 py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 shadow-md transition-all flex items-center gap-2.5 cursor-pointer btn-press"
+              className="flex-1 py-3 px-6 rounded-full bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer btn-press active:scale-98"
             >
               <span>Start Survey</span>
               <ArrowRight size={17} weight="bold" />
             </button>
           </div>
+
+          {/* Frozen Bottom Navigation on Mobile for Step 0 */}
+          {mounted && createPortal(
+            <div className="sm:hidden fixed bottom-[calc(52px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-4 py-2.5 shadow-lg">
+              <div className="flex items-center gap-2.5 max-w-lg mx-auto">
+                {/* Light red circular X button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof window !== 'undefined' && window.history.length > 1) {
+                      router.back();
+                    } else {
+                      router.push(backHref);
+                    }
+                  }}
+                  className="w-11 h-11 rounded-full bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 flex items-center justify-center shrink-0 shadow-xs cursor-pointer active:scale-95 transition-transform"
+                  aria-label="Cancel"
+                  title="Cancel"
+                >
+                  <X size={18} weight="bold" />
+                </button>
+
+                {/* Elongated full-width Start Survey button */}
+                <button
+                  type="button"
+                  onClick={handleStartSurvey}
+                  className="flex-1 py-3 px-5 rounded-full bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 shadow-md flex items-center justify-center gap-2 cursor-pointer btn-press active:scale-98 transition-all"
+                >
+                  <span>Start Survey</span>
+                  <ArrowRight size={16} weight="bold" />
+                </button>
+              </div>
+            </div>,
+            document.body
+          )}
         </div>
       )}
 
@@ -878,17 +926,18 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
               <button
                 type="button"
                 onClick={handlePrevQuestion}
-                className="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center gap-2 cursor-pointer"
+                className="w-11 h-11 rounded-full border border-slate-200 bg-white text-slate-700 flex items-center justify-center shrink-0 shadow-xs hover:bg-slate-50 cursor-pointer active:scale-95 transition-transform"
+                aria-label="Previous question"
+                title="Back"
               >
-                <ArrowLeft size={16} weight="bold" />
-                <span>Back</span>
+                <ArrowLeft size={18} weight="bold" />
               </button>
 
               {currentStepIndex < totalQuestions ? (
                 <button
                   type="button"
                   onClick={handleNextQuestion}
-                  className="px-8 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 shadow-md transition-all flex items-center gap-2 cursor-pointer btn-press"
+                  className="py-3 px-8 rounded-full bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 shadow-md transition-all flex items-center gap-2 cursor-pointer btn-press active:scale-98"
                 >
                   <span>Next Question</span>
                   <ArrowRight size={16} weight="bold" />
@@ -898,7 +947,7 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
                   type="button"
                   onClick={handleSubmitSurvey}
                   disabled={isSubmitting}
-                  className="px-8 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 shadow-md transition-all flex items-center gap-2 cursor-pointer btn-press disabled:opacity-60"
+                  className="py-3 px-8 rounded-full bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 shadow-md transition-all flex items-center gap-2 cursor-pointer btn-press active:scale-98 disabled:opacity-60"
                 >
                   {isSubmitting ? (
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
