@@ -27,6 +27,7 @@ import {
   Info,
   CheckCircle,
   X,
+  CaretDown,
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils/formatters';
 import { surveysApi } from '@/lib/api/surveys';
@@ -232,11 +233,19 @@ export default function AdminNewSurveyPage() {
     setQuestions(prev => prev.map((q, i) => (i === index ? updated : q)));
   };
 
+  const changeQuestionType = (index: number, newType: QuestionType) => {
+    const existing = questions[index];
+    const initialForType = makeInitialQuestion(newType);
+    updateQuestion(index, {
+      ...initialForType,
+      id: existing.id,
+      question: existing.question,
+      required: existing.required,
+    });
+    toast.success(`Changed to ${QUESTION_TYPES.find(t => t.type === newType)?.label}`);
+  };
+
   const removeQuestion = (index: number) => {
-    if (questions.length <= 1) {
-      toast.error('A survey must contain at least one question.');
-      return;
-    }
     setQuestions(prev => prev.filter((_, i) => i !== index));
     toast.success('Question removed');
   };
@@ -270,6 +279,11 @@ export default function AdminNewSurveyPage() {
     if (!validateStep1()) {
       setCurrentStep(1);
       toast.error('Please complete all required general details');
+      return;
+    }
+
+    if (questions.length === 0) {
+      toast.error('Please add at least one question before saving the survey');
       return;
     }
 
@@ -651,26 +665,73 @@ export default function AdminNewSurveyPage() {
 
           {/* List of Question Cards */}
           <div className="space-y-4">
-            {questions.map((q, qIndex) => {
-              const typeCfg = QUESTION_TYPES.find(t => t.type === q.type) || QUESTION_TYPES[0];
-              const Icon = typeCfg.icon;
+            {questions.length === 0 ? (
+              <div className="card p-8 sm:p-12 border-2 border-dashed border-slate-200 text-center space-y-4 bg-slate-50/60 rounded-2xl animate-in fade-in duration-200">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto shadow-2xs">
+                  <Sparkle size={24} weight="fill" />
+                </div>
+                <div className="max-w-md mx-auto">
+                  <h3 className="text-base font-bold text-slate-800">No questions in survey</h3>
+                  <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                    Select a question format below to add your first question:
+                  </p>
+                </div>
+                <div className="flex items-center justify-center gap-2 flex-wrap pt-2">
+                  {QUESTION_TYPES.map(cfg => {
+                    const TypeIcon = cfg.icon;
+                    return (
+                      <button
+                        key={cfg.type}
+                        type="button"
+                        onClick={() => addQuestion(cfg.type)}
+                        className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/50 shadow-2xs transition-all cursor-pointer active:scale-95"
+                      >
+                        <TypeIcon size={15} weight="bold" />
+                        <span>+ {cfg.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              questions.map((q, qIndex) => {
+                const typeCfg = QUESTION_TYPES.find(t => t.type === q.type) || QUESTION_TYPES[0];
+                const Icon = typeCfg.icon;
 
-              return (
-                <div
-                  key={q.id}
-                  className="card p-4 sm:p-6 border border-slate-200/90 hover:border-slate-300 shadow-xs transition-all space-y-4 relative group"
-                >
-                  {/* Card Header & Controls */}
-                  <div className="flex items-center justify-between gap-3 flex-wrap border-b border-slate-100 pb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-md bg-slate-900 text-white text-xs font-bold flex items-center justify-center shrink-0">
-                        {qIndex + 1}
-                      </span>
-                      <span className={cn('text-xs font-semibold px-2.5 py-0.5 rounded-full border flex items-center gap-1.5', typeCfg.accentBadge)}>
-                        <Icon size={13} weight="bold" />
-                        {typeCfg.label}
-                      </span>
-                    </div>
+                return (
+                  <div
+                    key={q.id}
+                    className="card p-4 sm:p-6 border border-slate-200/90 hover:border-slate-300 shadow-xs transition-all space-y-4 relative group"
+                  >
+                    {/* Card Header & Controls */}
+                    <div className="flex items-center justify-between gap-3 flex-wrap border-b border-slate-100 pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-md bg-slate-900 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                          {qIndex + 1}
+                        </span>
+
+                        {/* Interactive Question Type Dropdown Selector */}
+                        <div className="relative inline-flex items-center">
+                          <select
+                            value={q.type}
+                            onChange={e => changeQuestionType(qIndex, e.target.value as QuestionType)}
+                            className={cn(
+                              'text-xs font-semibold pl-2.5 pr-6 py-1 rounded-full border cursor-pointer appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all',
+                              typeCfg.accentBadge
+                            )}
+                            title="Click to change question type"
+                          >
+                            {QUESTION_TYPES.map(t => (
+                              <option key={t.type} value={t.type}>
+                                {t.label}
+                              </option>
+                            ))}
+                          </select>
+                          <div className="absolute right-2 pointer-events-none text-slate-400">
+                            <CaretDown size={11} weight="bold" />
+                          </div>
+                        </div>
+                      </div>
 
                     {/* Actions: Move, Duplicate, Delete, Required */}
                     <div className="flex items-center gap-2">
@@ -955,7 +1016,7 @@ export default function AdminNewSurveyPage() {
                   )}
                 </div>
               );
-            })}
+            }))}
           </div>
 
           {/* Bottom Add Question Shortcut Bar */}
