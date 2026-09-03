@@ -622,89 +622,10 @@ export default function AdminNewSurveyPage() {
          ══════════════════════════════════════════════════════════════════════ */}
       {currentStep === 2 && (
         <div className="space-y-6 animate-in fade-in duration-200">
-          {/* Question Type Palette / Floating Shelf */}
-          <div className="card p-4 sm:p-5 border border-indigo-100/80 bg-gradient-to-br from-indigo-50/60 via-white to-purple-50/40 shadow-xs space-y-3">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0">
-                  <Sparkle size={15} weight="fill" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">Add New Question</h3>
-                  <p className="text-xs text-slate-500">Pick any of the 5 question formats below to add to your survey</p>
-                </div>
-              </div>
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-800">
-                {questions.length} {questions.length === 1 ? 'Question' : 'Questions'} added
-              </span>
-            </div>
-
-            {/* The 5 Question Type Buttons */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
-              {QUESTION_TYPES.map(cfg => {
-                const Icon = cfg.icon;
-                return (
-                  <button
-                    key={cfg.type}
-                    type="button"
-                    onClick={() => addQuestion(cfg.type)}
-                    className={cn(
-                      'p-3 rounded-xl border bg-white text-left transition-all shadow-2xs hover:shadow-md active:scale-95 group cursor-pointer flex flex-col justify-between gap-2 border-slate-200/90',
-                      cfg.borderHover
-                    )}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br', cfg.gradient)}>
-                        <Icon size={18} weight="bold" />
-                      </div>
-                      <Plus size={14} className="text-slate-300 group-hover:text-indigo-600 transition-colors" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
-                        {cfg.label}
-                      </div>
-                      <p className="text-[10px] text-slate-400 leading-tight mt-0.5 line-clamp-2">
-                        {cfg.description}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* List of Question Cards */}
-          <div className="space-y-4">
-            {questions.length === 0 ? (
-              <div className="card p-8 sm:p-12 border-2 border-dashed border-slate-200 text-center space-y-4 bg-slate-50/60 rounded-2xl animate-in fade-in duration-200">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto shadow-2xs">
-                  <Sparkle size={24} weight="fill" />
-                </div>
-                <div className="max-w-md mx-auto">
-                  <h3 className="text-base font-bold text-slate-800">No questions in survey</h3>
-                  <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                    Select a question format below to add your first question:
-                  </p>
-                </div>
-                <div className="flex items-center justify-center gap-2 flex-wrap pt-2">
-                  {QUESTION_TYPES.map(cfg => {
-                    const TypeIcon = cfg.icon;
-                    return (
-                      <button
-                        key={cfg.type}
-                        type="button"
-                        onClick={() => addQuestion(cfg.type)}
-                        className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/50 shadow-2xs transition-all cursor-pointer active:scale-95"
-                      >
-                        <TypeIcon size={15} weight="bold" />
-                        <span>+ {cfg.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              questions.map((q, qIndex) => {
+          {/* List of Added Question Cards (Rendered above the Add Question Card) */}
+          {questions.length > 0 && (
+            <div className="space-y-4">
+              {questions.map((q, qIndex) => {
                 const typeCfg = QUESTION_TYPES.find(t => t.type === q.type) || QUESTION_TYPES[0];
                 const Icon = typeCfg.icon;
 
@@ -1020,33 +941,62 @@ export default function AdminNewSurveyPage() {
                   )}
                 </div>
               );
-            }))}
+            })}
+          </div>
+        )}
+
+        {/* Add Question Card (Always appears below added questions) */}
+        <div className="card p-4 sm:p-5 border border-indigo-100/80 bg-gradient-to-br from-indigo-50/60 via-white to-purple-50/40 shadow-xs space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                <Sparkle size={15} weight="fill" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">
+                  {questions.length === 0 ? 'Add Your First Question' : 'Add Question'}
+                </h3>
+                <p className="text-xs text-slate-500">Pick any of the 5 question formats below to add to your survey</p>
+              </div>
+            </div>
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-800">
+              {questions.length} {questions.length === 1 ? 'Question' : 'Questions'} added
+            </span>
           </div>
 
-          {/* Bottom Add Question Shortcut Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 p-3 sm:p-4 border-2 border-dashed border-slate-200/90 hover:border-indigo-300 rounded-2xl transition-all bg-slate-50/40">
-            <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5 shrink-0 select-none">
-              <Plus size={14} weight="bold" className="text-indigo-600" />
-              Add Question:
-            </span>
-            <div className="h-4 w-[1px] bg-slate-200 hidden sm:block shrink-0" />
-            <div className="flex items-center justify-center gap-2 sm:gap-2.5 flex-wrap">
-              {QUESTION_TYPES.map(cfg => {
-                const Icon = cfg.icon;
-                return (
-                  <button
-                    key={cfg.type}
-                    type="button"
-                    onClick={() => addQuestion(cfg.type)}
-                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/50 shadow-2xs transition-all cursor-pointer active:scale-95"
-                  >
-                    <Icon size={15} weight="bold" className="text-slate-500" />
-                    <span>+ {cfg.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+          {/* The 5 Question Type Buttons */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
+            {QUESTION_TYPES.map(cfg => {
+              const Icon = cfg.icon;
+              return (
+                <button
+                  key={cfg.type}
+                  type="button"
+                  onClick={() => addQuestion(cfg.type)}
+                  className={cn(
+                    'p-3 rounded-xl border bg-white text-left transition-all shadow-2xs hover:shadow-md active:scale-95 group cursor-pointer flex flex-col justify-between gap-2 border-slate-200/90',
+                    cfg.borderHover
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br', cfg.gradient)}>
+                      <Icon size={18} weight="bold" />
+                    </div>
+                    <Plus size={14} className="text-slate-300 group-hover:text-indigo-600 transition-colors" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
+                      {cfg.label}
+                    </div>
+                    <p className="text-[10px] text-slate-400 leading-tight mt-0.5 line-clamp-2">
+                      {cfg.description}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
+        </div>
 
           {/* Bottom Navigation & Save Controls */}
           <div className="card p-4 sm:p-5 border border-slate-200 flex items-center justify-between flex-wrap gap-3 bg-white/95 backdrop-blur-md sticky bottom-4 z-20 shadow-lg">
