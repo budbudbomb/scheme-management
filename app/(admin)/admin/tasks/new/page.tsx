@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, Check, Warning, Trash, ClipboardText, Checks } from '@phosphor-icons/react';
 import { usersApi } from '@/lib/api/users';
@@ -38,8 +38,12 @@ function inputCls(hasError?: boolean) {
   );
 }
 
-export default function NewTaskPage() {
+function NewTaskForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const querySurveyId = searchParams?.get('surveyId') || '';
+  const querySurveyName = searchParams?.get('surveyName') || '';
+
   const [users, setUsers] = useState<User[]>([]);
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
@@ -78,6 +82,37 @@ export default function NewTaskPage() {
     usersApi.list({ limit: 100 }).then(res => setUsers(res.items)).catch(console.error);
     surveysApi.list({ limit: 100 }).then(res => setSurveys(res.items)).catch(console.error);
   }, []);
+
+  // When coming directly from "Save & Allocate" in Survey: prefill & jump straight to Assignee step (Step 3)
+  useEffect(() => {
+    if (querySurveyId) {
+      setCameFromSurvey(true);
+      setIsSurveyToggle(true);
+      setValue('isSurveyTask', true, { shouldValidate: true });
+      setValue('surveyId', querySurveyId, { shouldValidate: true });
+      if (querySurveyName) {
+        setValue('name', querySurveyName, { shouldValidate: true });
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      const twoWeeks = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
+      setValue('startDate', today, { shouldValidate: true });
+      setValue('endDate', twoWeeks, { shouldValidate: true });
+      setValue('priority', 'medium', { shouldValidate: true });
+
+      // Fetch survey details to populate exact name and survey timeline dates
+      surveysApi.getById(querySurveyId).then(s => {
+        if (s) {
+          setValue('name', s.title, { shouldValidate: true });
+          if (s.startDate) setValue('startDate', s.startDate, { shouldValidate: true });
+          if (s.endDate) setValue('endDate', s.endDate, { shouldValidate: true });
+        }
+      }).catch(() => {});
+
+      // DIRECTLY take the user to the last step: selecting assignee!
+      setStep(3);
+    }
+  }, [querySurveyId, querySurveyName, setValue]);
 
   const filteredUsers = users.filter(u => {
     const matchesSearch = u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
@@ -256,12 +291,21 @@ export default function NewTaskPage() {
       {/* Header & Stepper UI - Frozen at top on mobile */}
       <div className="sticky top-0 z-20 bg-[hsl(var(--color-bg))] backdrop-blur-md pt-1 pb-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:static lg:bg-transparent lg:p-0 lg:m-0 space-y-2 border-b border-slate-200/70 lg:border-none shadow-2xs lg:shadow-none">
         <div className="flex items-center gap-3">
-          <Link href="/admin/tasks" className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
+          <Link
+            href={cameFromSurvey ? '/admin/surveys' : '/admin/tasks'}
+            className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors"
+          >
             <ArrowLeft size={18} />
           </Link>
           <div>
-            <h1 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">Create Task</h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Assign a task to one or more users across the state</p>
+            <h1 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">
+              {cameFromSurvey ? 'Allocate Survey Task' : 'Create Task'}
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+              {cameFromSurvey
+                ? `Deploy "${watchName || 'Survey'}" by selecting assignees below`
+                : 'Assign a task to one or more users across the state'}
+            </p>
           </div>
         </div>
 
@@ -456,9 +500,31 @@ export default function NewTaskPage() {
             </div>
           )}
 
-          {/* STEP 3: Select Assignees (Bulky header removed) */}
+          {/* STEP 3: ASSIGN USERS */}
           {step === 3 && (
             <div className="card p-5 space-y-4 animate-in fade-in duration-200">
+              {/* Survey context banner when allocated from survey */}
+              {cameFromSurvey && (
+                <div className="p-3 rounded-xl bg-purple-50 border border-purple-200/80 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-purple-600 text-white flex items-center justify-center shrink-0">
+                      <ClipboardText size={15} weight="bold" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-purple-900 truncate">
+                        {watchName || 'Survey Task'}
+                      </div>
+                      <div className="text-[11px] text-purple-700 truncate">
+                        Select assignees below to deploy this survey
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-200 text-purple-800 shrink-0">
+                    Survey
+                  </span>
+                </div>
+              )}
+
               {selectedUsers.length > 0 && (
                 <div className="space-y-1.5">
                   <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Assigned ({selectedUsers.length})</div>
@@ -569,6 +635,28 @@ export default function NewTaskPage() {
 
         {/* DESKTOP VIEW: 2-COLUMN DASHBOARD LAYOUT */}
         <div className="hidden lg:grid grid-cols-3 gap-6 items-start">
+          {/* Survey allocation banner on desktop when cameFromSurvey */}
+          {cameFromSurvey && (
+            <div className="col-span-3 card p-4 bg-purple-50/80 border border-purple-200/90 flex items-center justify-between gap-3 animate-in fade-in duration-200">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <ClipboardText size={20} weight="bold" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-purple-950">
+                    Allocating Survey: <span className="text-purple-700">{watchName || 'Field Survey'}</span>
+                  </h3>
+                  <p className="text-xs text-purple-700">
+                    Survey and schedule have been linked. Select assignees in the panel on the right to deploy this task.
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-purple-200 text-purple-800 shrink-0">
+                Direct Survey Allocation
+              </span>
+            </div>
+          )}
+
           <div className="col-span-2 space-y-6">
             <div className="card p-6 space-y-5">
               <h2 className="font-semibold text-slate-900 text-base pb-3 border-b border-slate-100">Task Details</h2>
@@ -740,7 +828,7 @@ export default function NewTaskPage() {
             </div>
 
             <div className="flex gap-3">
-              <Link href="/admin/tasks" className="flex-1 text-center py-2.5 rounded-[var(--radius)] text-sm font-medium border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors">
+              <Link href={cameFromSurvey ? '/admin/surveys' : '/admin/tasks'} className="flex-1 text-center py-2.5 rounded-[var(--radius)] text-sm font-medium border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors">
                 Cancel
               </Link>
               <button
@@ -750,12 +838,20 @@ export default function NewTaskPage() {
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-[var(--radius)] text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 btn-press disabled:opacity-60 transition-all shadow-xs"
               >
                 {isSubmitting && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                Create &amp; Assign Task
+                {cameFromSurvey ? 'Deploy Survey Task' : 'Create & Assign Task'}
               </button>
             </div>
           </div>
         </div>
       </form>
     </div>
+  );
+}
+
+export default function NewTaskPage() {
+  return (
+    <Suspense fallback={<div className="max-w-5xl mx-auto p-8 text-center text-slate-400">Loading task assignment...</div>}>
+      <NewTaskForm />
+    </Suspense>
   );
 }
