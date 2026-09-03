@@ -38,15 +38,23 @@ export const surveysApi = {
     try {
       return await post<Survey>('/surveys', data);
     } catch {
-      return {
-        id: `survey-new-${Date.now()}`,
+      const newSurvey: Survey = {
+        id: `survey-${Date.now()}`,
         title: data.title,
         description: data.description,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        participantsRequired: data.participantsRequired || 50,
+        responsesCount: 0,
+        status: data.status || 'active',
         questions: data.questions,
-        createdBy: { id: 'u-pc-01', name: 'You', role: 'pc' },
+        createdBy: { id: 'u-admin-01', name: 'Admin', role: 'admin' },
         isAllocatedAsTask: false,
         createdAt: new Date().toISOString(),
       };
+      MOCK_SURVEYS.unshift(newSurvey);
+      MOCK_PAGINATED_SURVEYS.total = MOCK_SURVEYS.length;
+      return newSurvey;
     }
   },
 

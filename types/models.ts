@@ -205,15 +205,29 @@ export interface ExitRequest {
   certificateUrl?: string;
 }
 
-// ── Survey ──────────────────────────────────────────────────
+export type QuestionType =
+  | 'single_choice'
+  | 'multiple_choice'
+  | 'likert_scale'
+  | 'rating_scale'
+  | 'dichotomous'
+  | 'descriptive';
 
-export type QuestionType = 'single_choice' | 'multiple_choice' | 'rating_scale' | 'dichotomous' | 'descriptive';
+export interface LikertConfig {
+  points: number;
+  lowLabel: string;
+  highLabel: string;
+  midLabel?: string;
+}
 
 export interface SurveyQuestion {
   id: string;
   type: QuestionType;
   question: string;
   options?: string[];
+  likertConfig?: LikertConfig;
+  dichotomousLabels?: [string, string];
+  placeholder?: string;
   required?: boolean;
 }
 
@@ -221,6 +235,11 @@ export interface Survey {
   id: string;
   title: string;
   description?: string;
+  startDate?: string;
+  endDate?: string;
+  participantsRequired?: number;
+  responsesCount?: number;
+  status?: 'draft' | 'active' | 'closed';
   questions?: SurveyQuestion[];
   createdBy: AssigneeRef;
   isAllocatedAsTask: boolean;
