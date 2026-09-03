@@ -1020,15 +1020,23 @@ export default function AdminNewSurveyPage() {
           </div>
 
           {/* Bottom Add Question Shortcut Bar */}
-          <div className="flex items-center justify-center p-3 border-2 border-dashed border-slate-200 hover:border-indigo-300 rounded-2xl transition-colors">
-            <button
-              type="button"
-              onClick={() => addQuestion('single_choice')}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
-            >
-              <Plus size={16} weight="bold" />
-              <span>Add Another Question</span>
-            </button>
+          <div className="flex items-center justify-center p-3 sm:p-4 border-2 border-dashed border-slate-200/90 hover:border-indigo-300 rounded-2xl transition-all bg-slate-50/40">
+            <div className="flex items-center justify-center gap-2 sm:gap-2.5 flex-wrap">
+              {QUESTION_TYPES.map(cfg => {
+                const Icon = cfg.icon;
+                return (
+                  <button
+                    key={cfg.type}
+                    type="button"
+                    onClick={() => addQuestion(cfg.type)}
+                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/50 shadow-2xs transition-all cursor-pointer active:scale-95"
+                  >
+                    <Icon size={15} weight="bold" className="text-slate-500" />
+                    <span>+ {cfg.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Bottom Navigation & Save Controls */}
