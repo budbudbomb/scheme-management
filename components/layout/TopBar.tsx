@@ -26,7 +26,7 @@ export default function TopBar({
   const [notifOpen, setNotifOpen] = useState(false);
 
   return (
-    <header className="h-16 border-b border-slate-200 bg-white flex items-center px-4 sm:px-6 gap-4 shrink-0 z-30">
+    <header className="h-16 border-b border-slate-200/90 bg-white flex items-center px-4 sm:px-6 gap-4 shrink-0 z-30 lg:rounded-t-2xl">
       {/* Mobile hamburger */}
       <button
         onClick={onMenuToggle}

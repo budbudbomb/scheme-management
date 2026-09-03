@@ -503,10 +503,10 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
             </button>
           </div>
 
-          {/* Frozen Bottom Navigation on Mobile for Step 0 */}
+          {/* Frozen Floating Bottom Navigation on Mobile for Step 0 */}
           {mounted && createPortal(
-            <div className="sm:hidden fixed bottom-[calc(52px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-4 py-2.5 shadow-lg">
-              <div className="flex items-center gap-2.5 max-w-lg mx-auto">
+            <div className="sm:hidden fixed bottom-[calc(72px+env(safe-area-inset-bottom,0px))] left-3 right-3 max-w-lg mx-auto z-50 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-2xl p-2.5 shadow-xl">
+              <div className="flex items-center gap-2.5">
                 {/* Light red circular X button */}
                 <button
                   type="button"
@@ -963,11 +963,11 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
           </div>
 
           {/* ══════════════════════════════════════════════════════════════════
-              FROZEN BOTTOM NAVIGATION ON MOBILE (ALWAYS VISIBLE ABOVE TAB BAR)
+              FROZEN FLOATING BOTTOM NAVIGATION ON MOBILE (ABOVE FLOATING TAB BAR)
              ══════════════════════════════════════════════════════════════════ */}
           {mounted && createPortal(
-            <div className="sm:hidden fixed bottom-[calc(52px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-4 py-2.5 shadow-lg">
-              <div className="flex items-center gap-2.5 max-w-lg mx-auto">
+            <div className="sm:hidden fixed bottom-[calc(72px+env(safe-area-inset-bottom,0px))] left-3 right-3 max-w-lg mx-auto z-50 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-2xl p-2.5 shadow-xl">
+              <div className="flex items-center gap-2.5">
                 <button
                   type="button"
                   onClick={handlePrevQuestion}
@@ -981,7 +981,7 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
                   <button
                     type="button"
                     onClick={handleNextQuestion}
-                    className="flex-1 py-3 px-5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 shadow-md flex items-center justify-center gap-2 cursor-pointer btn-press active:scale-98 transition-all"
+                    className="flex-1 py-3 px-5 rounded-full bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 shadow-md flex items-center justify-center gap-2 cursor-pointer btn-press active:scale-98 transition-all"
                   >
                     <span>Next Question</span>
                     <ArrowRight size={16} weight="bold" />
@@ -991,7 +991,7 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
                     type="button"
                     onClick={handleSubmitSurvey}
                     disabled={isSubmitting}
-                    className="flex-1 py-3 px-5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 shadow-md flex items-center justify-center gap-2 cursor-pointer btn-press active:scale-98 transition-all disabled:opacity-60"
+                    className="flex-1 py-3 px-5 rounded-full bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 shadow-md flex items-center justify-center gap-2 cursor-pointer btn-press active:scale-98 transition-all disabled:opacity-60"
                   >
                     {isSubmitting ? (
                       <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

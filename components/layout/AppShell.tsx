@@ -36,23 +36,25 @@ export default function AppShell({
     <ShellContext.Provider
       value={{ sidebarOpen, toggleSidebar: () => setSidebarOpen((v) => !v), role }}
     >
-      <div className="flex h-[100dvh] overflow-hidden bg-[hsl(var(--color-bg))]">
-        {/* Desktop sidebar */}
-        <Sidebar role={role} open={sidebarOpen} />
+      <div className="flex h-[100dvh] overflow-hidden bg-slate-100/80">
+        {/* Desktop floating sidebar container */}
+        <div className="hidden lg:flex p-3 pr-0 shrink-0">
+          <Sidebar role={role} open={sidebarOpen} />
+        </div>
 
-        {/* Main content area */}
-        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+        {/* Main content area (floating rounded canvas on desktop) */}
+        <div className="flex flex-col flex-1 min-w-0 overflow-hidden lg:m-3 lg:rounded-2xl lg:bg-white lg:border lg:border-slate-200/90 lg:shadow-xs">
           <TopBar role={role} onMenuToggle={() => setSidebarOpen((v) => !v)} />
 
           <main className="flex-1 overflow-y-auto">
-            <div className="p-4 sm:p-6 lg:p-8 page-enter pb-20 lg:pb-8">
+            <div className="p-4 sm:p-6 lg:p-8 page-enter pb-24 lg:pb-8">
               {children}
             </div>
           </main>
         </div>
       </div>
 
-      {/* Mobile bottom nav */}
+      {/* Mobile floating tab bar */}
       <BottomNav role={role} />
     </ShellContext.Provider>
   );

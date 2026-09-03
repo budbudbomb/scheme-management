@@ -786,10 +786,10 @@ function NewTaskForm() {
           </div>
         )}
 
-        {/* Frozen Bottom Navigation on Mobile (Always visible) */}
+        {/* Frozen Floating Bottom Navigation on Mobile (Above Floating Tab Bar) */}
         {mounted && createPortal(
-          <div className="lg:hidden fixed bottom-[calc(52px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-4 py-2.5 shadow-lg">
-            <div className="flex items-center gap-2.5 max-w-lg mx-auto">
+          <div className="lg:hidden fixed bottom-[calc(72px+env(safe-area-inset-bottom,0px))] left-3 right-3 max-w-lg mx-auto z-50 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-2xl p-2.5 shadow-xl">
+            <div className="flex items-center gap-2.5">
               {step > 0 && (
                 <button
                   type="button"

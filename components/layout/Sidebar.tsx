@@ -94,26 +94,26 @@ export default function Sidebar({
   return (
     <aside
       className={cn(
-        'hidden lg:flex flex-col h-full bg-slate-900 text-slate-300 sidebar-transition overflow-hidden shrink-0',
+        'hidden lg:flex flex-col h-full bg-slate-900 text-slate-300 sidebar-transition overflow-hidden shrink-0 rounded-2xl border border-slate-800 shadow-[0_12px_40px_-5px_rgba(0,0,0,0.4)] select-none',
         open ? 'w-[256px]' : 'w-[72px]'
       )}
     >
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 h-16 border-b border-slate-800 shrink-0">
-        <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
+      <div className="flex items-center gap-3 px-4 h-16 border-b border-slate-800/80 shrink-0">
+        <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0 shadow-sm">
           <ShieldCheck size={18} weight="fill" className="text-white" />
         </div>
         {open && (
           <div className="min-w-0">
-            <div className="text-white font-semibold text-sm leading-none">CMYP Portal</div>
-            <div className="text-slate-500 text-xs mt-0.5">MP Government</div>
+            <div className="text-white font-bold text-sm leading-none">CMYP Portal</div>
+            <div className="text-slate-400 text-xs mt-1 font-medium">MP Government</div>
           </div>
         )}
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4 scroll-hide">
-        <ul className="space-y-0.5 px-2">
+      <nav className="flex-1 overflow-y-auto py-3 scroll-hide">
+        <ul className="space-y-1 px-2.5">
           {navItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
             const Icon = item.icon;
@@ -123,11 +123,11 @@ export default function Sidebar({
                 <Link
                   href={item.href}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium',
-                    'transition-colors duration-150 tap-target',
+                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium',
+                    'transition-all duration-150 tap-target',
                     isActive
-                      ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-600/30'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                      ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 font-semibold shadow-2xs'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
                   )}
                   title={!open ? item.label : undefined}
                 >
@@ -135,7 +135,7 @@ export default function Sidebar({
                     size={20}
                     weight={isActive ? 'fill' : 'regular'}
                     className={cn(
-                      'shrink-0',
+                      'shrink-0 transition-colors',
                       isActive ? 'text-indigo-400' : 'text-slate-500'
                     )}
                   />
@@ -151,16 +151,16 @@ export default function Sidebar({
       </nav>
 
       {/* User section */}
-      <div className="border-t border-slate-800 p-3 shrink-0 space-y-1">
+      <div className="border-t border-slate-800/80 p-2.5 shrink-0 space-y-1 bg-slate-900/40">
         {/* User identity */}
         {open && user && (
-          <div className="flex items-center gap-3 px-2 py-2 mb-1">
-            <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+          <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl bg-slate-800/50 border border-slate-800/70 mb-1">
+            <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-2xs">
               {user.name?.slice(0, 1).toUpperCase() ?? 'U'}
             </div>
-            <div className="min-w-0">
-              <div className="text-white text-sm font-medium truncate">{user.name}</div>
-              <div className="text-slate-500 text-xs">{roleLabel(user.role)}</div>
+            <div className="min-w-0 flex-1">
+              <div className="text-white text-xs font-semibold truncate">{user.name}</div>
+              <div className="text-slate-400 text-[11px] truncate">{roleLabel(user.role)}</div>
             </div>
           </div>
         )}
@@ -169,14 +169,14 @@ export default function Sidebar({
         <button
           onClick={logout}
           className={cn(
-            'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm',
-            'text-slate-400 hover:text-rose-400 hover:bg-rose-900/20',
+            'w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium cursor-pointer',
+            'text-slate-400 hover:text-rose-400 hover:bg-rose-950/30',
             'transition-colors duration-150 tap-target'
           )}
           title={!open ? 'Sign out' : undefined}
         >
-          <SignOut size={20} className="shrink-0" />
-          {open && 'Sign out'}
+          <SignOut size={18} className="shrink-0" />
+          {open && <span>Sign out</span>}
         </button>
       </div>
     </aside>
