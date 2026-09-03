@@ -379,8 +379,14 @@ export default function AdminSurveysPage() {
 
                     {q.type === 'likert_scale' && (
                       <div className="pl-7 text-xs text-purple-700 font-medium">
-                        5-Point Scale: {q.likertConfig?.lowLabel || 'Strongly Disagree'} →{' '}
-                        {q.likertConfig?.highLabel || 'Strongly Agree'}
+                        5-Point Scale:{' '}
+                        {(q.likertConfig?.labels || [
+                          q.likertConfig?.lowLabel || 'Very Dissatisfied',
+                          'Dissatisfied',
+                          q.likertConfig?.midLabel || 'Neutral',
+                          'Satisfied',
+                          q.likertConfig?.highLabel || 'Very Satisfied',
+                        ]).join('  →  ')}
                       </div>
                     )}
 

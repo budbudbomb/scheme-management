@@ -215,9 +215,10 @@ export type QuestionType =
 
 export interface LikertConfig {
   points: number;
-  lowLabel: string;
-  highLabel: string;
+  lowLabel?: string;
+  highLabel?: string;
   midLabel?: string;
+  labels?: string[];
 }
 
 export interface SurveyQuestion {

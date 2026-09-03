@@ -93,22 +93,26 @@ const QUESTION_TYPES: QuestionTypeDef[] = [
   },
 ];
 
-const LIKERT_PRESETS: { label: string; config: LikertConfig }[] = [
-  {
-    label: 'Agreement (Strongly Disagree → Strongly Agree)',
-    config: { points: 5, lowLabel: 'Strongly Disagree', midLabel: 'Neutral', highLabel: 'Strongly Agree' },
-  },
+const LIKERT_PRESETS: { label: string; labels: string[] }[] = [
   {
     label: 'Satisfaction (Very Dissatisfied → Very Satisfied)',
-    config: { points: 5, lowLabel: 'Very Dissatisfied', midLabel: 'Neutral', highLabel: 'Very Satisfied' },
+    labels: ['Very Dissatisfied', 'Dissatisfied', 'Neutral', 'Satisfied', 'Very Satisfied'],
+  },
+  {
+    label: 'Agreement (Strongly Disagree → Strongly Agree)',
+    labels: ['Strongly Disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly Agree'],
   },
   {
     label: 'Quality / Effectiveness (Very Poor → Excellent)',
-    config: { points: 5, lowLabel: 'Very Poor', midLabel: 'Average', highLabel: 'Excellent' },
+    labels: ['Very Poor', 'Poor', 'Average', 'Good', 'Excellent'],
   },
   {
     label: 'Frequency (Never → Always)',
-    config: { points: 5, lowLabel: 'Never', midLabel: 'Sometimes', highLabel: 'Always' },
+    labels: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
+  },
+  {
+    label: 'Importance (Not Important → Very Important)',
+    labels: ['Not Important', 'Slightly Important', 'Moderately Important', 'Important', 'Very Important'],
   },
 ];
 
@@ -143,7 +147,13 @@ function makeInitialQuestion(type: QuestionType): SurveyQuestion {
         id,
         type,
         question: '',
-        likertConfig: { points: 5, lowLabel: 'Strongly Disagree', midLabel: 'Neutral', highLabel: 'Strongly Agree' },
+        likertConfig: {
+          points: 5,
+          lowLabel: 'Very Dissatisfied',
+          midLabel: 'Neutral',
+          highLabel: 'Very Satisfied',
+          labels: ['Very Dissatisfied', 'Dissatisfied', 'Neutral', 'Satisfied', 'Very Satisfied'],
+        },
         required: true,
       };
     case 'dichotomous':
@@ -857,100 +867,94 @@ export default function AdminNewSurveyPage() {
                   )}
 
                   {/* 3. LIKERT SCALE */}
-                  {q.type === 'likert_scale' && (
-                    <div className="p-4 rounded-xl bg-purple-50/40 border border-purple-100 space-y-4">
-                      {/* Preset selector */}
-                      <div className="flex items-center justify-between flex-wrap gap-2">
-                        <span className="text-xs font-bold text-purple-900 uppercase tracking-wider">
-                          Likert Scale Configuration (5 Points)
-                        </span>
-                        <select
-                          onChange={e => {
-                            const preset = LIKERT_PRESETS[parseInt(e.target.value)];
-                            if (preset) {
-                              updateQuestion(qIndex, { ...q, likertConfig: preset.config });
-                            }
-                          }}
-                          className="text-xs py-1 px-2.5 rounded-lg border border-purple-200 bg-white text-slate-700 focus:outline-none"
-                        >
-                          {LIKERT_PRESETS.map((p, pIdx) => (
-                            <option key={p.label} value={pIdx}>
-                              Preset: {p.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                  {q.type === 'likert_scale' && (() => {
+                    const currentLabels = q.likertConfig?.labels || [
+                      q.likertConfig?.lowLabel || 'Very Dissatisfied',
+                      'Dissatisfied',
+                      q.likertConfig?.midLabel || 'Neutral',
+                      'Satisfied',
+                      q.likertConfig?.highLabel || 'Very Satisfied',
+                    ];
 
-                      {/* Interactive Visual Scale Preview */}
-                      <div className="space-y-2">
-                        <div className="grid grid-cols-5 gap-2 text-center">
-                          {[1, 2, 3, 4, 5].map(num => (
-                            <div
-                              key={num}
-                              className="py-2.5 px-1 rounded-xl bg-white border border-purple-200/80 text-purple-800 font-bold text-xs shadow-2xs flex flex-col items-center gap-1"
-                            >
-                              <span className="text-sm">{num}</span>
-                              <span className="text-[10px] font-medium text-slate-500 leading-tight truncate w-full px-0.5">
-                                {num === 1
-                                  ? q.likertConfig?.lowLabel
-                                  : num === 3
-                                  ? q.likertConfig?.midLabel
-                                  : num === 5
-                                  ? q.likertConfig?.highLabel
-                                  : `Level ${num}`}
-                              </span>
-                            </div>
-                          ))}
+                    return (
+                      <div className="p-4 sm:p-5 rounded-2xl bg-purple-50/40 border border-purple-100 space-y-3.5">
+                        {/* Preset selector */}
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div>
+                            <span className="text-xs font-bold text-purple-900 uppercase tracking-wider block">
+                              Likert Scale Configuration (5 Points)
+                            </span>
+                            <span className="text-[11px] text-purple-600/80">
+                              Edit option names directly inside any of the 5 boxes below
+                            </span>
+                          </div>
+                          <select
+                            onChange={e => {
+                              const preset = LIKERT_PRESETS[parseInt(e.target.value)];
+                              if (preset) {
+                                updateQuestion(qIndex, {
+                                  ...q,
+                                  likertConfig: {
+                                    points: 5,
+                                    labels: [...preset.labels],
+                                    lowLabel: preset.labels[0],
+                                    midLabel: preset.labels[2],
+                                    highLabel: preset.labels[4],
+                                  },
+                                });
+                              }
+                            }}
+                            className="text-xs py-1.5 px-3 rounded-xl border border-purple-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs font-medium cursor-pointer"
+                          >
+                            {LIKERT_PRESETS.map((p, pIdx) => (
+                              <option key={p.label} value={pIdx}>
+                                Preset: {p.label}
+                              </option>
+                            ))}
+                          </select>
                         </div>
-                      </div>
 
-                      {/* Custom Anchor Labels */}
-                      <div className="grid grid-cols-3 gap-2.5 pt-1">
-                        <div>
-                          <label className="block text-[11px] font-semibold text-slate-600 mb-1">Point 1 (Low Anchor)</label>
-                          <input
-                            type="text"
-                            value={q.likertConfig?.lowLabel ?? 'Strongly Disagree'}
-                            onChange={e =>
-                              updateQuestion(qIndex, {
-                                ...q,
-                                likertConfig: { ...q.likertConfig!, lowLabel: e.target.value },
-                              })
-                            }
-                            className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-semibold text-slate-600 mb-1">Point 3 (Mid Anchor)</label>
-                          <input
-                            type="text"
-                            value={q.likertConfig?.midLabel ?? 'Neutral'}
-                            onChange={e =>
-                              updateQuestion(qIndex, {
-                                ...q,
-                                likertConfig: { ...q.likertConfig!, midLabel: e.target.value },
-                              })
-                            }
-                            className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-semibold text-slate-600 mb-1">Point 5 (High Anchor)</label>
-                          <input
-                            type="text"
-                            value={q.likertConfig?.highLabel ?? 'Strongly Agree'}
-                            onChange={e =>
-                              updateQuestion(qIndex, {
-                                ...q,
-                                likertConfig: { ...q.likertConfig!, highLabel: e.target.value },
-                              })
-                            }
-                            className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white"
-                          />
+                        {/* Directly Editable 5 Boxes */}
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                          {[0, 1, 2, 3, 4].map(idx => {
+                            const pointNumber = idx + 1;
+                            const label = currentLabels[idx] || '';
+
+                            return (
+                              <div
+                                key={pointNumber}
+                                className="p-3 rounded-xl bg-white border-2 border-purple-200/90 hover:border-purple-400 focus-within:border-purple-600 focus-within:ring-2 focus-within:ring-purple-100 transition-all shadow-2xs flex flex-col items-center gap-2 text-center"
+                              >
+                                <div className="w-7 h-7 rounded-full bg-purple-100 text-purple-700 font-extrabold text-xs flex items-center justify-center shrink-0 shadow-2xs">
+                                  {pointNumber}
+                                </div>
+                                <input
+                                  type="text"
+                                  value={label}
+                                  onChange={e => {
+                                    const updatedLabels = [...currentLabels];
+                                    updatedLabels[idx] = e.target.value;
+                                    updateQuestion(qIndex, {
+                                      ...q,
+                                      likertConfig: {
+                                        points: 5,
+                                        labels: updatedLabels,
+                                        lowLabel: updatedLabels[0],
+                                        midLabel: updatedLabels[2],
+                                        highLabel: updatedLabels[4],
+                                      },
+                                    });
+                                  }}
+                                  placeholder={`Point ${pointNumber}`}
+                                  className="w-full text-center text-xs font-semibold text-slate-800 placeholder:text-slate-400 bg-transparent border-b border-purple-100 hover:border-purple-300 focus:border-purple-600 focus:outline-none py-1 transition-colors"
+                                />
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* 4. DICHOTOMOUS (YES / NO) */}
                   {q.type === 'dichotomous' && (
@@ -1169,25 +1173,33 @@ export default function AdminNewSurveyPage() {
                     )}
 
                     {/* Likert scale preview */}
-                    {q.type === 'likert_scale' && (
-                      <div className="pl-5 space-y-1">
-                        <div className="grid grid-cols-5 gap-1.5 text-center">
-                          {[1, 2, 3, 4, 5].map(pt => (
-                            <button
-                              key={pt}
-                              type="button"
-                              className="py-2 px-1 rounded-xl border border-purple-200 text-xs font-bold text-purple-700 hover:bg-purple-600 hover:text-white transition-colors"
-                            >
-                              {pt}
-                            </button>
-                          ))}
+                    {q.type === 'likert_scale' && (() => {
+                      const labels = q.likertConfig?.labels || [
+                        q.likertConfig?.lowLabel || 'Very Dissatisfied',
+                        'Dissatisfied',
+                        q.likertConfig?.midLabel || 'Neutral',
+                        'Satisfied',
+                        q.likertConfig?.highLabel || 'Very Satisfied',
+                      ];
+                      return (
+                        <div className="pl-5 space-y-1.5">
+                          <div className="grid grid-cols-5 gap-1.5 text-center">
+                            {[1, 2, 3, 4, 5].map(pt => (
+                              <button
+                                key={pt}
+                                type="button"
+                                className="py-2 px-1 rounded-xl border border-purple-200 text-purple-700 hover:bg-purple-600 hover:text-white transition-colors flex flex-col items-center gap-1 group"
+                              >
+                                <span className="text-xs font-bold">{pt}</span>
+                                <span className="text-[10px] font-medium leading-tight line-clamp-2 text-slate-500 group-hover:text-white">
+                                  {labels[pt - 1]}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                        <div className="flex justify-between text-[10px] text-slate-400 font-medium px-1 pt-1">
-                          <span>{q.likertConfig?.lowLabel || 'Strongly Disagree'}</span>
-                          <span>{q.likertConfig?.highLabel || 'Strongly Agree'}</span>
-                        </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {/* Dichotomous preview */}
                     {q.type === 'dichotomous' && (
