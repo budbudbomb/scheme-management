@@ -419,42 +419,10 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          SCREEN 0: GENERAL & STAKEHOLDER DETAILS
+          SCREEN 0: STAKEHOLDER DETAILS
          ══════════════════════════════════════════════════════════════════════ */}
       {currentStepIndex === 0 && (
         <div className="space-y-6 animate-in fade-in duration-200">
-          {/* Survey General Details Banner */}
-          <div className="card p-5 sm:p-6 bg-white border border-slate-200/90 shadow-xs space-y-3">
-            <div className="flex items-start justify-between gap-3 flex-wrap">
-              <div>
-                <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider">
-                  Survey Overview
-                </span>
-                <h2 className="text-lg sm:text-xl font-bold text-slate-900 mt-0.5">
-                  {survey.title}
-                </h2>
-              </div>
-              <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                {totalQuestions} Question{totalQuestions !== 1 ? 's' : ''}
-              </span>
-            </div>
-
-            {survey.description && (
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                {survey.description}
-              </p>
-            )}
-
-            <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap text-xs text-slate-500">
-              <div className="flex items-center gap-1.5">
-                <CalendarBlank size={15} className="text-slate-400" />
-                <span>Active: {formatDate(survey.startDate || '')} – {formatDate(survey.endDate || '')}</span>
-              </div>
-              {survey.participantsRequired && (
-                <span>Target: {survey.participantsRequired} Respondents</span>
-              )}
-            </div>
-          </div>
 
           {/* Attached Documents if available */}
           {survey.documents && survey.documents.length > 0 && (
