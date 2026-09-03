@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Check, Warning, Trash, ClipboardText, Checks } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowRight, Check, Warning, Trash, ClipboardText, Checks, CheckCircle, CheckSquare } from '@phosphor-icons/react';
 import { usersApi } from '@/lib/api/users';
 import { tasksApi } from '@/lib/api/tasks';
 import { surveysApi } from '@/lib/api/surveys';
@@ -287,18 +287,18 @@ function NewTaskForm() {
   );
 
   return (
-    <div className="max-w-5xl mx-auto space-y-5 pb-36 lg:pb-8">
-      {/* Header & Stepper UI - Frozen at top on mobile */}
-      <div className="sticky top-0 z-20 bg-[hsl(var(--color-bg))] backdrop-blur-md pt-1 pb-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:static lg:bg-transparent lg:p-0 lg:m-0 space-y-2 border-b border-slate-200/70 lg:border-none shadow-2xs lg:shadow-none">
+    <div className="max-w-4xl mx-auto space-y-6 pb-36 lg:pb-12">
+      {/* Header & Stepper Container */}
+      <div className="sticky top-0 z-20 bg-[hsl(var(--color-bg))] backdrop-blur-md pt-1 pb-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:static lg:bg-transparent lg:p-0 lg:m-0 space-y-4 border-b border-slate-200/70 lg:border-none shadow-2xs lg:shadow-none">
         <div className="flex items-center gap-3">
           <Link
             href={cameFromSurvey ? '/admin/surveys' : '/admin/tasks'}
-            className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors"
+            className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
           >
             <ArrowLeft size={18} />
           </Link>
           <div>
-            <h1 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">
               {cameFromSurvey ? 'Allocate Survey Task' : 'Create Task'}
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
@@ -309,7 +309,7 @@ function NewTaskForm() {
           </div>
         </div>
 
-        {/* Mobile Stepper UI - Frozen right under header, NO small texts below */}
+        {/* Mobile Stepper UI - Frozen right under header */}
         <div className="block lg:hidden pt-0.5">
           <div className="flex items-center justify-between gap-1.5 px-0.5">
             {(cameFromSurvey || (step === 0 && isSurveyToggle)
@@ -332,472 +332,500 @@ function NewTaskForm() {
           </div>
         </div>
 
-        {/* Desktop Stepper UI (Visible on desktop) */}
-        <div className="hidden lg:block card p-3 bg-white/90 backdrop-blur-md shadow-xs border border-slate-200/80 mt-2">
-          <div className="flex items-center justify-between gap-3">
-            {(cameFromSurvey || (step === 0 && isSurveyToggle)
-              ? [
-                  { key: 0, num: 1, label: 'Survey Task', desc: watchName || 'Linked survey' },
-                  { key: 3, num: 2, label: 'Select Assignees', desc: `${selectedUsers.length} selected` },
-                ]
-              : [
-                  { key: 0, num: 1, label: 'Task Type', desc: isSurveyToggle ? 'Survey' : 'Standard task' },
-                  { key: 1, num: 2, label: 'Task Details', desc: watchName || 'Name & description' },
-                  { key: 2, num: 3, label: 'Schedule', desc: watchStartDate ? `${watchStartDate} to ${watchEndDate}` : 'Dates & priority' },
-                  { key: 3, num: 4, label: 'Select Assignees', desc: `${selectedUsers.length} selected` },
-                ]
-            ).map((s, idx, arr) => {
-              const isCompleted = step > s.key || (cameFromSurvey && step === 3 && s.key === 0);
-              const isActive = step === s.key;
-              const isClickable = isCompleted || isActive;
+        {/* Desktop Stepper UI - Clean Segmented Cards matching Survey Builder */}
+        <div
+          className="hidden lg:grid gap-3"
+          style={{
+            gridTemplateColumns: (cameFromSurvey || (step === 0 && isSurveyToggle))
+              ? 'repeat(2, minmax(0, 1fr))'
+              : 'repeat(4, minmax(0, 1fr))'
+          }}
+        >
+          {(cameFromSurvey || (step === 0 && isSurveyToggle)
+            ? [
+                { key: 0, num: 1, label: 'Survey Link', desc: watchName ? `Survey: ${watchName}` : 'Attach survey' },
+                { key: 3, num: 2, label: 'Select Assignees', desc: `${selectedUsers.length} selected` },
+              ]
+            : [
+                { key: 0, num: 1, label: 'Task Type', desc: isSurveyToggle ? 'Survey Task' : 'Standard Task' },
+                { key: 1, num: 2, label: 'Task Details', desc: watchName || 'Name & context' },
+                { key: 2, num: 3, label: 'Schedule', desc: watchStartDate && watchEndDate ? `${watchStartDate} – ${watchEndDate}` : 'Dates & priority' },
+                { key: 3, num: 4, label: 'Select Assignees', desc: `${selectedUsers.length} selected` },
+              ]
+          ).map((s) => {
+            const isCompleted = step > s.key || (cameFromSurvey && step === 3 && s.key === 0);
+            const isActive = step === s.key;
+            const isClickable = isCompleted || isActive;
 
-              return (
-                <div key={s.key} className="flex-1 flex items-center">
-                  <button
-                    type="button"
-                    disabled={!isClickable}
-                    onClick={() => {
-                      if (isClickable) setStep(s.key as any);
-                    }}
-                    className={cn(
-                      'flex items-center gap-3 p-2.5 rounded-xl transition-all text-left flex-1',
-                      isActive ? 'bg-indigo-50/90 border border-indigo-200/90 shadow-2xs' : '',
-                      isCompleted ? 'hover:bg-slate-50 cursor-pointer text-slate-700' : '',
-                      !isClickable ? 'opacity-40 cursor-not-allowed' : ''
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        'w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 transition-colors',
-                        isCompleted ? 'bg-emerald-600 text-white shadow-2xs' : '',
-                        isActive ? 'bg-indigo-600 text-white shadow-xs' : '',
-                        !isActive && !isCompleted ? 'bg-slate-100 text-slate-500' : ''
-                      )}
-                    >
-                      {isCompleted ? <Check size={14} weight="bold" /> : s.num}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold text-slate-900 truncate">
-                        {s.label}
-                      </div>
-                      <p className="text-[11px] text-slate-400 truncate mt-0.5">
-                        {s.desc}
-                      </p>
-                    </div>
-                  </button>
-
-                  {idx < arr.length - 1 && (
-                    <div className="w-5 flex items-center justify-center shrink-0">
-                      <div className={cn('h-0.5 w-full rounded-full', isCompleted ? 'bg-indigo-600' : 'bg-slate-200')} />
-                    </div>
+            return (
+              <button
+                key={s.key}
+                type="button"
+                disabled={!isClickable}
+                onClick={() => {
+                  if (isClickable) setStep(s.key as any);
+                }}
+                className={cn(
+                  'flex items-center gap-3 p-3.5 rounded-xl text-left transition-all border shadow-xs',
+                  isActive
+                    ? 'bg-indigo-50/70 border-indigo-300 text-indigo-950 font-semibold ring-1 ring-indigo-200'
+                    : isCompleted
+                    ? 'bg-white border-slate-200 hover:border-slate-300 text-slate-800 cursor-pointer hover:bg-slate-50/50'
+                    : 'bg-slate-50/60 border-slate-100 text-slate-400 opacity-60 cursor-not-allowed'
+                )}
+              >
+                <div
+                  className={cn(
+                    'w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 transition-colors',
+                    isActive
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : isCompleted
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'bg-slate-200 text-slate-500'
                   )}
+                >
+                  {isCompleted ? <Check size={14} weight="bold" /> : s.num}
                 </div>
-              );
-            })}
-          </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-bold truncate flex items-center gap-1.5 text-slate-900">
+                    <span>{s.label}</span>
+                    {isCompleted && <CheckCircle size={13} className="text-emerald-600 shrink-0" weight="fill" />}
+                  </div>
+                  <p className="text-[11px] text-slate-400 truncate mt-0.5">{s.desc}</p>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <form id="create-task-form" onSubmit={handleSubmit(onSubmit)}>
-        {/* UNIFIED STEPPER WIZARD (Both Desktop & Mobile) */}
-        <div className="max-w-3xl mx-auto space-y-4">
-          {/* STEP 0: "Is this a Survey Task?" */}
-          {step === 0 && (
-            <div className="card p-5 sm:p-7 space-y-5 animate-in fade-in duration-200">
-              <div className="flex items-center justify-between gap-4 py-1">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-11 h-11 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 shadow-2xs">
-                    <ClipboardText size={24} weight="bold" />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-bold text-slate-900 leading-tight">Is this a Survey Task?</h2>
-                    <p className="text-xs text-slate-500 mt-0.5">Toggle to attach an active survey questionnaire for field respondents</p>
-                  </div>
-                </div>
+      <form id="create-task-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* STEP 0: Task Type */}
+        {step === 0 && (
+          <div className="card p-6 sm:p-8 space-y-6 border border-slate-200/80 shadow-xs bg-white animate-in fade-in duration-200">
+            <div className="border-b border-slate-100 pb-4">
+              <h2 className="text-base sm:text-lg font-bold text-slate-900">Step 1: Task Type</h2>
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                Choose whether this task requires field officers to complete a survey questionnaire, or is a standard task.
+              </p>
+            </div>
 
-                {/* Toggle Switch */}
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={isSurveyToggle}
-                  onClick={() => {
-                    const next = !isSurveyToggle;
-                    setIsSurveyToggle(next);
-                    setValue('isSurveyTask', next, { shouldValidate: true });
-                    if (!next) {
-                      setValue('surveyId', '');
+            {/* Type Selection Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Standard Task Card */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSurveyToggle(false);
+                  setValue('isSurveyTask', false, { shouldValidate: true });
+                  setValue('surveyId', '');
+                  setSurveyError(false);
+                }}
+                className={cn(
+                  'p-5 rounded-xl border-2 text-left transition-all cursor-pointer flex items-start gap-4',
+                  !isSurveyToggle
+                    ? 'border-indigo-600 bg-indigo-50/40 shadow-xs ring-1 ring-indigo-200'
+                    : 'border-slate-200 hover:border-slate-300 bg-white'
+                )}
+              >
+                <div className={cn(
+                  'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+                  !isSurveyToggle ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-100 text-slate-500'
+                )}>
+                  <CheckSquare size={22} weight="bold" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-bold text-slate-900 text-sm">Standard Task</div>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Create a regular field assignment, documentation, inspection, or review task.
+                  </p>
+                </div>
+              </button>
+
+              {/* Survey Task Card */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSurveyToggle(true);
+                  setValue('isSurveyTask', true, { shouldValidate: true });
+                }}
+                className={cn(
+                  'p-5 rounded-xl border-2 text-left transition-all cursor-pointer flex items-start gap-4',
+                  isSurveyToggle
+                    ? 'border-purple-600 bg-purple-50/40 shadow-xs ring-1 ring-purple-200'
+                    : 'border-slate-200 hover:border-slate-300 bg-white'
+                )}
+              >
+                <div className={cn(
+                  'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+                  isSurveyToggle ? 'bg-purple-600 text-white shadow-xs' : 'bg-slate-100 text-slate-500'
+                )}>
+                  <ClipboardText size={22} weight="bold" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-bold text-slate-900 text-sm">Survey Task</div>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Deploy an active survey questionnaire for respondents to fill and submit directly.
+                  </p>
+                </div>
+              </button>
+            </div>
+
+            {/* If Survey Task is selected: Choose Survey dropdown */}
+            {isSurveyToggle && (
+              <div className="p-4 rounded-xl bg-purple-50/60 border border-purple-200/80 space-y-3 animate-in fade-in duration-200">
+                <label className="block text-sm font-bold text-purple-950">
+                  Select Survey Questionnaire <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  value={watchSurveyId}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setValue('surveyId', val, { shouldValidate: true });
+                    if (val) {
                       setSurveyError(false);
+                      const found = surveys.find(s => s.id === val);
+                      if (found) {
+                        setValue('name', found.title, { shouldValidate: true });
+                        if (found.startDate) setValue('startDate', found.startDate, { shouldValidate: true });
+                        if (found.endDate) setValue('endDate', found.endDate, { shouldValidate: true });
+                      }
                     }
                   }}
-                  className={cn(
-                    'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2',
-                    isSurveyToggle ? 'bg-purple-600' : 'bg-slate-200'
-                  )}
+                  className={inputCls(surveyError)}
                 >
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out',
-                      isSurveyToggle ? 'translate-x-5' : 'translate-x-0'
-                    )}
-                  />
-                </button>
-              </div>
-
-              {/* If Toggle is YES: Choose Survey dropdown */}
-              {isSurveyToggle && (
-                <div className="pt-4 border-t border-slate-100 space-y-3 animate-in fade-in duration-200">
-                  <label className="block text-sm font-semibold text-slate-800">
-                    Choose Survey <span className="text-rose-500">*</span>
-                  </label>
-                  <select
-                    value={watchSurveyId}
-                    onChange={e => {
-                      const val = e.target.value;
-                      setValue('surveyId', val, { shouldValidate: true });
-                      if (val) {
-                        setSurveyError(false);
-                        const found = surveys.find(s => s.id === val);
-                        if (found) {
-                          setValue('name', found.title, { shouldValidate: true });
-                          if (found.startDate) setValue('startDate', found.startDate, { shouldValidate: true });
-                          if (found.endDate) setValue('endDate', found.endDate, { shouldValidate: true });
-                        }
-                      }
-                    }}
-                    className={inputCls(surveyError)}
-                  >
-                    <option value="">Select an active survey to attach to this task…</option>
-                    {surveys.map(s => (
-                      <option key={s.id} value={s.id}>{s.title}</option>
-                    ))}
-                  </select>
-                  {surveyError && (
-                    <p className="text-xs text-rose-600 mt-1 flex items-center gap-1 font-medium">
-                      <Warning size={13} weight="bold" /> Please select a survey to proceed
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Desktop Inline Action Bar */}
-              <div className="hidden lg:flex items-center justify-between pt-4 border-t border-slate-100">
-                <Link
-                  href={cameFromSurvey ? '/admin/surveys' : '/admin/tasks'}
-                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors"
-                >
-                  Cancel
-                </Link>
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 shadow-md transition-all flex items-center gap-2 cursor-pointer btn-press"
-                >
-                  <span>{isSurveyToggle ? 'Next: Select Assignees' : 'Next: Task Details'}</span>
-                  <ArrowRight size={16} weight="bold" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 1: Task Name & Details */}
-          {step === 1 && (
-            <div className="card p-5 sm:p-7 space-y-5 animate-in fade-in duration-200">
-              <div className="border-b border-slate-100 pb-3">
-                <h2 className="text-base font-bold text-slate-900">Task Details</h2>
-                <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Provide a title and general field context</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Task Name <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. District Field Survey Q3"
-                  value={watchName}
-                  onChange={e => setValue('name', e.target.value, { shouldValidate: true })}
-                  className={inputCls(!!errors.name)}
-                />
-                {errors.name && (
-                  <p className="mt-1.5 text-xs text-rose-600 font-medium flex items-center gap-1">
-                    <Warning size={12} weight="bold" /> {errors.name.message}
+                  <option value="">Choose an active survey to attach…</option>
+                  {surveys.map(s => (
+                    <option key={s.id} value={s.id}>{s.title}</option>
+                  ))}
+                </select>
+                {surveyError && (
+                  <p className="text-xs text-rose-600 mt-1 flex items-center gap-1 font-semibold">
+                    <Warning size={13} weight="bold" /> Please choose a survey to proceed
                   </p>
                 )}
               </div>
+            )}
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Description (optional)
-                </label>
-                <textarea
-                  rows={4}
-                  placeholder="Add detailed task instructions, target requirements, or field directions…"
-                  value={watchDescription}
-                  onChange={e => setValue('description', e.target.value, { shouldValidate: true })}
-                  className={cn(inputCls(), 'resize-none')}
-                />
-              </div>
-
-              {/* Desktop Inline Action Bar */}
-              <div className="hidden lg:flex items-center justify-between pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center gap-2 cursor-pointer"
-                >
-                  <ArrowLeft size={16} weight="bold" />
-                  <span>Back</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 shadow-md transition-all flex items-center gap-2 cursor-pointer btn-press"
-                >
-                  <span>Next: Schedule &amp; Priority</span>
-                  <ArrowRight size={16} weight="bold" />
-                </button>
-              </div>
+            {/* Desktop Inline Action Bar */}
+            <div className="hidden lg:flex items-center justify-between pt-5 border-t border-slate-100">
+              <Link
+                href={cameFromSurvey ? '/admin/surveys' : '/admin/tasks'}
+                className="px-5 py-2.5 rounded-[var(--radius)] border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </Link>
+              <button
+                type="button"
+                onClick={handleNext}
+                className="px-6 py-2.5 rounded-[var(--radius)] bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 btn-press transition-all shadow-xs flex items-center gap-2 cursor-pointer"
+              >
+                <span>{isSurveyToggle ? 'Next: Select Assignees' : 'Next: Task Details'}</span>
+                <ArrowRight size={16} weight="bold" />
+              </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* STEP 2: Timeline & Priority */}
-          {step === 2 && (
-            <div className="card p-5 sm:p-7 space-y-5 animate-in fade-in duration-200">
-              <div className="border-b border-slate-100 pb-3">
-                <h2 className="text-base font-bold text-slate-900">Schedule &amp; Priority</h2>
-                <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Set the active timeframe and urgency level</p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                    Priority <span className="text-rose-500">*</span>
-                  </label>
-                  <select
-                    value={watchPriority}
-                    onChange={e => setValue('priority', e.target.value as any, { shouldValidate: true })}
-                    className={inputCls()}
-                  >
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                    Start Date <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={watchStartDate}
-                    onChange={e => setValue('startDate', e.target.value, { shouldValidate: true })}
-                    className={inputCls(!!errors.startDate)}
-                  />
-                  {errors.startDate && <p className="mt-1 text-xs text-rose-600">{errors.startDate.message}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                    End Date <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={watchEndDate}
-                    onChange={e => setValue('endDate', e.target.value, { shouldValidate: true })}
-                    className={inputCls(!!errors.endDate)}
-                  />
-                  {errors.endDate && <p className="mt-1 text-xs text-rose-600">{errors.endDate.message}</p>}
-                </div>
-              </div>
-
-              {/* Desktop Inline Action Bar */}
-              <div className="hidden lg:flex items-center justify-between pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center gap-2 cursor-pointer"
-                >
-                  <ArrowLeft size={16} weight="bold" />
-                  <span>Back</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 shadow-md transition-all flex items-center gap-2 cursor-pointer btn-press"
-                >
-                  <span>Next: Select Assignees</span>
-                  <ArrowRight size={16} weight="bold" />
-                </button>
-              </div>
+        {/* STEP 1: Task Details */}
+        {step === 1 && (
+          <div className="card p-6 sm:p-8 space-y-6 border border-slate-200/80 shadow-xs bg-white animate-in fade-in duration-200">
+            <div className="border-b border-slate-100 pb-4">
+              <h2 className="text-base sm:text-lg font-bold text-slate-900">Step 2: Task Details</h2>
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Provide a clear task title and contextual instructions for assignees</p>
             </div>
-          )}
 
-          {/* STEP 3: ASSIGN USERS */}
-          {step === 3 && (
-            <div className="card p-5 sm:p-7 space-y-5 animate-in fade-in duration-200">
-              {/* Survey context banner when allocated from survey */}
-              {(cameFromSurvey || isSurveyTask) && (
-                <div className="p-4 rounded-xl bg-purple-50/90 border border-purple-200/90 flex items-center justify-between gap-3 flex-wrap">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-                      <ClipboardText size={20} weight="bold" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-sm font-bold text-purple-950 truncate">
-                        Survey: {watchName || 'Field Survey Task'}
-                      </div>
-                      <div className="text-xs text-purple-700 truncate mt-0.5">
-                        Select assignees below to deploy this questionnaire across field teams
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-purple-200 text-purple-800 shrink-0">
-                    Survey Task
-                  </span>
-                </div>
-              )}
-
-              <div className="border-b border-slate-100 pb-3 flex items-center justify-between flex-wrap gap-2">
-                <div>
-                  <h2 className="text-base font-bold text-slate-900">Select Assignees</h2>
-                  <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-                    Assign this task to Interns, Fellows, or Program Coordinators
-                  </p>
-                </div>
-                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
-                  {selectedUsers.length} Selected
-                </span>
-              </div>
-
-              {selectedUsers.length > 0 && (
-                <div className="space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200/70">
-                  <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Assigned Users ({selectedUsers.length})</div>
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {selectedUsers.map(u => (
-                      <span key={u.id} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-indigo-200 text-indigo-800 text-xs font-semibold shadow-2xs">
-                        {u.name}
-                        <button type="button" onClick={() => removeUser(u.id)} className="text-indigo-400 hover:text-rose-600 transition-colors cursor-pointer">
-                          <Trash size={13} />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {renderRoleFiltersAndBulkActions()}
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Search Assignees</label>
-                <input
-                  type="search"
-                  placeholder="Search by name or email…"
-                  value={userSearch}
-                  onChange={e => setUserSearch(e.target.value)}
-                  className={inputCls()}
-                />
-              </div>
-
-              {/* Assignee list with Checkboxes */}
-              <div className="max-h-[320px] overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-white">
-                {filteredUsers.slice(0, 40).map(u => {
-                  const isAdded = !!selectedUsers.find(s => s.id === u.id);
-                  return (
-                    <label
-                      key={u.id}
-                      className={cn(
-                        'w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors cursor-pointer select-none',
-                        isAdded ? 'bg-indigo-50/70 text-indigo-900 font-medium' : 'hover:bg-slate-50 text-slate-700'
-                      )}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isAdded}
-                        onChange={() => toggleUser(u)}
-                        className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
-                      />
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-xs font-bold shrink-0">
-                        {u.name.slice(0, 1).toUpperCase()}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="font-medium truncate text-slate-900">{u.name}</div>
-                        <div className="text-xs text-slate-400">{roleLabel(u.role)}</div>
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-
-              {errors.assignedToIds && (
-                <p className="text-xs text-rose-600 font-medium flex items-center gap-1">
-                  <Warning size={13} weight="bold" /> {errors.assignedToIds.message}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                Task Name <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. District Field Survey Q3"
+                value={watchName}
+                onChange={e => setValue('name', e.target.value, { shouldValidate: true })}
+                className={inputCls(!!errors.name)}
+              />
+              {errors.name && (
+                <p className="mt-1.5 text-xs text-rose-600 font-medium flex items-center gap-1">
+                  <Warning size={12} weight="bold" /> {errors.name.message}
                 </p>
               )}
+            </div>
 
-              {/* Desktop Inline Action Bar */}
-              <div className="hidden lg:flex items-center justify-between pt-4 border-t border-slate-100">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                Description (optional)
+              </label>
+              <textarea
+                rows={4}
+                placeholder="Add detailed task instructions, target requirements, or field directions…"
+                value={watchDescription}
+                onChange={e => setValue('description', e.target.value, { shouldValidate: true })}
+                className={cn(inputCls(), 'resize-none')}
+              />
+            </div>
+
+            {/* Desktop Inline Action Bar */}
+            <div className="hidden lg:flex items-center justify-between pt-5 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={handleBack}
+                className="px-5 py-2.5 rounded-[var(--radius)] border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors flex items-center gap-2 cursor-pointer"
+              >
+                <ArrowLeft size={16} weight="bold" />
+                <span>Back</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleNext}
+                className="px-6 py-2.5 rounded-[var(--radius)] bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 btn-press transition-all shadow-xs flex items-center gap-2 cursor-pointer"
+              >
+                <span>Next: Schedule &amp; Priority</span>
+                <ArrowRight size={16} weight="bold" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 2: Timeline & Priority */}
+        {step === 2 && (
+          <div className="card p-6 sm:p-8 space-y-6 border border-slate-200/80 shadow-xs bg-white animate-in fade-in duration-200">
+            <div className="border-b border-slate-100 pb-4">
+              <h2 className="text-base sm:text-lg font-bold text-slate-900">Step 3: Schedule &amp; Priority</h2>
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Define the active timeline window and urgency level for completion</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                  Priority <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  value={watchPriority}
+                  onChange={e => setValue('priority', e.target.value as any, { shouldValidate: true })}
+                  className={inputCls()}
+                >
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                  Start Date <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={watchStartDate}
+                  onChange={e => setValue('startDate', e.target.value, { shouldValidate: true })}
+                  className={inputCls(!!errors.startDate)}
+                />
+                {errors.startDate && <p className="mt-1 text-xs text-rose-600">{errors.startDate.message}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                  End Date <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={watchEndDate}
+                  onChange={e => setValue('endDate', e.target.value, { shouldValidate: true })}
+                  className={inputCls(!!errors.endDate)}
+                />
+                {errors.endDate && <p className="mt-1 text-xs text-rose-600">{errors.endDate.message}</p>}
+              </div>
+            </div>
+
+            {/* Desktop Inline Action Bar */}
+            <div className="hidden lg:flex items-center justify-between pt-5 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={handleBack}
+                className="px-5 py-2.5 rounded-[var(--radius)] border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors flex items-center gap-2 cursor-pointer"
+              >
+                <ArrowLeft size={16} weight="bold" />
+                <span>Back</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleNext}
+                className="px-6 py-2.5 rounded-[var(--radius)] bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 btn-press transition-all shadow-xs flex items-center gap-2 cursor-pointer"
+              >
+                <span>Next: Select Assignees</span>
+                <ArrowRight size={16} weight="bold" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 3: ASSIGN USERS */}
+        {step === 3 && (
+          <div className="card p-6 sm:p-8 space-y-6 border border-slate-200/80 shadow-xs bg-white animate-in fade-in duration-200">
+            {/* Survey context banner when allocated from survey */}
+            {(cameFromSurvey || isSurveyTask) && (
+              <div className="p-4 rounded-xl bg-purple-50/90 border border-purple-200 flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                    <ClipboardText size={20} weight="bold" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-bold text-purple-950 truncate">
+                      Survey: {watchName || 'Field Survey Task'}
+                    </div>
+                    <div className="text-xs text-purple-700 truncate mt-0.5">
+                      Select assignees below to deploy this questionnaire across field teams
+                    </div>
+                  </div>
+                </div>
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-200 text-purple-800 shrink-0">
+                  Survey Task
+                </span>
+              </div>
+            )}
+
+            <div className="border-b border-slate-100 pb-4 flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <h2 className="text-base sm:text-lg font-bold text-slate-900">
+                  {cameFromSurvey || isSurveyTask ? 'Step 2: Select Assignees' : 'Step 4: Select Assignees'}
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                  Assign this task to Interns, Fellows, or Program Coordinators across districts
+                </p>
+              </div>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                {selectedUsers.length} Selected
+              </span>
+            </div>
+
+            {selectedUsers.length > 0 && (
+              <div className="space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200/70">
+                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Assigned Users ({selectedUsers.length})</div>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {selectedUsers.map(u => (
+                    <span key={u.id} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-indigo-200 text-indigo-800 text-xs font-semibold shadow-2xs">
+                      {u.name}
+                      <button type="button" onClick={() => removeUser(u.id)} className="text-indigo-400 hover:text-rose-600 transition-colors cursor-pointer">
+                        <Trash size={13} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {renderRoleFiltersAndBulkActions()}
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Search Assignees</label>
+              <input
+                type="search"
+                placeholder="Search by name or email…"
+                value={userSearch}
+                onChange={e => setUserSearch(e.target.value)}
+                className={inputCls()}
+              />
+            </div>
+
+            {/* Assignee list with Checkboxes */}
+            <div className="max-h-[340px] overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-white">
+              {filteredUsers.slice(0, 50).map(u => {
+                const isAdded = !!selectedUsers.find(s => s.id === u.id);
+                return (
+                  <label
+                    key={u.id}
+                    className={cn(
+                      'w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors cursor-pointer select-none',
+                      isAdded ? 'bg-indigo-50/70 text-indigo-900 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                    )}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isAdded}
+                      onChange={() => toggleUser(u)}
+                      className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
+                    />
+                    <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-xs font-bold shrink-0">
+                      {u.name.slice(0, 1).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium truncate text-slate-900">{u.name}</div>
+                      <div className="text-xs text-slate-400">{roleLabel(u.role)}</div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+
+            {errors.assignedToIds && (
+              <p className="text-xs text-rose-600 font-medium flex items-center gap-1">
+                <Warning size={13} weight="bold" /> {errors.assignedToIds.message}
+              </p>
+            )}
+
+            {/* Desktop Inline Action Bar */}
+            <div className="hidden lg:flex items-center justify-between pt-5 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={handleBack}
+                className="px-5 py-2.5 rounded-[var(--radius)] border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors flex items-center gap-2 cursor-pointer"
+              >
+                <ArrowLeft size={16} weight="bold" />
+                <span>Back</span>
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-7 py-2.5 rounded-[var(--radius)] bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 btn-press transition-all shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-60"
+              >
+                {isSubmitting && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                <span>{cameFromSurvey || isSurveyTask ? 'Deploy Survey Task' : 'Create & Assign Task'}</span>
+                <Check size={16} weight="bold" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Frozen Bottom Navigation on Mobile (Always visible) */}
+        {mounted && createPortal(
+          <div className="lg:hidden fixed bottom-[calc(52px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-4 py-2.5 shadow-lg">
+            <div className="flex items-center gap-2.5 max-w-lg mx-auto">
+              {step > 0 && (
                 <button
                   type="button"
                   onClick={handleBack}
-                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center gap-2 cursor-pointer"
+                  className="w-11 h-11 rounded-full border border-slate-200 bg-white text-slate-700 flex items-center justify-center shrink-0 shadow-xs hover:bg-slate-50 cursor-pointer active:scale-95 transition-transform"
+                  aria-label="Previous step"
                 >
-                  <ArrowLeft size={16} weight="bold" />
-                  <span>Back</span>
+                  <ArrowLeft size={18} weight="bold" />
                 </button>
+              )}
+
+              {step === 3 ? (
                 <button
                   type="submit"
+                  form="create-task-form"
+                  id="mobile-create-task-submit"
                   disabled={isSubmitting}
-                  className="px-7 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 shadow-md transition-all flex items-center gap-2 cursor-pointer btn-press disabled:opacity-60"
+                  className="flex-1 h-11 px-6 rounded-full bg-indigo-600 text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-md hover:bg-indigo-700 btn-press transition-colors disabled:opacity-60 cursor-pointer"
                 >
-                  {isSubmitting && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                  <span>{cameFromSurvey || isSurveyTask ? 'Deploy Survey Task' : 'Create & Assign Task'}</span>
+                  {isSubmitting ? 'Saving...' : cameFromSurvey || isSurveyTask ? 'Deploy Survey Task' : 'Save & Assign Task'}
                   <Check size={16} weight="bold" />
                 </button>
-              </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="flex-1 h-11 px-6 rounded-full bg-indigo-600 text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-md hover:bg-indigo-700 btn-press transition-colors cursor-pointer"
+                >
+                  <span>Next Step</span>
+                  <ArrowRight size={16} weight="bold" />
+                </button>
+              )}
             </div>
-          )}
-
-          {/* Frozen Bottom Navigation on Mobile (Always visible) */}
-          {mounted && createPortal(
-            <div className="lg:hidden fixed bottom-[calc(52px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-4 py-2.5 shadow-lg">
-              <div className="flex items-center gap-2.5 max-w-lg mx-auto">
-                {step > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleBack}
-                    className="w-11 h-11 rounded-full border border-slate-200 bg-white text-slate-700 flex items-center justify-center shrink-0 shadow-xs hover:bg-slate-50 cursor-pointer active:scale-95 transition-transform"
-                    aria-label="Previous step"
-                  >
-                    <ArrowLeft size={18} weight="bold" />
-                  </button>
-                )}
-
-                {step === 3 ? (
-                  <button
-                    type="submit"
-                    form="create-task-form"
-                    id="mobile-create-task-submit"
-                    disabled={isSubmitting}
-                    className="flex-1 h-11 px-6 rounded-full bg-indigo-600 text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-md hover:bg-indigo-700 btn-press transition-colors disabled:opacity-60 cursor-pointer"
-                  >
-                    {isSubmitting ? 'Saving...' : cameFromSurvey || isSurveyTask ? 'Deploy Survey Task' : 'Save & Assign Task'}
-                    <Check size={16} weight="bold" />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleNext}
-                    className="flex-1 h-11 px-6 rounded-full bg-indigo-600 text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-md hover:bg-indigo-700 btn-press transition-colors cursor-pointer"
-                  >
-                    <span>Next Step</span>
-                    <ArrowRight size={16} weight="bold" />
-                  </button>
-                )}
-              </div>
-            </div>,
-            document.body
-          )}
-        </div>
+          </div>,
+          document.body
+        )}
       </form>
     </div>
   );
