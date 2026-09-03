@@ -662,27 +662,6 @@ function NewTaskForm() {
         {/* STEP 3: ASSIGN USERS */}
         {step === 3 && (
           <div className="card p-6 sm:p-8 space-y-6 border border-slate-200/80 shadow-xs bg-white animate-in fade-in duration-200">
-            {/* Survey context banner when allocated from survey */}
-            {(cameFromSurvey || isSurveyTask) && (
-              <div className="p-4 rounded-xl bg-purple-50/90 border border-purple-200 flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-                    <ClipboardText size={20} weight="bold" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-sm font-bold text-purple-950 truncate">
-                      Survey: {watchName || 'Field Survey Task'}
-                    </div>
-                    <div className="text-xs text-purple-700 truncate mt-0.5">
-                      Select assignees below to deploy this questionnaire across field teams
-                    </div>
-                  </div>
-                </div>
-                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-200 text-purple-800 shrink-0">
-                  Survey Task
-                </span>
-              </div>
-            )}
 
             <div className="border-b border-slate-100 pb-4 flex items-center justify-between flex-wrap gap-2">
               <div>
