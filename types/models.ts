@@ -257,10 +257,18 @@ export interface Survey {
   createdAt: string;
 }
 
+export interface StakeholderDetails {
+  fullName: string;
+  contactInfo?: string;
+  district?: string;
+  notes?: string;
+}
+
 export interface SurveyResponse {
   id: string;
   surveyId: string;
   respondent: AssigneeRef;
+  stakeholder?: StakeholderDetails;
   answers: Record<string, string | string[] | number>;
   submittedAt: string;
   fileUrls?: string[];

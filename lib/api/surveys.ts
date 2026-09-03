@@ -1,5 +1,5 @@
 import { get, post, postFormData } from './client';
-import type { Survey, SurveyResponse } from '@/types/models';
+import type { Survey, SurveyResponse, StakeholderDetails } from '@/types/models';
 import { MOCK_PAGINATED_SURVEYS, MOCK_SURVEYS } from './mockData';
 
 export interface SurveysQuery {
@@ -60,8 +60,39 @@ export const surveysApi = {
   },
 
 
-  submitResponse: (surveyId: string, formData: FormData) =>
-    postFormData<SurveyResponse>(`/surveys/${surveyId}/respond`, formData),
+  submitResponse: async (
+    surveyId: string,
+    data: { stakeholder: StakeholderDetails; answers: Record<string, string | string[] | number> } | FormData
+  ): Promise<SurveyResponse> => {
+    try {
+      if (data instanceof FormData) {
+        return await postFormData<SurveyResponse>(`/surveys/${surveyId}/respond`, data);
+      }
+      return await post<SurveyResponse>(`/surveys/${surveyId}/respond`, data);
+    } catch {
+      // Mock fallback
+      const survey = MOCK_SURVEYS.find(s => s.id === surveyId);
+      if (survey) {
+        survey.responsesCount = (survey.responsesCount || 0) + 1;
+      }
+      const isFormData = data instanceof FormData;
+      const stakeholder: StakeholderDetails = isFormData ? {
+        fullName: data.get('stakeholderFullName')?.toString() || 'Respondent',
+        contactInfo: data.get('stakeholderContactInfo')?.toString() || undefined,
+      } : data.stakeholder;
+
+      const answers = isFormData ? {} : data.answers;
+
+      return {
+        id: `resp-${Date.now()}`,
+        surveyId,
+        respondent: { id: 'u-curr-01', name: 'Field Officer', role: 'intern' },
+        stakeholder,
+        answers,
+        submittedAt: new Date().toISOString(),
+      };
+    }
+  },
 
   getResponses: (surveyId: string, params?: { respondentId?: string; page?: number }) =>
     get<{ items: SurveyResponse[]; total: number }>(`/surveys/${surveyId}/responses`, params as Record<string, unknown>),

@@ -596,10 +596,10 @@ export default function AdminNewSurveyPage() {
               )}
             </div>
 
-            {/* Timeline: Start Date & End Date */}
-            <div className="grid sm:grid-cols-2 gap-4">
+            {/* Timeline: Start Date & End Date (Single row on all screens) */}
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label className="block text-sm font-semibold text-slate-800 mb-1.5">
+                <label className="block text-xs sm:text-sm font-semibold text-slate-800 mb-1.5">
                   Start Date <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
@@ -611,7 +611,7 @@ export default function AdminNewSurveyPage() {
                       if (step1Errors.startDate) setStep1Errors(prev => ({ ...prev, startDate: '' }));
                     }}
                     className={cn(
-                      'w-full px-4 py-2.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all',
+                      'w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border bg-white text-slate-900 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all',
                       step1Errors.startDate ? 'border-rose-400' : 'border-slate-200 hover:border-slate-300'
                     )}
                   />
@@ -624,7 +624,7 @@ export default function AdminNewSurveyPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-800 mb-1.5">
+                <label className="block text-xs sm:text-sm font-semibold text-slate-800 mb-1.5">
                   End Date <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
@@ -636,7 +636,7 @@ export default function AdminNewSurveyPage() {
                       if (step1Errors.endDate) setStep1Errors(prev => ({ ...prev, endDate: '' }));
                     }}
                     className={cn(
-                      'w-full px-4 py-2.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all',
+                      'w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border bg-white text-slate-900 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all',
                       step1Errors.endDate ? 'border-rose-400' : 'border-slate-200 hover:border-slate-300'
                     )}
                   />

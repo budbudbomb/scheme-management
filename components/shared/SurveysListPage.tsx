@@ -13,9 +13,10 @@ import Link from 'next/link';
 interface SurveysPageProps {
   canCreate?: boolean;
   createPath?: string;
+  fillPathPrefix?: string;
 }
 
-export default function SurveysListPage({ canCreate = false, createPath = '' }: SurveysPageProps) {
+export default function SurveysListPage({ canCreate = false, createPath = '', fillPathPrefix = '/surveys' }: SurveysPageProps) {
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,7 +102,7 @@ export default function SurveysListPage({ canCreate = false, createPath = '' }: 
                   </Link>
                 ) : (
                   <Link
-                    href={`/intern/surveys/${survey.id}`}
+                    href={`${fillPathPrefix}/${survey.id}`}
                     className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-[var(--radius-sm)] hover:bg-emerald-700"
                   >
                     Fill Survey
