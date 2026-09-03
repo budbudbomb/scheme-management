@@ -604,21 +604,6 @@ function NewTaskForm() {
               </span>
             </div>
 
-            {selectedUsers.length > 0 && (
-              <div className="space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200/70">
-                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Assigned Users ({selectedUsers.length})</div>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {selectedUsers.map(u => (
-                    <span key={u.id} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-indigo-200 text-indigo-800 text-xs font-semibold shadow-2xs">
-                      {u.name}
-                      <button type="button" onClick={() => removeUser(u.id)} className="text-indigo-400 hover:text-rose-600 transition-colors cursor-pointer">
-                        <Trash size={13} />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* ── Modern Unified Assignee Control Toolbar ── */}
             <div className="space-y-3.5 pt-1">
