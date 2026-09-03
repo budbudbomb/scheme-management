@@ -232,6 +232,15 @@ export interface SurveyQuestion {
   required?: boolean;
 }
 
+export interface SurveyDocument {
+  id: string;
+  name: string;
+  size: string;
+  type?: string;
+  url?: string;
+  uploadedAt?: string;
+}
+
 export interface Survey {
   id: string;
   title: string;
@@ -242,6 +251,7 @@ export interface Survey {
   responsesCount?: number;
   status?: 'draft' | 'active' | 'closed';
   questions?: SurveyQuestion[];
+  documents?: SurveyDocument[];
   createdBy: AssigneeRef;
   isAllocatedAsTask: boolean;
   createdAt: string;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -29,10 +29,14 @@ import {
   CheckCircle,
   X,
   CaretDown,
+  UploadSimple,
+  FileText,
+  Paperclip,
+  File,
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils/formatters';
 import { surveysApi } from '@/lib/api/surveys';
-import type { QuestionType, SurveyQuestion, LikertConfig } from '@/types/models';
+import type { QuestionType, SurveyQuestion, LikertConfig, SurveyDocument } from '@/types/models';
 import { toast } from 'sonner';
 
 // ── Question Types Metadata ──────────────────────────────────────────────────
@@ -202,6 +206,46 @@ export default function AdminNewSurveyPage() {
   const [participantsRequired, setParticipantsRequired] = useState<number>(100);
   const [step1Errors, setStep1Errors] = useState<{ [key: string]: string }>({});
 
+  // ── Supporting Documents ──
+  const [documents, setDocuments] = useState<SurveyDocument[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleFilesAdded = (files: FileList | File[]) => {
+    const newDocs: SurveyDocument[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const formattedSize = formatFileSize(file.size);
+      if (documents.some(d => d.name === file.name && d.size === formattedSize)) {
+        continue;
+      }
+      const ext = file.name.split('.').pop()?.toUpperCase() || 'FILE';
+      newDocs.push({
+        id: `doc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        name: file.name,
+        size: formattedSize,
+        type: ext,
+        url: URL.createObjectURL(file),
+        uploadedAt: new Date().toLocaleDateString(),
+      });
+    }
+    if (newDocs.length > 0) {
+      setDocuments(prev => [...prev, ...newDocs]);
+      toast.success(`${newDocs.length} document${newDocs.length > 1 ? 's' : ''} attached`);
+    }
+  };
+
+  const removeDocument = (id: string) => {
+    setDocuments(prev => prev.filter(d => d.id !== id));
+    toast.success('Document removed');
+  };
+
   // ── Step 2: Questions ───────────────────────────────────────────────────────
   const [questions, setQuestions] = useState<SurveyQuestion[]>([
     makeInitialQuestion('single_choice'),
@@ -318,6 +362,7 @@ export default function AdminNewSurveyPage() {
         endDate,
         participantsRequired,
         questions,
+        documents: documents.length > 0 ? documents : undefined,
       });
 
       toast.success('Survey created successfully!');
@@ -673,6 +718,119 @@ export default function AdminNewSurveyPage() {
                 placeholder="Briefly explain the objective of this survey and instructions for field respondents or interviewing officers…"
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all resize-none hover:border-slate-300"
               />
+            </div>
+
+            {/* ── Upload Supporting Documents ── */}
+            <div className="space-y-3 pt-1 border-t border-slate-100">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-800">
+                    Upload Documents (optional)
+                  </label>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Attach survey questionnaires, field SOPs, guidelines, or reference materials
+                  </p>
+                </div>
+                {documents.length > 0 && (
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    {documents.length} {documents.length === 1 ? 'Document' : 'Documents'} Attached
+                  </span>
+                )}
+              </div>
+
+              {/* Drag and Drop Dropzone */}
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragging(false);
+                  if (e.dataTransfer.files?.length) {
+                    handleFilesAdded(e.dataTransfer.files);
+                  }
+                }}
+                onClick={() => fileInputRef.current?.click()}
+                className={cn(
+                  'border-2 border-dashed rounded-2xl p-5 sm:p-6 text-center cursor-pointer transition-all group',
+                  isDragging
+                    ? 'border-indigo-500 bg-indigo-50/70 scale-[0.99]'
+                    : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50/80 bg-slate-50/40'
+                )}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,image/*"
+                  onChange={(e) => {
+                    if (e.target.files?.length) {
+                      handleFilesAdded(e.target.files);
+                      e.target.value = '';
+                    }
+                  }}
+                  className="hidden"
+                />
+
+                <div className="flex flex-col items-center justify-center gap-2">
+                  <div className="w-11 h-11 rounded-2xl bg-indigo-100/80 text-indigo-600 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+                    <UploadSimple size={22} weight="bold" />
+                  </div>
+                  <div>
+                    <span className="text-sm font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
+                      Click to upload document
+                    </span>
+                    <span className="text-sm text-slate-500"> or drag &amp; drop</span>
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    Supports PDF, DOC, DOCX, XLS, XLSX, CSV, TXT (up to 10MB each)
+                  </p>
+                </div>
+              </div>
+
+              {/* Uploaded Documents List */}
+              {documents.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                  {documents.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-200 bg-white shadow-2xs hover:border-slate-300 transition-all"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100">
+                          <FileText size={20} weight="bold" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-slate-800 truncate" title={doc.name}>
+                            {doc.name}
+                          </div>
+                          <div className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                            <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 font-semibold text-[10px]">
+                              {doc.type}
+                            </span>
+                            <span>•</span>
+                            <span>{doc.size}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeDocument(doc.id);
+                        }}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
+                        title="Remove document"
+                      >
+                        <Trash size={15} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Navigation Actions (Desktop only - mobile has portalled bottom action bar) */}

@@ -48,6 +48,7 @@ export const surveysApi = {
         responsesCount: 0,
         status: data.status || 'active',
         questions: data.questions,
+        documents: data.documents,
         createdBy: { id: 'u-admin-01', name: 'Admin', role: 'admin' },
         isAllocatedAsTask: false,
         createdAt: new Date().toISOString(),
