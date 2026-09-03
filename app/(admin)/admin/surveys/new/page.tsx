@@ -1041,8 +1041,8 @@ export default function AdminNewSurveyPage() {
             </span>
           </div>
 
-          {/* The 5 Question Type Buttons */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
+          {/* Desktop View: 5 Question Type Rich Cards */}
+          <div className="hidden sm:grid grid-cols-5 gap-2.5 pt-1">
             {QUESTION_TYPES.map(cfg => {
               const Icon = cfg.icon;
               return (
@@ -1072,6 +1072,32 @@ export default function AdminNewSurveyPage() {
                 </button>
               );
             })}
+          </div>
+
+          {/* Mobile View: Horizontally Scrollable Pill-Shaped Buttons */}
+          <div className="sm:hidden -mx-4 px-4 overflow-x-auto no-scrollbar pt-0.5">
+            <div className="flex items-center gap-2 pb-1 shrink-0 w-max">
+              {QUESTION_TYPES.map(cfg => {
+                const Icon = cfg.icon;
+                return (
+                  <button
+                    key={cfg.type}
+                    type="button"
+                    onClick={() => addQuestion(cfg.type)}
+                    className={cn(
+                      'inline-flex items-center gap-2 px-3.5 py-2 rounded-full border text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer bg-white text-slate-800 border-slate-200/90 shrink-0 hover:border-indigo-300',
+                      cfg.borderHover
+                    )}
+                  >
+                    <div className={cn('w-5 h-5 rounded-full flex items-center justify-center bg-gradient-to-br text-white shrink-0 shadow-2xs', cfg.gradient)}>
+                      <Icon size={12} weight="bold" />
+                    </div>
+                    <span className="whitespace-nowrap">{cfg.label}</span>
+                    <Plus size={12} className="text-slate-400 shrink-0" weight="bold" />
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
