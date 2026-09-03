@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Check, Warning, Trash, ClipboardText, Checks, CheckCircle, CheckSquare, MagnifyingGlass, X } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowRight, Check, Warning, Trash, ClipboardText, Checks, CheckCircle, CheckSquare, MagnifyingGlass, X, FunnelSimple } from '@phosphor-icons/react';
 import { usersApi } from '@/lib/api/users';
 import { tasksApi } from '@/lib/api/tasks';
 import { surveysApi } from '@/lib/api/surveys';
@@ -211,6 +211,10 @@ function NewTaskForm() {
       toast.error(err instanceof Error ? err.message : 'Failed to create task');
     }
   };
+
+  const internCount = users.filter(u => u.role === 'intern').length;
+  const fellowCount = users.filter(u => u.role === 'fellow').length;
+  const pcCount = users.filter(u => u.role === 'pc').length;
 
 
   return (
@@ -588,128 +592,109 @@ function NewTaskForm() {
 
         {/* STEP 3: ASSIGN USERS */}
         {step === 3 && (
-          <div className="card p-6 sm:p-8 space-y-6 border border-slate-200/80 shadow-xs bg-white animate-in fade-in duration-200">
+          <div className="card p-4 sm:p-8 space-y-4 sm:space-y-6 border border-slate-200/80 shadow-xs bg-white animate-in fade-in duration-200">
 
-            <div className="border-b border-slate-100 pb-4 flex items-center justify-between flex-wrap gap-2">
+            <div className="border-b border-slate-100 pb-2.5 sm:pb-4 flex items-center justify-between flex-wrap gap-2">
               <div>
-                <h2 className="text-base sm:text-lg font-bold text-slate-900">
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
                   {cameFromSurvey || isSurveyTask ? 'Step 2: Select Assignees' : 'Step 4: Select Assignees'}
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                <p className="hidden sm:block text-xs sm:text-sm text-slate-500 mt-0.5">
                   Assign this task to Interns, Fellows, or Program Coordinators across districts
                 </p>
               </div>
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+              <span className="hidden sm:inline-flex text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
                 {selectedUsers.length} Selected
               </span>
             </div>
 
-
-            {/* ── Modern Unified Assignee Control Toolbar ── */}
-            <div className="space-y-3.5 pt-1">
-              {/* Row 1: Role Tabs & Quick Bulk Assign */}
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                {/* Segmented Role Tabs */}
-                <div className="inline-flex p-1 rounded-xl bg-slate-100/90 border border-slate-200/80 shadow-2xs">
-                  {[
-                    { id: 'all', label: 'All', count: users.length },
-                    { id: 'intern', label: 'Interns', count: users.filter(u => u.role === 'intern').length },
-                    { id: 'fellow', label: 'Fellows', count: users.filter(u => u.role === 'fellow').length },
-                    { id: 'pc', label: 'PCs', count: users.filter(u => u.role === 'pc').length },
-                  ].map((r) => {
-                    const isSelected = roleFilter === r.id;
-                    return (
-                      <button
-                        key={r.id}
-                        type="button"
-                        onClick={() => setRoleFilter(r.id as any)}
-                        className={cn(
-                          'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer select-none',
-                          isSelected
-                            ? 'bg-white text-indigo-700 shadow-xs font-bold'
-                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-                        )}
-                      >
-                        <span>{r.label}</span>
-                        <span
-                          className={cn(
-                            'px-1.5 py-0.5 rounded-md text-[10px] font-bold leading-none',
-                            isSelected ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-200/70 text-slate-500'
-                          )}
-                        >
-                          {r.count}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Bulk Assign Buttons */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-slate-400 font-medium hidden sm:inline">Bulk Add:</span>
+            {/* ── Compact Assignee Controls: Bulk Add Buttons + Search & Filter Dropdown ── */}
+            <div className="space-y-2.5 pt-0.5">
+              {/* Row 1: Bulk Add Buttons ONLY (Horizontal scrollable track on mobile) */}
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1">
+                <span className="text-xs font-semibold text-slate-500 shrink-0 hidden sm:inline">Bulk Add:</span>
+                <button
+                  type="button"
+                  onClick={() => selectAllByRole('intern')}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0 active:scale-95"
+                >
+                  <Checks size={14} className="text-indigo-600" weight="bold" />
+                  <span>+ All Interns</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => selectAllByRole('fellow')}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0 active:scale-95"
+                >
+                  <Checks size={14} className="text-purple-600" weight="bold" />
+                  <span>+ All Fellows</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => selectAllByRole('pc')}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0 active:scale-95"
+                >
+                  <Checks size={14} className="text-amber-600" weight="bold" />
+                  <span>+ All PCs</span>
+                </button>
+                {selectedUsers.length > 0 && (
                   <button
                     type="button"
-                    onClick={() => selectAllByRole('intern')}
-                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95"
+                    onClick={() => {
+                      setSelectedUsers([]);
+                      setValue('assignedToIds', [], { shouldValidate: true });
+                    }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-all cursor-pointer shrink-0 active:scale-95"
                   >
-                    <Checks size={13} className="text-indigo-600" weight="bold" />
-                    <span>+ All Interns</span>
+                    Clear ({selectedUsers.length})
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => selectAllByRole('fellow')}
-                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95"
-                  >
-                    <Checks size={13} className="text-purple-600" weight="bold" />
-                    <span>+ All Fellows</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => selectAllByRole('pc')}
-                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95"
-                  >
-                    <Checks size={13} className="text-amber-600" weight="bold" />
-                    <span>+ All PCs</span>
-                  </button>
-                  {selectedUsers.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedUsers([]);
-                        setValue('assignedToIds', [], { shouldValidate: true });
-                      }}
-                      className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-all cursor-pointer active:scale-95"
-                    >
-                      Clear All
-                    </button>
-                  )}
-                </div>
+                )}
               </div>
 
-              {/* Row 2: Search Input with Icon & Quick Select-All Visible */}
-              <div className="flex items-center gap-2.5">
-                <div className="relative flex-1">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <MagnifyingGlass size={16} weight="bold" />
+              {/* Row 2: Search Input + Filter Dropdown + Select Visible */}
+              <div className="flex items-center gap-2">
+                {/* Search Input */}
+                <div className="relative flex-1 min-w-0">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <MagnifyingGlass size={15} weight="bold" />
                   </div>
                   <input
                     type="search"
-                    placeholder="Search assignees by name or email…"
+                    placeholder="Search assignees…"
                     value={userSearch}
                     onChange={e => setUserSearch(e.target.value)}
-                    className={cn(inputCls(), 'pl-10 h-10 text-sm bg-white')}
+                    className={cn(inputCls(), 'pl-9 h-9 sm:h-10 text-xs sm:text-sm bg-white')}
                   />
                   {userSearch && (
                     <button
                       type="button"
                       onClick={() => setUserSearch('')}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                      className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
                     >
-                      <X size={14} weight="bold" />
+                      <X size={13} weight="bold" />
                     </button>
                   )}
                 </div>
 
+                {/* Role Filter Dropdown */}
+                <div className="relative shrink-0">
+                  <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                    <FunnelSimple size={14} weight={roleFilter !== 'all' ? 'bold' : 'regular'} className={roleFilter !== 'all' ? 'text-indigo-600' : 'text-slate-400'} />
+                  </div>
+                  <select
+                    value={roleFilter}
+                    onChange={(e) => setRoleFilter(e.target.value as any)}
+                    aria-label="Filter assignees by role"
+                    className="h-9 sm:h-10 pl-7 pr-6 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-[var(--radius)] hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer shadow-2xs"
+                  >
+                    <option value="all">Filter: All ({users.length})</option>
+                    <option value="intern">Interns ({internCount})</option>
+                    <option value="fellow">Fellows ({fellowCount})</option>
+                    <option value="pc">PCs ({pcCount})</option>
+                  </select>
+                </div>
+
+                {/* Quick Select All Filtered */}
                 {filteredUsers.length > 0 && (
                   <button
                     type="button"
@@ -728,13 +713,19 @@ function NewTaskForm() {
                         setValue('assignedToIds', updated.map(u => u.id), { shouldValidate: true });
                       }
                     }}
-                    className="h-10 px-3.5 rounded-[var(--radius)] border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors flex items-center gap-1.5 shrink-0 shadow-2xs cursor-pointer"
+                    className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-[var(--radius)] border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors flex items-center gap-1.5 shrink-0 shadow-2xs cursor-pointer"
+                    title={filteredUsers.every(u => selectedUsers.some(s => s.id === u.id)) ? 'Deselect visible' : 'Select all visible'}
                   >
                     <Checks size={14} className="text-indigo-600" weight="bold" />
-                    <span>
+                    <span className="hidden sm:inline">
                       {filteredUsers.every(u => selectedUsers.some(s => s.id === u.id))
-                        ? 'Deselect All'
+                        ? 'Deselect'
                         : `Select All (${filteredUsers.length})`}
+                    </span>
+                    <span className="sm:hidden">
+                      {filteredUsers.every(u => selectedUsers.some(s => s.id === u.id))
+                        ? 'Deselect'
+                        : `All (${filteredUsers.length})`}
                     </span>
                   </button>
                 )}
