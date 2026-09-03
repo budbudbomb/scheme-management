@@ -1,0 +1,930 @@
+'use client';
+
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import {
+  Plus,
+  FunnelSimple,
+  Warning,
+  Trash,
+  PencilSimple,
+  MagnifyingGlass,
+  CalendarBlank,
+  User,
+  Users,
+  Clock,
+  CheckCircle,
+  Hourglass,
+  WarningCircle,
+  X,
+  ClipboardText,
+  ListBullets,
+  SquaresFour,
+} from '@phosphor-icons/react';
+import { tasksApi } from '@/lib/api/tasks';
+import type { Task, UserRole, TaskStatus, TaskPriority } from '@/types/models';
+import { cn, taskStatusLabel, taskPriorityLabel, formatDate } from '@/lib/utils/formatters';
+import { SkeletonTable } from '@/components/shared/SkeletonCard';
+import EmptyState from '@/components/shared/EmptyState';
+import ErrorState from '@/components/shared/ErrorState';
+import { toast } from 'sonner';
+
+type LayoutMode = 'list' | 'cards';
+type TimeFilter = 'all' | 'today' | 'week' | 'month';
+type RoleFilter = 'all' | 'pc' | 'fellow' | 'intern';
+
+function priorityBarColor(priority: Task['priority']) {
+  switch (priority) {
+    case 'high':   return 'bg-rose-500';
+    case 'medium': return 'bg-amber-400';
+    case 'low':    return 'bg-emerald-400';
+    default:       return 'bg-slate-300';
+  }
+}
+
+function priorityBadge(priority: Task['priority']) {
+  switch (priority) {
+    case 'high':   return 'text-rose-700 bg-rose-50 border-rose-200';
+    case 'medium': return 'text-amber-700 bg-amber-50 border-amber-200';
+    case 'low':    return 'text-emerald-700 bg-emerald-50 border-emerald-200';
+    default:       return 'text-slate-600 bg-slate-50 border-slate-200';
+  }
+}
+
+function statusBadge(status: Task['status']) {
+  switch (status) {
+    case 'completed':   return 'text-emerald-700 bg-emerald-50 border-emerald-200';
+    case 'in_progress': return 'text-sky-700 bg-sky-50 border-sky-200';
+    case 'overdue':     return 'text-rose-700 bg-rose-50 border-rose-200';
+    default:            return 'text-amber-700 bg-amber-50 border-amber-200';
+  }
+}
+
+function roleBadge(role: string) {
+  switch (role) {
+    case 'pc':     return 'bg-purple-50 text-purple-700 border-purple-200';
+    case 'fellow': return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+    case 'intern': return 'bg-teal-50 text-teal-700 border-teal-200';
+    default:       return 'bg-slate-50 text-slate-600 border-slate-200';
+  }
+}
+
+function roleName(role: string) {
+  switch (role) {
+    case 'pc':     return 'PC';
+    case 'fellow': return 'Fellow';
+    case 'intern': return 'Intern';
+    default:       return role;
+  }
+}
+
+function renderAssigneeBadge(task: Task) {
+  const isSelective = task.targetAudience === 'selective';
+
+  if (!isSelective) {
+    if (task.targetAudience === 'all_interns' || (!task.targetAudience && task.assignedTo.every(a => a.role === 'intern'))) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-teal-50 text-teal-800 border border-teal-200/90 shadow-2xs">
+          <Users size={14} weight="bold" className="text-teal-600 shrink-0" />
+          <span>All Interns</span>
+        </span>
+      );
+    }
+    if (task.targetAudience === 'all_fellows' || (!task.targetAudience && task.assignedTo.every(a => a.role === 'fellow'))) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-800 border border-indigo-200/90 shadow-2xs">
+          <Users size={14} weight="bold" className="text-indigo-600 shrink-0" />
+          <span>All Fellows</span>
+        </span>
+      );
+    }
+    if (task.targetAudience === 'all_pcs' || (!task.targetAudience && task.assignedTo.every(a => a.role === 'pc'))) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-purple-50 text-purple-800 border border-purple-200/90 shadow-2xs">
+          <Users size={14} weight="bold" className="text-purple-600 shrink-0" />
+          <span>All Program Coordinators</span>
+        </span>
+      );
+    }
+    if (task.targetAudience === 'all') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-200/90 shadow-2xs">
+          <Users size={14} weight="bold" className="text-blue-600 shrink-0" />
+          <span>All Roles</span>
+        </span>
+      );
+    }
+  }
+
+  // Selective assignment to specific person(s)
+  if (task.assignedTo.length === 0) {
+    return <span className="text-slate-400 italic text-[11px]">Unassigned</span>;
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      {task.assignedTo.map(a => (
+        <div
+          key={a.id}
+          className="inline-flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200 text-xs shadow-2xs"
+          title={`Selectively assigned to ${a.name}`}
+        >
+          <User size={13} className="text-slate-400 shrink-0" />
+          <span className="font-semibold text-slate-800 truncate max-w-[120px]">
+            {a.name}
+          </span>
+          <span className={cn('text-[9px] px-1 py-0.2 rounded border font-bold uppercase', roleBadge(a.role))}>
+            {roleName(a.role)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function AdminTasksPage() {
+  const router = useRouter();
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Filters
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [priorityFilter, setPriorityFilter] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>('list');
+
+  // Modals
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await tasksApi.list({ limit: 100 });
+      setAllTasks(res.items);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load tasks');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleEdit = (task: Task) => {
+    router.push('/admin/tasks/new');
+  };
+
+  const confirmDelete = async () => {
+    if (!taskToDelete) return;
+    try {
+      await tasksApi.delete(taskToDelete.id);
+      setAllTasks(prev => prev.filter(t => t.id !== taskToDelete.id));
+      if (selectedTask?.id === taskToDelete.id) setSelectedTask(null);
+      toast.success(`Task "${taskToDelete.name}" deleted successfully`);
+    } catch {
+      toast.error('Failed to delete task');
+    } finally {
+      setTaskToDelete(null);
+    }
+  };
+
+  // KPI counts across all tasks
+  const stats = useMemo(() => {
+    const total = allTasks.length;
+    const pending = allTasks.filter(t => t.status === 'pending').length;
+    const inProgress = allTasks.filter(t => t.status === 'in_progress').length;
+    const completed = allTasks.filter(t => t.status === 'completed').length;
+    const overdue = allTasks.filter(t => t.status === 'overdue').length;
+    return { total, pending, inProgress, completed, overdue };
+  }, [allTasks]);
+
+  // Counts by role
+  const roleCounts = useMemo(() => {
+    const matches = (role: 'pc' | 'fellow' | 'intern') => {
+      return allTasks.filter(t => {
+        if (role === 'pc' && (t.targetAudience === 'all_pcs' || t.targetAudience === 'all')) return true;
+        if (role === 'fellow' && (t.targetAudience === 'all_fellows' || t.targetAudience === 'all')) return true;
+        if (role === 'intern' && (t.targetAudience === 'all_interns' || t.targetAudience === 'all')) return true;
+        return t.assignedTo.some(a => a.role === role);
+      }).length;
+    };
+    return {
+      all: allTasks.length,
+      pc: matches('pc'),
+      fellow: matches('fellow'),
+      intern: matches('intern'),
+    };
+  }, [allTasks]);
+
+  // Time window filter predicate
+  const matchesTime = useCallback((task: Task, filter: TimeFilter) => {
+    if (filter === 'all') return true;
+    const start = new Date(task.startDate.substring(0, 10));
+    const end = new Date(task.endDate.substring(0, 10));
+    const now = new Date();
+
+    if (filter === 'today') {
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+      const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+      return start <= todayEnd && end >= todayStart;
+    }
+
+    if (filter === 'week') {
+      const day = now.getDay();
+      const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day, 0, 0, 0);
+      const weekEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 6, 23, 59, 59);
+      return start <= weekEnd && end >= weekStart;
+    }
+
+    if (filter === 'month') {
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      return start <= monthEnd && end >= monthStart;
+    }
+
+    return true;
+  }, []);
+
+  // Filtered task list
+  const filteredTasks = useMemo(() => {
+    return allTasks.filter(task => {
+      // User type (Role) filter
+      if (roleFilter !== 'all') {
+        const matchesBroad =
+          (roleFilter === 'pc' && (task.targetAudience === 'all_pcs' || task.targetAudience === 'all')) ||
+          (roleFilter === 'fellow' && (task.targetAudience === 'all_fellows' || task.targetAudience === 'all')) ||
+          (roleFilter === 'intern' && (task.targetAudience === 'all_interns' || task.targetAudience === 'all'));
+        const matchesIndividual = task.assignedTo.some(a => a.role === roleFilter);
+        if (!matchesBroad && !matchesIndividual) return false;
+      }
+
+      // Time filter
+      if (!matchesTime(task, timeFilter)) return false;
+
+      // Status filter
+      if (statusFilter && task.status !== statusFilter) return false;
+
+      // Priority filter
+      if (priorityFilter && task.priority !== priorityFilter) return false;
+
+      // Search query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchesName = task.name.toLowerCase().includes(q);
+        const matchesDesc = task.description?.toLowerCase().includes(q) ?? false;
+        const matchesAssignee = task.assignedTo.some(a => a.name.toLowerCase().includes(q));
+        const matchesTarget = task.targetAudience?.toLowerCase().includes(q) ?? false;
+        if (!matchesName && !matchesDesc && !matchesAssignee && !matchesTarget) return false;
+      }
+
+      return true;
+    });
+  }, [allTasks, roleFilter, timeFilter, statusFilter, priorityFilter, searchQuery, matchesTime]);
+
+  const hasActiveFilters = roleFilter !== 'all' || timeFilter !== 'all' || statusFilter !== '' || priorityFilter !== '' || searchQuery !== '';
+
+  const clearAllFilters = () => {
+    setRoleFilter('all');
+    setTimeFilter('all');
+    setStatusFilter('');
+    setPriorityFilter('');
+    setSearchQuery('');
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Task Management</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            Create, assign, and track tasks across Program Coordinators, Fellows, and Interns state-wide
+          </p>
+        </div>
+        <Link
+          href="/admin/tasks/new"
+          id="create-task-btn"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius)] text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 btn-press transition-colors shrink-0 shadow-sm w-fit"
+        >
+          <Plus size={16} weight="bold" />
+          <span>Create Task</span>
+        </Link>
+      </div>
+
+      {/* KPI Stats Strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        {[
+          {
+            key: '',
+            label: 'Total Tasks',
+            value: stats.total,
+            icon: ClipboardText,
+            color: 'text-slate-900',
+            bg: 'bg-slate-50',
+            border: 'border-slate-200',
+          },
+          {
+            key: 'pending',
+            label: 'Pending',
+            value: stats.pending,
+            icon: Hourglass,
+            color: 'text-amber-700',
+            bg: 'bg-amber-50/50',
+            border: statusFilter === 'pending' ? 'border-amber-500 ring-2 ring-amber-200' : 'border-amber-200/70',
+          },
+          {
+            key: 'in_progress',
+            label: 'In Progress',
+            value: stats.inProgress,
+            icon: Clock,
+            color: 'text-sky-700',
+            bg: 'bg-sky-50/50',
+            border: statusFilter === 'in_progress' ? 'border-sky-500 ring-2 ring-sky-200' : 'border-sky-200/70',
+          },
+          {
+            key: 'completed',
+            label: 'Completed',
+            value: stats.completed,
+            icon: CheckCircle,
+            color: 'text-emerald-700',
+            bg: 'bg-emerald-50/50',
+            border: statusFilter === 'completed' ? 'border-emerald-500 ring-2 ring-emerald-200' : 'border-emerald-200/70',
+          },
+          {
+            key: 'overdue',
+            label: 'Overdue',
+            value: stats.overdue,
+            icon: WarningCircle,
+            color: 'text-rose-700',
+            bg: 'bg-rose-50/50',
+            border: statusFilter === 'overdue' ? 'border-rose-500 ring-2 ring-rose-200' : 'border-rose-200/70',
+          },
+        ].map(item => {
+          const Icon = item.icon;
+          const isSelected = statusFilter === item.key;
+          return (
+            <button
+              key={item.label}
+              type="button"
+              onClick={() => {
+                setStatusFilter(prev => prev === item.key ? '' : item.key);
+              }}
+              className={cn(
+                'card p-3 sm:p-4 text-left border transition-all duration-200 hover:shadow-sm cursor-pointer',
+                item.bg,
+                item.border,
+                isSelected && 'ring-2 shadow-sm'
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-500">{item.label}</span>
+                <Icon size={16} className={item.color} weight={isSelected ? 'bold' : 'regular'} />
+              </div>
+              <div className={cn('text-xl sm:text-2xl font-bold mt-1', item.color)}>
+                {item.value}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Primary Filters Area */}
+      <div className="card p-4 space-y-4">
+        {/* Row 1: Assignee User Type Tabs + Time Window */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          {/* User Type Tabs */}
+          <div>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+              Assigned User Type
+            </span>
+            <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 overflow-x-auto no-scrollbar">
+              {[
+                { id: 'all', label: 'All Roles', count: roleCounts.all },
+                { id: 'pc', label: 'PCs', count: roleCounts.pc },
+                { id: 'fellow', label: 'Fellows', count: roleCounts.fellow },
+                { id: 'intern', label: 'Interns', count: roleCounts.intern },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setRoleFilter(tab.id as RoleFilter)}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200',
+                    roleFilter === tab.id
+                      ? 'bg-white text-indigo-700 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  )}
+                >
+                  <span>{tab.label}</span>
+                  <span className={cn(
+                    'text-[10px] px-1.5 py-0.2 rounded-full font-bold',
+                    roleFilter === tab.id
+                      ? 'bg-indigo-50 text-indigo-700'
+                      : 'bg-slate-200/70 text-slate-500'
+                  )}>
+                    {tab.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Time Window Tabs */}
+          <div>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+              Time Period
+            </span>
+            <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 overflow-x-auto no-scrollbar">
+              {[
+                { id: 'all', label: 'All Time' },
+                { id: 'today', label: 'Today' },
+                { id: 'week', label: 'This Week' },
+                { id: 'month', label: 'This Month' },
+              ].map(time => (
+                <button
+                  key={time.id}
+                  type="button"
+                  onClick={() => setTimeFilter(time.id as TimeFilter)}
+                  className={cn(
+                    'flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200',
+                    timeFilter === time.id
+                      ? 'bg-white text-indigo-700 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  )}
+                >
+                  <Clock size={12} weight={timeFilter === time.id ? 'bold' : 'regular'} />
+                  <span>{time.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Row 2: Search, Status, Priority refinements */}
+        <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+          {/* Search bar */}
+          <div className="relative flex-1 min-w-[220px]">
+            <MagnifyingGlass size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search by task name, description, or assignee..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full text-xs sm:text-sm pl-9 pr-8 py-2 rounded-[var(--radius)] border border-slate-200 bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {/* Status Dropdown */}
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="text-xs sm:text-sm rounded-[var(--radius)] border border-slate-200 bg-white py-2 px-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-medium"
+          >
+            <option value="">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="overdue">Overdue</option>
+          </select>
+
+          {/* Priority Dropdown */}
+          <select
+            value={priorityFilter}
+            onChange={e => setPriorityFilter(e.target.value)}
+            className="text-xs sm:text-sm rounded-[var(--radius)] border border-slate-200 bg-white py-2 px-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-medium"
+          >
+            <option value="">All Priorities</option>
+            <option value="high">High Priority</option>
+            <option value="medium">Medium Priority</option>
+            <option value="low">Low Priority</option>
+          </select>
+
+          {/* Reset Filters */}
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={clearAllFilters}
+              className="text-xs font-semibold px-3 py-2 rounded-[var(--radius)] text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors whitespace-nowrap"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Task List Header & View Toggle */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-500 px-1">
+        <div className="flex items-center gap-2">
+          <span>
+            Showing <strong className="text-slate-800">{filteredTasks.length}</strong> of{' '}
+            <strong className="text-slate-800">{allTasks.length}</strong> tasks
+          </span>
+          {hasActiveFilters && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+              Filtered view active
+            </span>
+          )}
+        </div>
+
+        {/* Asana-style List / Cards switcher */}
+        <div className="flex items-center bg-slate-100 rounded-lg p-0.5 border border-slate-200/80 self-start sm:self-auto shadow-2xs">
+          <button
+            type="button"
+            onClick={() => setLayoutMode('list')}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all duration-150 cursor-pointer',
+              layoutMode === 'list'
+                ? 'bg-white text-indigo-700 shadow-xs'
+                : 'text-slate-500 hover:text-slate-800'
+            )}
+            title="List / Table View"
+          >
+            <ListBullets size={14} weight={layoutMode === 'list' ? 'bold' : 'regular'} />
+            <span>List</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setLayoutMode('cards')}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all duration-150 cursor-pointer',
+              layoutMode === 'cards'
+                ? 'bg-white text-indigo-700 shadow-xs'
+                : 'text-slate-500 hover:text-slate-800'
+            )}
+            title="Card Grid View"
+          >
+            <SquaresFour size={14} weight={layoutMode === 'cards' ? 'bold' : 'regular'} />
+            <span>Cards</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Tasks Content List */}
+      {loading ? (
+        <SkeletonTable rows={6} />
+      ) : error ? (
+        <ErrorState message={error} onRetry={load} />
+      ) : !filteredTasks.length ? (
+        <div className="card">
+          <EmptyState
+            title={hasActiveFilters ? 'No matching tasks' : 'No tasks created yet'}
+            description={
+              hasActiveFilters
+                ? 'Try adjusting your role, time, or status filters to find what you need.'
+                : 'Get started by assigning your first task to PCs, Fellows, or Interns.'
+            }
+            action={
+              hasActiveFilters
+                ? { label: 'Reset all filters', onClick: clearAllFilters }
+                : { label: 'Create Task', onClick: () => router.push('/admin/tasks/new') }
+            }
+          />
+        </div>
+      ) : layoutMode === 'list' ? (
+        /* Asana-style Structured List View */
+        <div className="card overflow-hidden border border-slate-200/80 shadow-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-semibold text-slate-500 uppercase tracking-wider select-none">
+                  <th className="py-3 px-4 min-w-[280px]">Task Name</th>
+                  <th className="py-3 px-4 min-w-[190px]">Assignee</th>
+                  <th className="py-3 px-4 min-w-[140px]">Due Date</th>
+                  <th className="py-3 px-4 min-w-[110px]">Priority</th>
+                  <th className="py-3 px-4 min-w-[120px]">Status</th>
+                  <th className="py-3 px-4 text-right min-w-[80px]">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs">
+                {filteredTasks.map(task => (
+                  <tr
+                    key={task.id}
+                    onClick={() => setSelectedTask(task)}
+                    className="hover:bg-indigo-50/30 transition-colors cursor-pointer group"
+                  >
+                    {/* Task Name & Description */}
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-2.5">
+                        <span className={cn('w-2 h-2 rounded-full shrink-0', priorityBarColor(task.priority))} />
+                        <div className="min-w-0">
+                          <div className="font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors flex items-center gap-2">
+                            <span className="truncate">{task.name}</span>
+                            {task.isSurveyTask && (
+                              <span className="text-[10px] px-1.5 py-0.2 rounded border font-semibold bg-purple-50 text-purple-700 border-purple-200 shrink-0">
+                                Survey
+                              </span>
+                            )}
+                          </div>
+                          {task.description && (
+                            <p className="text-[11px] text-slate-400 truncate max-w-xs sm:max-w-md mt-0.5">
+                              {task.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Assignees with Role Badges or User Type */}
+                    <td className="py-3.5 px-4">
+                      {renderAssigneeBadge(task)}
+                    </td>
+
+                    {/* Due Date */}
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5 text-slate-600 font-medium">
+                        <CalendarBlank size={13} className="text-slate-400 shrink-0" />
+                        <span>{formatDate(task.endDate, 'dd MMM yyyy')}</span>
+                        {task.status === 'overdue' && (
+                          <span className="text-[9px] font-bold text-rose-600 bg-rose-50 px-1 py-0.5 rounded">
+                            Overdue
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Priority */}
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border', priorityBadge(task.priority))}>
+                        <span className={cn('w-1.5 h-1.5 rounded-full', priorityBarColor(task.priority))} />
+                        {taskPriorityLabel(task.priority)}
+                      </span>
+                    </td>
+
+                    {/* Status */}
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border', statusBadge(task.status))}>
+                        {taskStatusLabel(task.status)}
+                      </span>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(task)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
+                          title="Edit Task"
+                        >
+                          <PencilSimple size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setTaskToDelete(task)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                          title="Delete Task"
+                        >
+                          <Trash size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        /* Cards View (Grid) */
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredTasks.map(task => (
+            <div
+              key={task.id}
+              className="card card-hover flex overflow-hidden transition-all duration-200 hover:shadow-md cursor-pointer group"
+              onClick={() => setSelectedTask(task)}
+            >
+              {/* Left priority accent bar */}
+              <div className={cn('w-1.5 shrink-0', priorityBarColor(task.priority))} />
+
+              <div className="flex-1 min-w-0 p-4 flex flex-col justify-between">
+                <div>
+                  {/* Top row: Title + Actions */}
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-semibold text-slate-900 text-sm leading-snug group-hover:text-indigo-600 transition-colors line-clamp-1">
+                      {task.name}
+                    </h3>
+                    <div className="flex items-center gap-0.5 shrink-0 -mt-1" onClick={e => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => handleEdit(task)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
+                        title="Edit Task"
+                      >
+                        <PencilSimple size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTaskToDelete(task)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                        title="Delete Task"
+                      >
+                        <Trash size={15} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  {task.description && (
+                    <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                      {task.description}
+                    </p>
+                  )}
+
+                  {/* Chips: Status + Priority + Survey */}
+                  <div className="flex items-center gap-1.5 mt-3 flex-wrap">
+                    <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border', statusBadge(task.status))}>
+                      {taskStatusLabel(task.status)}
+                    </span>
+                    <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border', priorityBadge(task.priority))}>
+                      <span className={cn('w-1.5 h-1.5 rounded-full', priorityBarColor(task.priority))} />
+                      {taskPriorityLabel(task.priority)}
+                    </span>
+                    {task.isSurveyTask && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border bg-purple-100 text-purple-800 border-purple-300 shadow-2xs">
+                        <ClipboardText size={11} weight="fill" className="text-purple-600" />
+                        Survey Task
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Bottom Section: Assignees with Role/User Type + Date */}
+                <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] text-slate-400 font-medium">Assigned to:</span>
+                    {renderAssigneeBadge(task)}
+                  </div>
+
+                  {/* Date Range */}
+                  <div className="flex items-center justify-between text-[11px] text-slate-400">
+                    <span className="flex items-center gap-1 font-medium">
+                      <CalendarBlank size={13} className="text-slate-400" />
+                      {formatDate(task.startDate, 'dd MMM')} → {formatDate(task.endDate, 'dd MMM yyyy')}
+                    </span>
+                    {task.status === 'overdue' && (
+                      <span className="text-rose-600 font-bold text-[10px]">Overdue</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Task Details Modal */}
+      {selectedTask && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={() => setSelectedTask(null)}
+        >
+          <div
+            className="card p-6 max-w-lg w-full space-y-5 shadow-2xl animate-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <span className={cn('w-3 h-3 rounded-full shrink-0', priorityBarColor(selectedTask.priority))} />
+                <h3 className="font-bold text-slate-900 text-lg leading-snug">{selectedTask.name}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedTask(null)}
+                className="p-1.5 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors"
+              >
+                <X size={16} weight="bold" />
+              </button>
+            </div>
+
+            {/* Badges */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full border', statusBadge(selectedTask.status))}>
+                {taskStatusLabel(selectedTask.status)}
+              </span>
+              <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full border', priorityBadge(selectedTask.priority))}>
+                {taskPriorityLabel(selectedTask.priority)} Priority
+              </span>
+              {selectedTask.isSurveyTask && (
+                <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-300 shadow-2xs">
+                  <ClipboardText size={13} weight="fill" className="text-purple-600" />
+                  Survey Task
+                </span>
+              )}
+            </div>
+
+            {/* Description */}
+            {selectedTask.description && (
+              <div className="text-sm text-slate-600 leading-relaxed bg-slate-50 rounded-xl p-3.5 border border-slate-100">
+                {selectedTask.description}
+              </div>
+            )}
+
+            {/* Assignees & Details Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Duration */}
+              <div className="bg-slate-50 rounded-xl p-3.5 space-y-1 border border-slate-100">
+                <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
+                  <CalendarBlank size={14} />
+                  Duration
+                </div>
+                <div className="text-slate-800 text-xs sm:text-sm font-semibold">
+                  {formatDate(selectedTask.startDate, 'dd MMM yyyy')}
+                </div>
+                <div className="text-slate-500 text-xs">→ {formatDate(selectedTask.endDate, 'dd MMM yyyy')}</div>
+              </div>
+
+              {/* Assignees */}
+              <div className="bg-slate-50 rounded-xl p-3.5 space-y-2 border border-slate-100">
+                <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
+                  <Users size={14} />
+                  Assigned To
+                </div>
+                {renderAssigneeBadge(selectedTask)}
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setTaskToDelete(selectedTask);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+              >
+                <Trash size={14} />
+                Delete Task
+              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleEdit(selectedTask)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+                >
+                  <PencilSimple size={14} />
+                  Edit Task
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedTask(null)}
+                  className="px-4 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {taskToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="card p-6 max-w-sm w-full space-y-4 shadow-xl text-center">
+            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+              <Warning size={24} weight="bold" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Delete Task</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Are you sure you want to delete <strong className="text-slate-800">&quot;{taskToDelete.name}&quot;</strong>? This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setTaskToDelete(null)}
+                className="flex-1 py-2.5 rounded-[var(--radius)] text-xs font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                className="flex-1 py-2.5 rounded-[var(--radius)] text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 btn-press"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
