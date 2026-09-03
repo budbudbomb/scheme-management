@@ -331,22 +331,87 @@ function NewTaskForm() {
             })}
           </div>
         </div>
+
+        {/* Desktop Stepper UI (Visible on desktop) */}
+        <div className="hidden lg:block card p-3 bg-white/90 backdrop-blur-md shadow-xs border border-slate-200/80 mt-2">
+          <div className="flex items-center justify-between gap-3">
+            {(cameFromSurvey || (step === 0 && isSurveyToggle)
+              ? [
+                  { key: 0, num: 1, label: 'Survey Task', desc: watchName || 'Linked survey' },
+                  { key: 3, num: 2, label: 'Select Assignees', desc: `${selectedUsers.length} selected` },
+                ]
+              : [
+                  { key: 0, num: 1, label: 'Task Type', desc: isSurveyToggle ? 'Survey' : 'Standard task' },
+                  { key: 1, num: 2, label: 'Task Details', desc: watchName || 'Name & description' },
+                  { key: 2, num: 3, label: 'Schedule', desc: watchStartDate ? `${watchStartDate} to ${watchEndDate}` : 'Dates & priority' },
+                  { key: 3, num: 4, label: 'Select Assignees', desc: `${selectedUsers.length} selected` },
+                ]
+            ).map((s, idx, arr) => {
+              const isCompleted = step > s.key || (cameFromSurvey && step === 3 && s.key === 0);
+              const isActive = step === s.key;
+              const isClickable = isCompleted || isActive;
+
+              return (
+                <div key={s.key} className="flex-1 flex items-center">
+                  <button
+                    type="button"
+                    disabled={!isClickable}
+                    onClick={() => {
+                      if (isClickable) setStep(s.key as any);
+                    }}
+                    className={cn(
+                      'flex items-center gap-3 p-2.5 rounded-xl transition-all text-left flex-1',
+                      isActive ? 'bg-indigo-50/90 border border-indigo-200/90 shadow-2xs' : '',
+                      isCompleted ? 'hover:bg-slate-50 cursor-pointer text-slate-700' : '',
+                      !isClickable ? 'opacity-40 cursor-not-allowed' : ''
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 transition-colors',
+                        isCompleted ? 'bg-emerald-600 text-white shadow-2xs' : '',
+                        isActive ? 'bg-indigo-600 text-white shadow-xs' : '',
+                        !isActive && !isCompleted ? 'bg-slate-100 text-slate-500' : ''
+                      )}
+                    >
+                      {isCompleted ? <Check size={14} weight="bold" /> : s.num}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-bold text-slate-900 truncate">
+                        {s.label}
+                      </div>
+                      <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                        {s.desc}
+                      </p>
+                    </div>
+                  </button>
+
+                  {idx < arr.length - 1 && (
+                    <div className="w-5 flex items-center justify-center shrink-0">
+                      <div className={cn('h-0.5 w-full rounded-full', isCompleted ? 'bg-indigo-600' : 'bg-slate-200')} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       <form id="create-task-form" onSubmit={handleSubmit(onSubmit)}>
-        {/* MOBILE VIEW: STREAMLINED STEPPER WIZARD */}
-        <div className="block lg:hidden space-y-3">
-          {/* STEP 0: "Is this a Survey Task?" (Initial Mobile Screen) */}
+        {/* UNIFIED STEPPER WIZARD (Both Desktop & Mobile) */}
+        <div className="max-w-3xl mx-auto space-y-4">
+          {/* STEP 0: "Is this a Survey Task?" */}
           {step === 0 && (
-            <div className="card p-5 space-y-4 animate-in fade-in duration-200">
-              <div className="flex items-center justify-between gap-3 py-1">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
-                    <ClipboardText size={22} weight="bold" />
+            <div className="card p-5 sm:p-7 space-y-5 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between gap-4 py-1">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-11 h-11 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 shadow-2xs">
+                    <ClipboardText size={24} weight="bold" />
                   </div>
                   <div>
-                    <h2 className="text-sm font-bold text-slate-900 leading-tight">Is this a Survey Task?</h2>
-                    <p className="text-[11px] text-slate-500 mt-0.5">Toggle to assign an active survey</p>
+                    <h2 className="text-base font-bold text-slate-900 leading-tight">Is this a Survey Task?</h2>
+                    <p className="text-xs text-slate-500 mt-0.5">Toggle to attach an active survey questionnaire for field respondents</p>
                   </div>
                 </div>
 
@@ -381,8 +446,8 @@ function NewTaskForm() {
 
               {/* If Toggle is YES: Choose Survey dropdown */}
               {isSurveyToggle && (
-                <div className="pt-3 border-t border-slate-100 space-y-2 animate-in fade-in duration-200">
-                  <label className="block text-xs font-bold text-slate-700">
+                <div className="pt-4 border-t border-slate-100 space-y-3 animate-in fade-in duration-200">
+                  <label className="block text-sm font-semibold text-slate-800">
                     Choose Survey <span className="text-rose-500">*</span>
                   </label>
                   <select
@@ -395,31 +460,58 @@ function NewTaskForm() {
                         const found = surveys.find(s => s.id === val);
                         if (found) {
                           setValue('name', found.title, { shouldValidate: true });
+                          if (found.startDate) setValue('startDate', found.startDate, { shouldValidate: true });
+                          if (found.endDate) setValue('endDate', found.endDate, { shouldValidate: true });
                         }
                       }
                     }}
                     className={inputCls(surveyError)}
                   >
-                    <option value="">Select a survey…</option>
+                    <option value="">Select an active survey to attach to this task…</option>
                     {surveys.map(s => (
                       <option key={s.id} value={s.id}>{s.title}</option>
                     ))}
                   </select>
                   {surveyError && (
-                    <p className="text-xs text-rose-600 mt-1 flex items-center gap-1">
-                      <Warning size={12} /> Please select a survey to proceed
+                    <p className="text-xs text-rose-600 mt-1 flex items-center gap-1 font-medium">
+                      <Warning size={13} weight="bold" /> Please select a survey to proceed
                     </p>
                   )}
                 </div>
               )}
+
+              {/* Desktop Inline Action Bar */}
+              <div className="hidden lg:flex items-center justify-between pt-4 border-t border-slate-100">
+                <Link
+                  href={cameFromSurvey ? '/admin/surveys' : '/admin/tasks'}
+                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 shadow-md transition-all flex items-center gap-2 cursor-pointer btn-press"
+                >
+                  <span>{isSurveyToggle ? 'Next: Select Assignees' : 'Next: Task Details'}</span>
+                  <ArrowRight size={16} weight="bold" />
+                </button>
+              </div>
             </div>
           )}
 
-          {/* STEP 1: Task Name & Details (Bulky header removed) */}
+          {/* STEP 1: Task Name & Details */}
           {step === 1 && (
-            <div className="card p-5 space-y-4 animate-in fade-in duration-200">
+            <div className="card p-5 sm:p-7 space-y-5 animate-in fade-in duration-200">
+              <div className="border-b border-slate-100 pb-3">
+                <h2 className="text-base font-bold text-slate-900">Task Details</h2>
+                <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Provide a title and general field context</p>
+              </div>
+
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Task Name <span className="text-rose-500">*</span></label>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Task Name <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="text"
                   placeholder="e.g. District Field Survey Q3"
@@ -427,28 +519,75 @@ function NewTaskForm() {
                   onChange={e => setValue('name', e.target.value, { shouldValidate: true })}
                   className={inputCls(!!errors.name)}
                 />
-                {errors.name && <p className="mt-1.5 text-xs text-rose-600"><Warning size={12} className="inline mr-1" />{errors.name.message}</p>}
+                {errors.name && (
+                  <p className="mt-1.5 text-xs text-rose-600 font-medium flex items-center gap-1">
+                    <Warning size={12} weight="bold" /> {errors.name.message}
+                  </p>
+                )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Description (optional)</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Description (optional)
+                </label>
                 <textarea
-                  rows={3}
-                  placeholder="Add task details…"
+                  rows={4}
+                  placeholder="Add detailed task instructions, target requirements, or field directions…"
                   value={watchDescription}
                   onChange={e => setValue('description', e.target.value, { shouldValidate: true })}
                   className={cn(inputCls(), 'resize-none')}
                 />
               </div>
+
+              {/* Desktop Inline Action Bar */}
+              <div className="hidden lg:flex items-center justify-between pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center gap-2 cursor-pointer"
+                >
+                  <ArrowLeft size={16} weight="bold" />
+                  <span>Back</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 shadow-md transition-all flex items-center gap-2 cursor-pointer btn-press"
+                >
+                  <span>Next: Schedule &amp; Priority</span>
+                  <ArrowRight size={16} weight="bold" />
+                </button>
+              </div>
             </div>
           )}
 
-          {/* STEP 2: Timeline & Priority (Bulky header removed) */}
+          {/* STEP 2: Timeline & Priority */}
           {step === 2 && (
-            <div className="card p-5 space-y-4 animate-in fade-in duration-200">
-              <div className="space-y-4">
+            <div className="card p-5 sm:p-7 space-y-5 animate-in fade-in duration-200">
+              <div className="border-b border-slate-100 pb-3">
+                <h2 className="text-base font-bold text-slate-900">Schedule &amp; Priority</h2>
+                <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Set the active timeframe and urgency level</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Start Date <span className="text-rose-500">*</span></label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    Priority <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={watchPriority}
+                    onChange={e => setValue('priority', e.target.value as any, { shouldValidate: true })}
+                    className={inputCls()}
+                  >
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    Start Date <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="date"
                     value={watchStartDate}
@@ -457,9 +596,10 @@ function NewTaskForm() {
                   />
                   {errors.startDate && <p className="mt-1 text-xs text-rose-600">{errors.startDate.message}</p>}
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">End Date <span className="text-rose-500">*</span></label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    End Date <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="date"
                     value={watchEndDate}
@@ -468,72 +608,76 @@ function NewTaskForm() {
                   />
                   {errors.endDate && <p className="mt-1 text-xs text-rose-600">{errors.endDate.message}</p>}
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Priority <span className="text-rose-500">*</span></label>
-                  <div className="grid grid-cols-3 gap-2.5">
-                    {(['high', 'medium', 'low'] as const).map((p) => {
-                      const isSelected = watchPriority === p;
-                      return (
-                        <button
-                          key={p}
-                          type="button"
-                          onClick={() => setValue('priority', p, { shouldValidate: true })}
-                          className={cn(
-                            'py-3 px-3 rounded-full text-xs font-bold capitalize border transition-all text-center cursor-pointer',
-                            isSelected
-                              ? p === 'high'
-                                ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-200'
-                                : p === 'medium'
-                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-md ring-2 ring-indigo-200'
-                                : 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-200'
-                              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                          )}
-                        >
-                          {p}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+              {/* Desktop Inline Action Bar */}
+              <div className="hidden lg:flex items-center justify-between pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center gap-2 cursor-pointer"
+                >
+                  <ArrowLeft size={16} weight="bold" />
+                  <span>Back</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 shadow-md transition-all flex items-center gap-2 cursor-pointer btn-press"
+                >
+                  <span>Next: Select Assignees</span>
+                  <ArrowRight size={16} weight="bold" />
+                </button>
               </div>
             </div>
           )}
 
           {/* STEP 3: ASSIGN USERS */}
           {step === 3 && (
-            <div className="card p-5 space-y-4 animate-in fade-in duration-200">
+            <div className="card p-5 sm:p-7 space-y-5 animate-in fade-in duration-200">
               {/* Survey context banner when allocated from survey */}
-              {cameFromSurvey && (
-                <div className="p-3 rounded-xl bg-purple-50 border border-purple-200/80 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-7 h-7 rounded-lg bg-purple-600 text-white flex items-center justify-center shrink-0">
-                      <ClipboardText size={15} weight="bold" />
+              {(cameFromSurvey || isSurveyTask) && (
+                <div className="p-4 rounded-xl bg-purple-50/90 border border-purple-200/90 flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                      <ClipboardText size={20} weight="bold" />
                     </div>
                     <div className="min-w-0">
-                      <div className="text-xs font-bold text-purple-900 truncate">
-                        {watchName || 'Survey Task'}
+                      <div className="text-sm font-bold text-purple-950 truncate">
+                        Survey: {watchName || 'Field Survey Task'}
                       </div>
-                      <div className="text-[11px] text-purple-700 truncate">
-                        Select assignees below to deploy this survey
+                      <div className="text-xs text-purple-700 truncate mt-0.5">
+                        Select assignees below to deploy this questionnaire across field teams
                       </div>
                     </div>
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-200 text-purple-800 shrink-0">
-                    Survey
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-purple-200 text-purple-800 shrink-0">
+                    Survey Task
                   </span>
                 </div>
               )}
 
+              <div className="border-b border-slate-100 pb-3 flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">Select Assignees</h2>
+                  <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                    Assign this task to Interns, Fellows, or Program Coordinators
+                  </p>
+                </div>
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  {selectedUsers.length} Selected
+                </span>
+              </div>
+
               {selectedUsers.length > 0 && (
-                <div className="space-y-1.5">
-                  <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Assigned ({selectedUsers.length})</div>
-                  <div className="flex flex-wrap gap-2">
+                <div className="space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200/70">
+                  <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Assigned Users ({selectedUsers.length})</div>
+                  <div className="flex flex-wrap gap-2 pt-1">
                     {selectedUsers.map(u => (
-                      <span key={u.id} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-100 text-indigo-800 text-xs font-medium">
+                      <span key={u.id} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-indigo-200 text-indigo-800 text-xs font-semibold shadow-2xs">
                         {u.name}
-                        <button type="button" onClick={() => removeUser(u.id)} className="text-indigo-500 hover:text-indigo-700">
-                          <Trash size={12} />
+                        <button type="button" onClick={() => removeUser(u.id)} className="text-indigo-400 hover:text-rose-600 transition-colors cursor-pointer">
+                          <Trash size={13} />
                         </button>
                       </span>
                     ))}
@@ -544,6 +688,7 @@ function NewTaskForm() {
               {renderRoleFiltersAndBulkActions()}
 
               <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Search Assignees</label>
                 <input
                   type="search"
                   placeholder="Search by name or email…"
@@ -554,14 +699,14 @@ function NewTaskForm() {
               </div>
 
               {/* Assignee list with Checkboxes */}
-              <div className="max-h-[260px] overflow-y-auto border border-slate-200 rounded-[var(--radius)] divide-y divide-slate-100">
-                {filteredUsers.slice(0, 30).map(u => {
+              <div className="max-h-[320px] overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-white">
+                {filteredUsers.slice(0, 40).map(u => {
                   const isAdded = !!selectedUsers.find(s => s.id === u.id);
                   return (
                     <label
                       key={u.id}
                       className={cn(
-                        'w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors cursor-pointer select-none',
+                        'w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors cursor-pointer select-none',
                         isAdded ? 'bg-indigo-50/70 text-indigo-900 font-medium' : 'hover:bg-slate-50 text-slate-700'
                       )}
                     >
@@ -571,11 +716,11 @@ function NewTaskForm() {
                         onChange={() => toggleUser(u)}
                         className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
                       />
-                      <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-xs font-bold shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-xs font-bold shrink-0">
                         {u.name.slice(0, 1).toUpperCase()}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="font-medium truncate">{u.name}</div>
+                        <div className="font-medium truncate text-slate-900">{u.name}</div>
                         <div className="text-xs text-slate-400">{roleLabel(u.role)}</div>
                       </div>
                     </label>
@@ -584,16 +729,38 @@ function NewTaskForm() {
               </div>
 
               {errors.assignedToIds && (
-                <p className="text-xs text-rose-600"><Warning size={12} className="inline mr-1" />{errors.assignedToIds.message}</p>
+                <p className="text-xs text-rose-600 font-medium flex items-center gap-1">
+                  <Warning size={13} weight="bold" /> {errors.assignedToIds.message}
+                </p>
               )}
+
+              {/* Desktop Inline Action Bar */}
+              <div className="hidden lg:flex items-center justify-between pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center gap-2 cursor-pointer"
+                >
+                  <ArrowLeft size={16} weight="bold" />
+                  <span>Back</span>
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-7 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 shadow-md transition-all flex items-center gap-2 cursor-pointer btn-press disabled:opacity-60"
+                >
+                  {isSubmitting && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                  <span>{cameFromSurvey || isSurveyTask ? 'Deploy Survey Task' : 'Create & Assign Task'}</span>
+                  <Check size={16} weight="bold" />
+                </button>
+              </div>
             </div>
           )}
 
-          {/* Frozen Bottom Navigation on Mobile (Always visible, outside any card, portalled to document.body) */}
+          {/* Frozen Bottom Navigation on Mobile (Always visible) */}
           {mounted && createPortal(
             <div className="lg:hidden fixed bottom-[calc(52px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-4 py-2.5 shadow-lg">
               <div className="flex items-center gap-2.5 max-w-lg mx-auto">
-                {/* Back button: ONLY shown if step > 0 */}
                 {step > 0 && (
                   <button
                     type="button"
@@ -605,7 +772,6 @@ function NewTaskForm() {
                   </button>
                 )}
 
-                {/* Next / Submit Button */}
                 {step === 3 ? (
                   <button
                     type="submit"
@@ -614,7 +780,7 @@ function NewTaskForm() {
                     disabled={isSubmitting}
                     className="flex-1 h-11 px-6 rounded-full bg-indigo-600 text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-md hover:bg-indigo-700 btn-press transition-colors disabled:opacity-60 cursor-pointer"
                   >
-                    {isSubmitting ? 'Saving...' : 'Save & Assign Task'}
+                    {isSubmitting ? 'Saving...' : cameFromSurvey || isSurveyTask ? 'Deploy Survey Task' : 'Save & Assign Task'}
                     <Check size={16} weight="bold" />
                   </button>
                 ) : (
@@ -631,217 +797,6 @@ function NewTaskForm() {
             </div>,
             document.body
           )}
-        </div>
-
-        {/* DESKTOP VIEW: 2-COLUMN DASHBOARD LAYOUT */}
-        <div className="hidden lg:grid grid-cols-3 gap-6 items-start">
-          {/* Survey allocation banner on desktop when cameFromSurvey */}
-          {cameFromSurvey && (
-            <div className="col-span-3 card p-4 bg-purple-50/80 border border-purple-200/90 flex items-center justify-between gap-3 animate-in fade-in duration-200">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <ClipboardText size={20} weight="bold" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-purple-950">
-                    Allocating Survey: <span className="text-purple-700">{watchName || 'Field Survey'}</span>
-                  </h3>
-                  <p className="text-xs text-purple-700">
-                    Survey and schedule have been linked. Select assignees in the panel on the right to deploy this task.
-                  </p>
-                </div>
-              </div>
-              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-purple-200 text-purple-800 shrink-0">
-                Direct Survey Allocation
-              </span>
-            </div>
-          )}
-
-          <div className="col-span-2 space-y-6">
-            <div className="card p-6 space-y-5">
-              <h2 className="font-semibold text-slate-900 text-base pb-3 border-b border-slate-100">Task Details</h2>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Task Name <span className="text-rose-500">*</span></label>
-                <input
-                  type="text"
-                  placeholder="e.g. District Field Survey Q3"
-                  value={watchName}
-                  onChange={e => setValue('name', e.target.value, { shouldValidate: true })}
-                  className={inputCls(!!errors.name)}
-                />
-                {errors.name && <p className="mt-1.5 text-xs text-rose-600"><Warning size={12} className="inline mr-1" />{errors.name.message}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Description (optional)</label>
-                <textarea
-                  rows={3}
-                  placeholder="Add task details…"
-                  value={watchDescription}
-                  onChange={e => setValue('description', e.target.value, { shouldValidate: true })}
-                  className={cn(inputCls(), 'resize-none')}
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Priority <span className="text-rose-500">*</span></label>
-                  <select
-                    value={watchPriority}
-                    onChange={e => setValue('priority', e.target.value as any, { shouldValidate: true })}
-                    className={inputCls()}
-                  >
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Start Date <span className="text-rose-500">*</span></label>
-                  <input
-                    type="date"
-                    value={watchStartDate}
-                    onChange={e => setValue('startDate', e.target.value, { shouldValidate: true })}
-                    className={inputCls(!!errors.startDate)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">End Date <span className="text-rose-500">*</span></label>
-                  <input
-                    type="date"
-                    value={watchEndDate}
-                    onChange={e => setValue('endDate', e.target.value, { shouldValidate: true })}
-                    className={inputCls(!!errors.endDate)}
-                  />
-                  {errors.endDate && <p className="mt-1.5 text-xs text-rose-600">{errors.endDate.message}</p>}
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-slate-100 space-y-4">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="desktop-survey-task"
-                    checked={!!isSurveyTask}
-                    onChange={e => setValue('isSurveyTask', e.target.checked, { shouldValidate: true })}
-                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                  />
-                  <label htmlFor="desktop-survey-task" className="text-sm font-medium text-slate-700 cursor-pointer flex items-center gap-1.5">
-                    <ClipboardText size={16} className="text-purple-600" />
-                    This is a Survey task
-                  </label>
-                </div>
-
-                {isSurveyTask && (
-                  <div className="p-4 rounded-xl bg-purple-50/60 border border-purple-100 space-y-2 animate-in fade-in duration-200">
-                    <label className="block text-sm font-semibold text-slate-800">
-                      Choose Survey <span className="text-rose-500">*</span>
-                    </label>
-                    <select
-                      value={watchSurveyId}
-                      onChange={e => setValue('surveyId', e.target.value, { shouldValidate: true })}
-                      className={inputCls(!!errors.surveyId)}
-                    >
-                      <option value="">Select a survey to attach to this task…</option>
-                      {surveys.map(s => (
-                        <option key={s.id} value={s.id}>{s.title}</option>
-                      ))}
-                    </select>
-                    {errors.surveyId ? (
-                      <p className="text-xs text-rose-600 mt-1"><Warning size={12} className="inline mr-1" />{errors.surveyId.message}</p>
-                    ) : (
-                      <p className="text-xs text-slate-500">Assignees will be prompted to complete this survey when opening the task.</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="col-span-1 space-y-6">
-            <div className="card p-6 space-y-4">
-              <h2 className="font-semibold text-slate-900 text-base pb-3 border-b border-slate-100">Assign To</h2>
-
-              {selectedUsers.length > 0 && (
-                <div>
-                  <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Assigned ({selectedUsers.length})</div>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedUsers.map(u => (
-                      <span key={u.id} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-100 text-indigo-800 text-xs font-medium">
-                        {u.name}
-                        <button type="button" onClick={() => removeUser(u.id)} className="text-indigo-500 hover:text-indigo-700">
-                          <Trash size={12} />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {renderRoleFiltersAndBulkActions()}
-
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">Search Assignees</label>
-                <input
-                  type="search"
-                  placeholder="Search by name or email…"
-                  value={userSearch}
-                  onChange={e => setUserSearch(e.target.value)}
-                  className={inputCls()}
-                />
-              </div>
-
-              {/* Assignee list with Checkboxes */}
-              <div className="max-h-[260px] overflow-y-auto border border-slate-200 rounded-[var(--radius)] divide-y divide-slate-100">
-                {filteredUsers.slice(0, 30).map(u => {
-                  const isAdded = !!selectedUsers.find(s => s.id === u.id);
-                  return (
-                    <label
-                      key={u.id}
-                      className={cn(
-                        'w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors cursor-pointer select-none',
-                        isAdded ? 'bg-indigo-50/70 text-indigo-900 font-medium' : 'hover:bg-slate-50 text-slate-700'
-                      )}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isAdded}
-                        onChange={() => toggleUser(u)}
-                        className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
-                      />
-                      <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-xs font-bold shrink-0">
-                        {u.name.slice(0, 1).toUpperCase()}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="font-medium truncate">{u.name}</div>
-                        <div className="text-xs text-slate-400">{roleLabel(u.role)}</div>
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-
-              {errors.assignedToIds && (
-                <p className="text-xs text-rose-600"><Warning size={12} className="inline mr-1" />{errors.assignedToIds.message}</p>
-              )}
-            </div>
-
-            <div className="flex gap-3">
-              <Link href={cameFromSurvey ? '/admin/surveys' : '/admin/tasks'} className="flex-1 text-center py-2.5 rounded-[var(--radius)] text-sm font-medium border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors">
-                Cancel
-              </Link>
-              <button
-                type="submit"
-                id="create-task-submit"
-                disabled={isSubmitting}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-[var(--radius)] text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 btn-press disabled:opacity-60 transition-all shadow-xs"
-              >
-                {isSubmitting && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                {cameFromSurvey ? 'Deploy Survey Task' : 'Create & Assign Task'}
-              </button>
-            </div>
-          </div>
         </div>
       </form>
     </div>
