@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -39,6 +40,11 @@ interface SurveyFillFormProps {
 
 export default function SurveyFillForm({ survey, backHref = '/surveys', onSuccess }: SurveyFillFormProps) {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // ── Step State ──
   // 0 = General & Stakeholder Details Screen
@@ -49,7 +55,6 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
   const [stakeholderName, setStakeholderName] = useState('');
   const [stakeholderContact, setStakeholderContact] = useState('');
   const [stakeholderLocation, setStakeholderLocation] = useState('');
-  const [stakeholderCategory, setStakeholderCategory] = useState('Beneficiary');
   const [stakeholderErrors, setStakeholderErrors] = useState<{ name?: string }>({});
 
   // ── Section 2: Survey Answers ──
@@ -88,7 +93,6 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
     };
   }, [isRecordingVoice]);
 
-  // Format seconds to mm:ss
   const formatSeconds = (sec: number) => {
     const m = Math.floor(sec / 60);
     const s = sec % 60;
@@ -144,7 +148,6 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
 
   const stopVoiceRecording = (questionId: string) => {
     setIsRecordingVoice(false);
-    // Simulate created audio note
     const dummyVoiceUrl = `data:audio/wav;base64,voice_note_${Date.now()}`;
     setMediaAnswers(prev => ({
       ...prev,
@@ -283,22 +286,22 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
     );
   }
 
-  // Calculate overall progress percentage
-  const progressPercent = totalQuestions > 0
+  // Progress percentage (only for questions: 1 to totalQuestions)
+  const progressPercent = totalQuestions > 0 && currentStepIndex > 0
     ? Math.round((currentStepIndex / totalQuestions) * 100)
     : 0;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-5 pb-32 sm:pb-24">
-      {/* ── Top Header & Stepper Bar ── */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2.5 min-w-0">
+    <div className="max-w-3xl mx-auto space-y-5 pb-36 sm:pb-24">
+      {/* ══════════════════════════════════════════════════════════════════════
+          STEP 0 HEADER: ONLY SHOWN BEFORE QUESTIONS START
+         ══════════════════════════════════════════════════════════════════════ */}
+      {currentStepIndex === 0 && (
+        <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => {
-              if (currentStepIndex > 0) {
-                handlePrevQuestion();
-              } else if (typeof window !== 'undefined' && window.history.length > 1) {
+              if (typeof window !== 'undefined' && window.history.length > 1) {
                 router.back();
               } else {
                 router.push(backHref);
@@ -310,120 +313,63 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
             <ArrowLeft size={17} weight="bold" />
           </button>
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-lg font-bold text-slate-900 truncate">
-                {survey.title}
-              </h1>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 shrink-0">
-                Survey
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 truncate">
-              {currentStepIndex === 0 ? 'General & Stakeholder Information' : `Question ${currentStepIndex} of ${totalQuestions}`}
-            </p>
+            <h1 className="text-base sm:text-lg font-bold text-slate-900 truncate">
+              {survey.title}
+            </h1>
+            <p className="text-xs text-slate-500">General &amp; Stakeholder Details</p>
           </div>
         </div>
-
-        {/* Status indicator on desktop */}
-        <div className="hidden sm:flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-slate-200 shadow-2xs text-slate-600">
-          <ClipboardText size={15} className="text-indigo-600" weight="bold" />
-          <span>{currentStepIndex === 0 ? 'Step 0: Profile' : `Question ${currentStepIndex} / ${totalQuestions}`}</span>
-        </div>
-      </div>
-
-      {/* ── Stepper UI (Desktop Grid & Mobile Slim Progress Bar) ── */}
-      {/* Mobile Progress Bar (Pinned on Phone View) */}
-      <div className="sm:hidden -mx-2 px-2 sticky top-0 z-10 bg-slate-50/90 backdrop-blur-md pt-1 pb-2">
-        <div className="flex items-center justify-between text-xs text-slate-500 font-semibold mb-1 px-1">
-          <span>{currentStepIndex === 0 ? 'Stakeholder Details' : `Question ${currentStepIndex} of ${totalQuestions}`}</span>
-          <span className="text-indigo-600 font-bold">{progressPercent}%</span>
-        </div>
-        <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-indigo-600 rounded-full transition-all duration-300"
-            style={{ width: `${Math.max(progressPercent, 4)}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Desktop Stepper Grid (Matching Create Task Stepper) */}
-      <div className="hidden sm:block">
-        <div className="grid grid-cols-5 gap-2">
-          {/* Step 0: Stakeholder Details */}
-          <button
-            type="button"
-            onClick={() => setCurrentStepIndex(0)}
-            className={cn(
-              'p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5',
-              currentStepIndex === 0
-                ? 'bg-indigo-600 border-indigo-600 text-white shadow-xs'
-                : 'bg-white border-slate-200 hover:border-slate-300 text-slate-700 shadow-2xs'
-            )}
-          >
-            <div className={cn(
-              'w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0',
-              currentStepIndex === 0 ? 'bg-white/20 text-white' : stakeholderName.trim() ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
-            )}>
-              {stakeholderName.trim() && currentStepIndex > 0 ? <Check size={13} weight="bold" /> : '0'}
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs font-bold leading-tight truncate">Stakeholder</div>
-              <div className={cn('text-[10px] truncate', currentStepIndex === 0 ? 'text-indigo-100' : 'text-slate-400')}>
-                {stakeholderName ? stakeholderName : 'Profile'}
-              </div>
-            </div>
-          </button>
-
-          {/* Question Stepper Cards / Progress */}
-          {questions.slice(0, 4).map((q, idx) => {
-            const qNum = idx + 1;
-            const isCurrent = currentStepIndex === qNum;
-            const isAnswered = answers[q.id] !== undefined && answers[q.id] !== null && answers[q.id] !== '';
-
-            return (
-              <button
-                key={q.id}
-                type="button"
-                onClick={() => {
-                  if (stakeholderName.trim()) {
-                    setCurrentStepIndex(qNum);
-                  } else {
-                    toast.error('Please enter stakeholder name first');
-                  }
-                }}
-                className={cn(
-                  'p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5',
-                  isCurrent
-                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-xs'
-                    : 'bg-white border-slate-200 hover:border-slate-300 text-slate-700 shadow-2xs'
-                )}
-              >
-                <div className={cn(
-                  'w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0',
-                  isCurrent ? 'bg-white/20 text-white' : isAnswered ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
-                )}>
-                  {isAnswered && !isCurrent ? <Check size={13} weight="bold" /> : qNum}
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs font-bold leading-tight truncate">
-                    Q{qNum}: {q.type.replace('_', ' ')}
-                  </div>
-                  <div className={cn('text-[10px] truncate', isCurrent ? 'text-indigo-100' : 'text-slate-400')}>
-                    {isAnswered ? 'Answered' : q.required ? 'Required' : 'Optional'}
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════════
-          SCREEN 0: STAKEHOLDER DETAILS
+          FROZEN TOP BAR (DURING QUESTIONS): BACK BUTTON + PARTICIPANT NAME + STEPPER
+         ══════════════════════════════════════════════════════════════════════ */}
+      {currentStepIndex > 0 && (
+        <div className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-md -mx-4 px-4 pt-2.5 pb-2.5 border-b border-slate-200/80 shadow-2xs space-y-2">
+          <div className="flex items-center justify-between gap-3 max-w-3xl mx-auto">
+            {/* Back Button + Participant's Name */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <button
+                type="button"
+                onClick={handlePrevQuestion}
+                className="w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-700 flex items-center justify-center hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer shrink-0"
+                aria-label="Previous question"
+              >
+                <ArrowLeft size={17} weight="bold" />
+              </button>
+              <div className="min-w-0">
+                <div className="text-sm sm:text-base font-bold text-slate-900 truncate leading-snug">
+                  {stakeholderName}
+                </div>
+                <div className="text-[11px] text-slate-400 font-medium leading-none mt-0.5">
+                  Participant
+                </div>
+              </div>
+            </div>
+
+            {/* Question Counter Pill */}
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-white border border-slate-200 text-slate-700 shadow-2xs shrink-0">
+              {currentStepIndex} / {totalQuestions}
+            </span>
+          </div>
+
+          {/* Stepper Progress Bar (Starts when questions start) */}
+          <div className="max-w-3xl mx-auto">
+            <div className="w-full h-1.5 bg-slate-200/90 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-indigo-600 rounded-full transition-all duration-300"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          SCREEN 0: STAKEHOLDER DETAILS (NO CATEGORY DROPDOWN)
          ══════════════════════════════════════════════════════════════════════ */}
       {currentStepIndex === 0 && (
         <div className="space-y-6 animate-in fade-in duration-200">
-
           {/* Attached Documents if available */}
           {survey.documents && survey.documents.length > 0 && (
             <div className="card p-4 bg-indigo-50/40 border border-indigo-100 space-y-2">
@@ -449,7 +395,7 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
             </div>
           )}
 
-          {/* Section 1: Stakeholder Details Form */}
+          {/* Stakeholder Details Form */}
           <div className="card p-5 sm:p-7 space-y-5 border border-slate-200/90 shadow-xs bg-white">
             <div className="border-b border-slate-100 pb-3 flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
@@ -458,7 +404,7 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
               <div>
                 <h2 className="text-base font-bold text-slate-900">Stakeholder Details</h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Capture the profile information of the respondent or citizen before starting questions
+                  Capture the profile information of the participant before starting questions
                 </p>
               </div>
             </div>
@@ -493,7 +439,7 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
               </div>
 
               {/* Contact Info */}
-              <div>
+              <div className="sm:col-span-2">
                 <label className="block text-xs sm:text-sm font-semibold text-slate-800 mb-1.5">
                   Contact Info
                 </label>
@@ -507,25 +453,6 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
                   />
                   <Phone size={16} className="absolute left-3.5 top-3 text-slate-400 pointer-events-none" />
                 </div>
-              </div>
-
-              {/* Stakeholder Category */}
-              <div>
-                <label className="block text-xs sm:text-sm font-semibold text-slate-800 mb-1.5">
-                  Stakeholder Category
-                </label>
-                <select
-                  value={stakeholderCategory}
-                  onChange={e => setStakeholderCategory(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700"
-                >
-                  <option value="Beneficiary">Scheme Beneficiary</option>
-                  <option value="Farmer">Farmer / Agriculturalist</option>
-                  <option value="Youth">Youth / Student</option>
-                  <option value="Women Self-Help Group">SHG Member / Woman Entrepreneur</option>
-                  <option value="Panchayat Representative">Panchayat Official / Sarpanch</option>
-                  <option value="Other Citizen">General Citizen</option>
-                </select>
               </div>
 
               {/* Location / Village / District */}
@@ -566,37 +493,18 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════
-          SCREENS 1..N: TYPEFORM-LIKE QUESTION INTERFACE (ONE BY ONE)
+          SCREENS 1..N: CLEAN QUESTION INTERFACE (ONLY QUESTION NO & QUESTION)
          ══════════════════════════════════════════════════════════════════════ */}
       {currentStepIndex > 0 && currentQuestion && (
         <div className="space-y-6 animate-in fade-in duration-200">
-          {/* Main Typeform Question Card */}
-          <div className="card p-6 sm:p-10 border border-slate-200/90 shadow-sm bg-white min-h-[380px] flex flex-col justify-between space-y-6">
-            <div className="space-y-6">
-              {/* Question Number & Required Tag */}
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-extrabold px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase tracking-wider">
-                    Question {currentStepIndex} of {totalQuestions}
-                  </span>
-                  {currentQuestion.required ? (
-                    <span className="text-[11px] font-semibold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">
-                      Required *
-                    </span>
-                  ) : (
-                    <span className="text-[11px] font-semibold text-slate-400 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md">
-                      Optional
-                    </span>
-                  )}
-                </div>
-
-                <span className="text-xs font-medium text-slate-400">
-                  Stakeholder: <strong className="text-slate-700">{stakeholderName}</strong>
-                </span>
-              </div>
-
-              {/* Question Prompt (Typeform Big Typography) */}
+          {/* Main Question Card */}
+          <div className="card p-5 sm:p-8 border border-slate-200/90 shadow-sm bg-white min-h-[360px] flex flex-col justify-between space-y-6">
+            <div className="space-y-5">
+              {/* Clean Question Header: Only Question No and Question */}
               <div>
+                <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider block mb-1">
+                  Question {currentStepIndex} of {totalQuestions}
+                </span>
                 <h2 className="text-lg sm:text-2xl font-bold text-slate-900 leading-snug">
                   {currentQuestion.question || 'Untitled Question'}
                 </h2>
@@ -605,7 +513,7 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
               {/* ── Question Input Area ── */}
               {/* 1. Single Choice */}
               {currentQuestion.type === 'single_choice' && (
-                <div className="space-y-2.5 pt-2">
+                <div className="space-y-2.5 pt-1">
                   {(currentQuestion.options || []).map((opt, optIdx) => {
                     const isSelected = answers[currentQuestion.id] === opt;
                     const letter = String.fromCharCode(65 + optIdx);
@@ -615,7 +523,7 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
                         type="button"
                         onClick={() => handleAnswerChange(currentQuestion.id, opt)}
                         className={cn(
-                          'w-full flex items-center gap-3 p-4 rounded-2xl border text-left text-sm transition-all cursor-pointer select-none',
+                          'w-full flex items-center gap-3 p-3.5 sm:p-4 rounded-2xl border text-left text-sm transition-all cursor-pointer select-none',
                           isSelected
                             ? 'bg-indigo-50/80 border-indigo-400 font-bold text-indigo-950 shadow-xs ring-1 ring-indigo-300'
                             : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/80 text-slate-700 shadow-2xs'
@@ -637,7 +545,7 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
 
               {/* 2. Multiple Choice */}
               {currentQuestion.type === 'multiple_choice' && (
-                <div className="space-y-2.5 pt-2">
+                <div className="space-y-2.5 pt-1">
                   <p className="text-xs text-slate-400 font-medium">Select all that apply:</p>
                   {(currentQuestion.options || []).map((opt, optIdx) => {
                     const currentSelected = (answers[currentQuestion.id] as string[]) || [];
@@ -650,7 +558,7 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
                         type="button"
                         onClick={() => handleToggleMultipleChoice(currentQuestion.id, opt)}
                         className={cn(
-                          'w-full flex items-center gap-3 p-4 rounded-2xl border text-left text-sm transition-all cursor-pointer select-none',
+                          'w-full flex items-center gap-3 p-3.5 sm:p-4 rounded-2xl border text-left text-sm transition-all cursor-pointer select-none',
                           isSelected
                             ? 'bg-indigo-50/80 border-indigo-400 font-bold text-indigo-950 shadow-xs ring-1 ring-indigo-300'
                             : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/80 text-slate-700 shadow-2xs'
@@ -677,7 +585,7 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
 
               {/* 3. Likert Scale (5-points) */}
               {currentQuestion.type === 'likert_scale' && (
-                <div className="space-y-3 pt-2">
+                <div className="space-y-3 pt-1">
                   <div className="grid grid-cols-5 gap-2 sm:gap-3">
                     {[1, 2, 3, 4, 5].map((point) => {
                       const isSelected = answers[currentQuestion.id] === point;
@@ -712,7 +620,7 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
 
               {/* 4. Dichotomous (Yes / No) */}
               {currentQuestion.type === 'dichotomous' && (
-                <div className="grid grid-cols-2 gap-4 pt-2">
+                <div className="grid grid-cols-2 gap-4 pt-1">
                   {['Yes', 'No'].map((opt) => {
                     const isSelected = answers[currentQuestion.id] === opt;
                     return (
@@ -737,7 +645,7 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
 
               {/* 5. Descriptive Text */}
               {currentQuestion.type === 'descriptive' && (
-                <div className="pt-2">
+                <div className="pt-1">
                   <textarea
                     rows={4}
                     placeholder={currentQuestion.placeholder || 'Type detailed stakeholder answer or observations here…'}
@@ -760,18 +668,11 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
                   PARTICIPANT MEDIA CAPTURE (VOICE, VIDEO, IMAGE)
                  ════════════════════════════════════════════════════════════════ */}
               {(currentQuestion.allowVoice || currentQuestion.allowVideo || currentQuestion.allowImage) && (
-                <div className="pt-5 border-t border-slate-100 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                        <Sparkle size={14} className="text-indigo-600" weight="fill" />
-                        Participant Media Attachments
-                      </span>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        Capture audio notes, video statements, or photo of participant
-                      </p>
-                    </div>
-                  </div>
+                <div className="pt-4 border-t border-slate-100 space-y-3">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <Sparkle size={14} className="text-indigo-600" weight="fill" />
+                    Participant Media Attachments
+                  </span>
 
                   {/* Hidden inputs for real file selection */}
                   <input
@@ -823,7 +724,6 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
                           )}
                         </div>
 
-                        {/* If Voice Attached */}
                         {mediaAnswers[currentQuestion.id]?.voiceUrl ? (
                           <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-white border border-purple-200 text-xs text-purple-900">
                             <div className="flex items-center gap-2 truncate">
@@ -842,7 +742,6 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
                             </button>
                           </div>
                         ) : isRecordingVoice ? (
-                          /* While Recording */
                           <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs">
                             <div className="flex items-center gap-2">
                               <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-ping" />
@@ -858,7 +757,6 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
                             </button>
                           </div>
                         ) : (
-                          /* Initial Voice Action Buttons */
                           <div className="flex items-center gap-1.5">
                             <button
                               type="button"
@@ -920,13 +818,13 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
                             className="w-full py-1.5 px-2 rounded-lg bg-white border border-blue-200 hover:bg-blue-50 text-blue-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                           >
                             <VideoCamera size={13} weight="bold" />
-                            <span>Capture / Upload Video</span>
+                            <span>Capture Video</span>
                           </button>
                         )}
                       </div>
                     )}
 
-                    {/* Participant Photo / Image Option */}
+                    {/* Participant Photo Option */}
                     {currentQuestion.allowImage && (
                       <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/60 space-y-2">
                         <div className="flex items-center justify-between">
@@ -965,7 +863,7 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
                             className="w-full py-1.5 px-2 rounded-lg bg-white border border-emerald-200 hover:bg-emerald-50 text-emerald-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                           >
                             <Camera size={13} weight="bold" />
-                            <span>Take Photo / Upload</span>
+                            <span>Take Photo</span>
                           </button>
                         )}
                       </div>
@@ -974,53 +872,92 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
                 </div>
               )}
             </div>
+
+            {/* Desktop Action Bar */}
+            <div className="hidden sm:flex items-center justify-between pt-6 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={handlePrevQuestion}
+                className="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center gap-2 cursor-pointer"
+              >
+                <ArrowLeft size={16} weight="bold" />
+                <span>Back</span>
+              </button>
+
+              {currentStepIndex < totalQuestions ? (
+                <button
+                  type="button"
+                  onClick={handleNextQuestion}
+                  className="px-8 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 shadow-md transition-all flex items-center gap-2 cursor-pointer btn-press"
+                >
+                  <span>Next Question</span>
+                  <ArrowRight size={16} weight="bold" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSubmitSurvey}
+                  disabled={isSubmitting}
+                  className="px-8 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 shadow-md transition-all flex items-center gap-2 cursor-pointer btn-press disabled:opacity-60"
+                >
+                  {isSubmitting ? (
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <span>Submit Survey Response</span>
+                      <Check size={16} weight="bold" />
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
 
           {/* ══════════════════════════════════════════════════════════════════
-              PHONE VIEW & DESKTOP BOTTOM ACTION BAR (BACK & NEXT NAVIGATION)
+              FROZEN BOTTOM NAVIGATION ON MOBILE (ALWAYS VISIBLE ABOVE TAB BAR)
              ══════════════════════════════════════════════════════════════════ */}
-          <div className="fixed sm:sticky bottom-0 left-0 right-0 z-30 sm:z-10 bg-white/95 backdrop-blur-md p-3.5 sm:p-4 border-t sm:border border-slate-200/90 sm:rounded-2xl shadow-lg flex items-center justify-between gap-3">
-            {/* Back Button */}
-            <button
-              type="button"
-              onClick={handlePrevQuestion}
-              className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center gap-1.5 cursor-pointer select-none"
-            >
-              <ArrowLeft size={16} weight="bold" />
-              <span>Back</span>
-            </button>
+          {mounted && createPortal(
+            <div className="sm:hidden fixed bottom-[calc(52px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-4 py-2.5 shadow-lg">
+              <div className="flex items-center gap-2.5 max-w-lg mx-auto">
+                <button
+                  type="button"
+                  onClick={handlePrevQuestion}
+                  className="w-11 h-11 rounded-full border border-slate-200 bg-white text-slate-700 flex items-center justify-center shrink-0 shadow-xs hover:bg-slate-50 cursor-pointer active:scale-95 transition-transform"
+                  aria-label="Previous question"
+                >
+                  <ArrowLeft size={18} weight="bold" />
+                </button>
 
-            {/* Next or Submit Button */}
-            {currentStepIndex < totalQuestions ? (
-              <button
-                type="button"
-                onClick={handleNextQuestion}
-                className="px-7 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 shadow-md transition-all flex items-center gap-2 cursor-pointer btn-press select-none"
-              >
-                <span>Next Question</span>
-                <ArrowRight size={16} weight="bold" />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleSubmitSurvey}
-                disabled={isSubmitting}
-                className="px-7 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 shadow-md transition-all flex items-center gap-2 cursor-pointer btn-press select-none disabled:opacity-60"
-              >
-                {isSubmitting ? (
-                  <>
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Submitting…</span>
-                  </>
+                {currentStepIndex < totalQuestions ? (
+                  <button
+                    type="button"
+                    onClick={handleNextQuestion}
+                    className="flex-1 py-3 px-5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 shadow-md flex items-center justify-center gap-2 cursor-pointer btn-press active:scale-98 transition-all"
+                  >
+                    <span>Next Question</span>
+                    <ArrowRight size={16} weight="bold" />
+                  </button>
                 ) : (
-                  <>
-                    <span>Submit Survey Response</span>
-                    <Check size={16} weight="bold" />
-                  </>
+                  <button
+                    type="button"
+                    onClick={handleSubmitSurvey}
+                    disabled={isSubmitting}
+                    className="flex-1 py-3 px-5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 shadow-md flex items-center justify-center gap-2 cursor-pointer btn-press active:scale-98 transition-all disabled:opacity-60"
+                  >
+                    {isSubmitting ? (
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <span>Submit Survey</span>
+                        <Check size={16} weight="bold" />
+                      </>
+                    )}
+                  </button>
                 )}
-              </button>
-            )}
-          </div>
+              </div>
+            </div>,
+            document.body
+          )}
         </div>
       )}
     </div>
