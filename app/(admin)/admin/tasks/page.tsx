@@ -22,6 +22,7 @@ import {
   ListBullets,
   SquaresFour,
   CaretDown,
+  Eye,
 } from '@phosphor-icons/react';
 import { tasksApi } from '@/lib/api/tasks';
 import type { Task, UserRole, TaskStatus, TaskPriority } from '@/types/models';
@@ -607,12 +608,15 @@ export default function AdminTasksPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-semibold text-slate-500 uppercase tracking-wider select-none">
-                  <th className="py-3 px-4 min-w-[280px]">Task Name</th>
-                  <th className="py-3 px-4 min-w-[190px]">Assignee</th>
-                  <th className="py-3 px-4 min-w-[140px]">Due Date</th>
-                  <th className="py-3 px-4 min-w-[110px]">Priority</th>
-                  <th className="py-3 px-4 min-w-[120px]">Status</th>
-                  <th className="py-3 px-4 text-right min-w-[80px]">Actions</th>
+                  <th className="py-3 px-3.5 sm:px-4">Task Name</th>
+                  <th className="py-3 px-4 hidden sm:table-cell min-w-[170px]">Assignee</th>
+                  <th className="py-3 px-4 hidden md:table-cell min-w-[130px]">Due Date</th>
+                  <th className="py-3 px-4 hidden lg:table-cell min-w-[110px]">Priority</th>
+                  <th className="py-3 px-4 hidden sm:table-cell min-w-[120px]">Status</th>
+                  <th className="py-3 px-3.5 sm:px-4 text-right w-14 sm:min-w-[80px]">
+                    <span className="sm:hidden">View</span>
+                    <span className="hidden sm:inline">Actions</span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs">
@@ -623,11 +627,11 @@ export default function AdminTasksPage() {
                     className="hover:bg-indigo-50/30 transition-colors cursor-pointer group"
                   >
                     {/* Task Name & Description */}
-                    <td className="py-3.5 px-4">
+                    <td className="py-3 sm:py-3.5 px-3.5 sm:px-4">
                       <div className="flex items-center gap-2.5">
                         <span className={cn('w-2 h-2 rounded-full shrink-0', priorityBarColor(task.priority))} />
                         <div className="min-w-0">
-                          <div className="font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors flex items-center gap-2">
+                          <div className="font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors flex items-center gap-1.5 flex-wrap">
                             <span className="truncate">{task.name}</span>
                             {task.isSurveyTask && (
                               <span className="text-[10px] px-1.5 py-0.2 rounded border font-semibold bg-purple-50 text-purple-700 border-purple-200 shrink-0">
@@ -636,7 +640,7 @@ export default function AdminTasksPage() {
                             )}
                           </div>
                           {task.description && (
-                            <p className="text-[11px] text-slate-400 truncate max-w-xs sm:max-w-md mt-0.5">
+                            <p className="text-[11px] text-slate-400 truncate max-w-[210px] sm:max-w-md mt-0.5">
                               {task.description}
                             </p>
                           )}
@@ -645,12 +649,12 @@ export default function AdminTasksPage() {
                     </td>
 
                     {/* Assignees with Role Badges or User Type */}
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 hidden sm:table-cell">
                       {renderAssigneeBadge(task)}
                     </td>
 
                     {/* Due Date */}
-                    <td className="py-3.5 px-4 whitespace-nowrap">
+                    <td className="py-3.5 px-4 hidden md:table-cell whitespace-nowrap">
                       <div className="flex items-center gap-1.5 text-slate-600 font-medium">
                         <CalendarBlank size={13} className="text-slate-400 shrink-0" />
                         <span>{formatDate(task.endDate, 'dd MMM yyyy')}</span>
@@ -663,7 +667,7 @@ export default function AdminTasksPage() {
                     </td>
 
                     {/* Priority */}
-                    <td className="py-3.5 px-4 whitespace-nowrap">
+                    <td className="py-3.5 px-4 hidden lg:table-cell whitespace-nowrap">
                       <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border', priorityBadge(task.priority))}>
                         <span className={cn('w-1.5 h-1.5 rounded-full', priorityBarColor(task.priority))} />
                         {taskPriorityLabel(task.priority)}
@@ -671,15 +675,36 @@ export default function AdminTasksPage() {
                     </td>
 
                     {/* Status */}
-                    <td className="py-3.5 px-4 whitespace-nowrap">
+                    <td className="py-3.5 px-4 hidden sm:table-cell whitespace-nowrap">
                       <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border', statusBadge(task.status))}>
                         {taskStatusLabel(task.status)}
                       </span>
                     </td>
 
                     {/* Actions */}
-                    <td className="py-3.5 px-4 text-right whitespace-nowrap" onClick={e => e.stopPropagation()}>
-                      <div className="flex items-center justify-end gap-1">
+                    <td className="py-3 sm:py-3.5 px-3.5 sm:px-4 text-right whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                      {/* Phone View: Eye Button */}
+                      <div className="flex sm:hidden items-center justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedTask(task)}
+                          className="p-1.5 rounded-lg text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors cursor-pointer"
+                          title="View Details"
+                        >
+                          <Eye size={17} weight="bold" />
+                        </button>
+                      </div>
+
+                      {/* Desktop View: Actions */}
+                      <div className="hidden sm:flex items-center justify-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedTask(task)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
+                          title="View Details"
+                        >
+                          <Eye size={14} />
+                        </button>
                         <button
                           type="button"
                           onClick={() => handleEdit(task)}
@@ -795,83 +820,122 @@ export default function AdminTasksPage() {
       {/* Task Details Modal */}
       {selectedTask && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200"
           onClick={() => setSelectedTask(null)}
         >
           <div
-            className="card p-6 max-w-lg w-full space-y-5 shadow-2xl animate-in zoom-in-95 duration-200"
+            className="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] sm:max-h-[90vh] flex flex-col shadow-2xl border border-slate-200/90 animate-in zoom-in-95 duration-200 overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-3 p-4 sm:p-5 border-b border-slate-100 bg-white shrink-0">
+              <div className="flex items-center gap-2.5 flex-1 min-w-0">
                 <span className={cn('w-3 h-3 rounded-full shrink-0', priorityBarColor(selectedTask.priority))} />
-                <h3 className="font-bold text-slate-900 text-lg leading-snug">{selectedTask.name}</h3>
+                <h3 className="font-bold text-slate-900 text-base sm:text-lg leading-snug line-clamp-2">{selectedTask.name}</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedTask(null)}
-                className="p-1.5 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors"
+                className="p-1.5 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors cursor-pointer shrink-0"
+                title="Close"
               >
                 <X size={16} weight="bold" />
               </button>
             </div>
 
-            {/* Badges */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full border', statusBadge(selectedTask.status))}>
-                {taskStatusLabel(selectedTask.status)}
-              </span>
-              <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full border', priorityBadge(selectedTask.priority))}>
-                {taskPriorityLabel(selectedTask.priority)} Priority
-              </span>
-              {selectedTask.isSurveyTask && (
-                <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-300 shadow-2xs">
-                  <ClipboardText size={13} weight="fill" className="text-purple-600" />
-                  Survey Task
+            {/* Modal Scrollable Body with Visible Scrollbar */}
+            <div className="overflow-y-auto p-4 sm:p-6 space-y-4 flex-1 [scrollbar-width:thin] [scrollbar-color:#cbd5e1_#f8fafc]">
+              {/* Badges */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full border', statusBadge(selectedTask.status))}>
+                  {taskStatusLabel(selectedTask.status)}
                 </span>
+                <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full border', priorityBadge(selectedTask.priority))}>
+                  {taskPriorityLabel(selectedTask.priority)} Priority
+                </span>
+                {selectedTask.isSurveyTask && (
+                  <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-300 shadow-2xs">
+                    <ClipboardText size={13} weight="fill" className="text-purple-600" />
+                    Survey Task
+                  </span>
+                )}
+              </div>
+
+              {/* Description */}
+              {selectedTask.description && (
+                <div className="space-y-1">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Description</span>
+                  <div className="text-xs sm:text-sm text-slate-600 leading-relaxed bg-slate-50 rounded-xl p-3.5 border border-slate-100 whitespace-pre-wrap">
+                    {selectedTask.description}
+                  </div>
+                </div>
               )}
-            </div>
 
-            {/* Description */}
-            {selectedTask.description && (
-              <div className="text-sm text-slate-600 leading-relaxed bg-slate-50 rounded-xl p-3.5 border border-slate-100">
-                {selectedTask.description}
-              </div>
-            )}
-
-            {/* Assignees & Details Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Duration */}
-              <div className="bg-slate-50 rounded-xl p-3.5 space-y-1 border border-slate-100">
-                <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
-                  <CalendarBlank size={14} />
-                  Duration
+              {/* Assignees & Details Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Timeline & Due Date */}
+                <div className="bg-slate-50 rounded-xl p-3.5 space-y-1 border border-slate-100">
+                  <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
+                    <CalendarBlank size={14} />
+                    Timeline & Due Date
+                  </div>
+                  <div className="text-slate-800 text-xs sm:text-sm font-semibold">
+                    {formatDate(selectedTask.startDate, 'dd MMM yyyy')}
+                  </div>
+                  <div className="text-slate-600 text-xs flex items-center gap-1.5">
+                    <span>Due: <strong>{formatDate(selectedTask.endDate, 'dd MMM yyyy')}</strong></span>
+                    {selectedTask.status === 'overdue' && (
+                      <span className="text-rose-600 bg-rose-50 px-1 py-0.2 rounded font-bold text-[10px]">Overdue</span>
+                    )}
+                  </div>
                 </div>
-                <div className="text-slate-800 text-xs sm:text-sm font-semibold">
-                  {formatDate(selectedTask.startDate, 'dd MMM yyyy')}
+
+                {/* Target Audience / Assignment Scope */}
+                <div className="bg-slate-50 rounded-xl p-3.5 space-y-1 border border-slate-100">
+                  <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
+                    <Users size={14} />
+                    Target Scope
+                  </div>
+                  <div className="text-xs sm:text-sm font-semibold text-slate-800">
+                    {selectedTask.targetAudience === 'all' && 'All Program Roles'}
+                    {selectedTask.targetAudience === 'all_pcs' && 'All Program Coordinators'}
+                    {selectedTask.targetAudience === 'all_fellows' && 'All Fellows'}
+                    {selectedTask.targetAudience === 'all_interns' && 'All Interns'}
+                    {(!selectedTask.targetAudience || selectedTask.targetAudience === 'selective') && 'Selective Assignees'}
+                  </div>
+                  <div className="text-[11px] text-slate-500">
+                    {selectedTask.assignedTo?.length ? `${selectedTask.assignedTo.length} person(s) assigned` : 'Broadcasted task'}
+                  </div>
                 </div>
-                <div className="text-slate-500 text-xs">→ {formatDate(selectedTask.endDate, 'dd MMM yyyy')}</div>
               </div>
 
-              {/* Assignees */}
+              {/* Assigned Personnel */}
               <div className="bg-slate-50 rounded-xl p-3.5 space-y-2 border border-slate-100">
                 <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
-                  <Users size={14} />
-                  Assigned To
+                  <User size={14} />
+                  Assigned Personnel ({selectedTask.assignedTo.length})
                 </div>
                 {renderAssigneeBadge(selectedTask)}
               </div>
+
+              {/* Created By & Timestamps */}
+              <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-100 flex-wrap gap-2">
+                <span>Created by: <strong className="text-slate-600">{selectedTask.createdBy?.name || 'Admin'}</strong></span>
+                {selectedTask.createdAt && (
+                  <span>Created on: {formatDate(selectedTask.createdAt, 'dd MMM yyyy')}</span>
+                )}
+              </div>
             </div>
 
-            {/* Modal Actions */}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+            {/* Modal Actions Footer */}
+            <div className="flex items-center justify-between p-4 bg-slate-50/90 border-t border-slate-100 shrink-0">
               <button
                 type="button"
                 onClick={() => {
                   setTaskToDelete(selectedTask);
+                  setSelectedTask(null);
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
               >
                 <Trash size={14} />
                 Delete Task
@@ -879,8 +943,11 @@ export default function AdminTasksPage() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => handleEdit(selectedTask)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+                  onClick={() => {
+                    handleEdit(selectedTask);
+                    setSelectedTask(null);
+                  }}
+                  className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors cursor-pointer"
                 >
                   <PencilSimple size={14} />
                   Edit Task
@@ -888,7 +955,7 @@ export default function AdminTasksPage() {
                 <button
                   type="button"
                   onClick={() => setSelectedTask(null)}
-                  className="px-4 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
+                  className="px-4 py-2 text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl transition-colors cursor-pointer shadow-2xs"
                 >
                   Close
                 </button>
