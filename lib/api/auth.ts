@@ -2,6 +2,28 @@ import { get, post, patch } from './client';
 import type { LoginRequest, LoginResponse, AuthUser, UserRole } from '@/types/models';
 
 const DEMO_USERS: Record<string, AuthUser> = {
+  'cpm@cmyp.mp.gov.in': {
+    id: 'cpm-01',
+    name: 'Dr. Rajesh Verma (Chief Program Manager)',
+    email: 'cpm@cmyp.mp.gov.in',
+    role: 'admin',
+    status: 'active',
+    pmuDesignation: 'chief_program_manager',
+    profileComplete: true,
+    createdAt: '2026-01-01T00:00:00Z',
+    qualification: 'post_graduate',
+  },
+  'spm@cmyp.mp.gov.in': {
+    id: 'spm-01',
+    name: 'Pooja Sharma (Senior Program Manager)',
+    email: 'spm@cmyp.mp.gov.in',
+    role: 'admin',
+    status: 'active',
+    pmuDesignation: 'senior_program_manager',
+    profileComplete: true,
+    createdAt: '2026-01-01T00:00:00Z',
+    qualification: 'post_graduate',
+  },
   'admin@cmyp.mp.gov.in': {
     id: 'usr-admin-01',
     name: 'Rajesh Sharma (State Admin)',
