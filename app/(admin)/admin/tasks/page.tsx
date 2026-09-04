@@ -299,71 +299,88 @@ export default function AdminTasksPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Task Management</h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Create, assign, and track tasks across Program Coordinators, Fellows, and Interns state-wide
-          </p>
+      {/* Frozen / Sticky Header */}
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md pt-1 pb-3.5 -mx-4 sm:-mx-6 px-4 sm:px-6 border-b border-slate-100 shadow-2xs">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight truncate">
+              Task Management
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5 line-clamp-1 sm:line-clamp-none">
+              Create, assign, and track tasks across Program Coordinators, Fellows, and Interns state-wide
+            </p>
+          </div>
+
+          {/* "+ Task" button moved to top right */}
+          <Link
+            href="/admin/tasks/new"
+            id="create-task-btn"
+            className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 transition-all shrink-0 shadow-xs cursor-pointer"
+            title="Create Task"
+          >
+            <Plus size={15} weight="bold" />
+            <span>Task</span>
+          </Link>
         </div>
-        <Link
-          href="/admin/tasks/new"
-          id="create-task-btn"
-          className="flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius)] text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 btn-press transition-colors shrink-0 shadow-sm w-fit"
-        >
-          <Plus size={16} weight="bold" />
-          <span>Create Task</span>
-        </Link>
       </div>
 
-      {/* KPI Stats Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      {/* 5 KPIs in a Single Row in Circular Cards */}
+      <div className="grid grid-cols-5 gap-2 sm:gap-4 max-w-xl sm:max-w-2xl mx-auto sm:mx-0 py-1">
         {[
           {
             key: '',
-            label: 'Total Tasks',
+            label: 'Total',
+            fullLabel: 'Total Tasks',
             value: stats.total,
             icon: ClipboardText,
-            color: 'text-slate-900',
-            bg: 'bg-slate-50',
-            border: 'border-slate-200',
+            color: 'text-slate-800',
+            bg: 'bg-slate-50/90 hover:bg-slate-100',
+            border: 'border-slate-300/80',
+            selectedStyle: 'border-slate-900 bg-slate-900 text-white shadow-md ring-2 ring-slate-400 ring-offset-2 scale-105',
           },
           {
             key: 'pending',
             label: 'Pending',
+            fullLabel: 'Pending Tasks',
             value: stats.pending,
             icon: Hourglass,
-            color: 'text-amber-700',
-            bg: 'bg-amber-50/50',
-            border: statusFilter === 'pending' ? 'border-amber-500 ring-2 ring-amber-200' : 'border-amber-200/70',
+            color: 'text-amber-800',
+            bg: 'bg-amber-50/90 hover:bg-amber-100',
+            border: 'border-amber-300',
+            selectedStyle: 'border-amber-500 bg-amber-500 text-white shadow-md ring-2 ring-amber-300 ring-offset-2 scale-105',
           },
           {
             key: 'in_progress',
             label: 'In Progress',
+            fullLabel: 'In Progress Tasks',
             value: stats.inProgress,
             icon: Clock,
-            color: 'text-sky-700',
-            bg: 'bg-sky-50/50',
-            border: statusFilter === 'in_progress' ? 'border-sky-500 ring-2 ring-sky-200' : 'border-sky-200/70',
+            color: 'text-sky-800',
+            bg: 'bg-sky-50/90 hover:bg-sky-100',
+            border: 'border-sky-300',
+            selectedStyle: 'border-sky-500 bg-sky-500 text-white shadow-md ring-2 ring-sky-300 ring-offset-2 scale-105',
           },
           {
             key: 'completed',
-            label: 'Completed',
+            label: 'Done',
+            fullLabel: 'Completed Tasks',
             value: stats.completed,
             icon: CheckCircle,
-            color: 'text-emerald-700',
-            bg: 'bg-emerald-50/50',
-            border: statusFilter === 'completed' ? 'border-emerald-500 ring-2 ring-emerald-200' : 'border-emerald-200/70',
+            color: 'text-emerald-800',
+            bg: 'bg-emerald-50/90 hover:bg-emerald-100',
+            border: 'border-emerald-300',
+            selectedStyle: 'border-emerald-600 bg-emerald-600 text-white shadow-md ring-2 ring-emerald-300 ring-offset-2 scale-105',
           },
           {
             key: 'overdue',
             label: 'Overdue',
+            fullLabel: 'Overdue Tasks',
             value: stats.overdue,
             icon: WarningCircle,
-            color: 'text-rose-700',
-            bg: 'bg-rose-50/50',
-            border: statusFilter === 'overdue' ? 'border-rose-500 ring-2 ring-rose-200' : 'border-rose-200/70',
+            color: 'text-rose-800',
+            bg: 'bg-rose-50/90 hover:bg-rose-100',
+            border: 'border-rose-300',
+            selectedStyle: 'border-rose-500 bg-rose-500 text-white shadow-md ring-2 ring-rose-300 ring-offset-2 scale-105',
           },
         ].map(item => {
           const Icon = item.icon;
@@ -375,20 +392,36 @@ export default function AdminTasksPage() {
               onClick={() => {
                 setStatusFilter(prev => prev === item.key ? '' : item.key);
               }}
+              title={`Filter by ${item.fullLabel}`}
               className={cn(
-                'card p-3 sm:p-4 text-left border transition-all duration-200 hover:shadow-sm cursor-pointer',
-                item.bg,
-                item.border,
-                isSelected && 'ring-2 shadow-sm'
+                'aspect-square rounded-full flex flex-col items-center justify-center p-1 sm:p-2 text-center transition-all duration-200 cursor-pointer select-none border-2 shadow-2xs',
+                isSelected ? item.selectedStyle : cn(item.bg, item.border, item.color)
               )}
             >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-500">{item.label}</span>
-                <Icon size={16} className={item.color} weight={isSelected ? 'bold' : 'regular'} />
-              </div>
-              <div className={cn('text-xl sm:text-2xl font-bold mt-1', item.color)}>
+              <Icon
+                size={13}
+                weight={isSelected ? 'fill' : 'bold'}
+                className={cn(
+                  'mb-0.5 sm:mb-1 shrink-0',
+                  isSelected ? 'text-white' : item.color
+                )}
+              />
+              <span
+                className={cn(
+                  'text-sm sm:text-xl font-black leading-none tracking-tight',
+                  isSelected ? 'text-white' : item.color
+                )}
+              >
                 {item.value}
-              </div>
+              </span>
+              <span
+                className={cn(
+                  'text-[8px] sm:text-[10px] font-bold uppercase tracking-tight leading-tight mt-0.5 truncate max-w-full px-0.5',
+                  isSelected ? 'text-white/90' : 'text-slate-600'
+                )}
+              >
+                {item.label}
+              </span>
             </button>
           );
         })}

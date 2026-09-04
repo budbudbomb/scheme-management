@@ -91,22 +91,8 @@ export default function LoginPage() {
       </div>
 
       {/* Right — Login form container */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-10 bg-slate-50/90">
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-10 bg-slate-50/90 pt-20 sm:pt-10">
         <div className="w-full max-w-[420px]">
-          {/* Mobile logo */}
-          <div className="flex lg:hidden items-center gap-2.5 mb-6 justify-center">
-            <div className="w-10 h-10 rounded-xl bg-white p-1 shadow-sm border border-slate-200 flex items-center justify-center">
-              <Image
-                src="/logo.png"
-                alt="CMYP Portal Logo"
-                width={32}
-                height={32}
-                className="object-contain"
-              />
-            </div>
-            <span className="font-bold text-slate-800 text-base">CMYP Portal</span>
-          </div>
-
           <div className="bg-white rounded-3xl shadow-[0_10px_35px_-5px_rgba(15,23,42,0.08)] border border-slate-100 p-7 sm:p-9 relative">
             <LoginForm />
           </div>
