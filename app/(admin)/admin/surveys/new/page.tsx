@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -29,10 +29,17 @@ import {
   CheckCircle,
   X,
   CaretDown,
+  UploadSimple,
+  FileText,
+  Paperclip,
+  File,
+  Microphone,
+  VideoCamera,
+  Camera,
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils/formatters';
 import { surveysApi } from '@/lib/api/surveys';
-import type { QuestionType, SurveyQuestion, LikertConfig } from '@/types/models';
+import type { QuestionType, SurveyQuestion, LikertConfig, SurveyDocument } from '@/types/models';
 import { toast } from 'sonner';
 
 // ── Question Types Metadata ──────────────────────────────────────────────────
@@ -202,6 +209,46 @@ export default function AdminNewSurveyPage() {
   const [participantsRequired, setParticipantsRequired] = useState<number>(100);
   const [step1Errors, setStep1Errors] = useState<{ [key: string]: string }>({});
 
+  // ── Supporting Documents ──
+  const [documents, setDocuments] = useState<SurveyDocument[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleFilesAdded = (files: FileList | File[]) => {
+    const newDocs: SurveyDocument[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const formattedSize = formatFileSize(file.size);
+      if (documents.some(d => d.name === file.name && d.size === formattedSize)) {
+        continue;
+      }
+      const ext = file.name.split('.').pop()?.toUpperCase() || 'FILE';
+      newDocs.push({
+        id: `doc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        name: file.name,
+        size: formattedSize,
+        type: ext,
+        url: URL.createObjectURL(file),
+        uploadedAt: new Date().toLocaleDateString(),
+      });
+    }
+    if (newDocs.length > 0) {
+      setDocuments(prev => [...prev, ...newDocs]);
+      toast.success(`${newDocs.length} document${newDocs.length > 1 ? 's' : ''} attached`);
+    }
+  };
+
+  const removeDocument = (id: string) => {
+    setDocuments(prev => prev.filter(d => d.id !== id));
+    toast.success('Document removed');
+  };
+
   // ── Step 2: Questions ───────────────────────────────────────────────────────
   const [questions, setQuestions] = useState<SurveyQuestion[]>([
     makeInitialQuestion('single_choice'),
@@ -318,6 +365,7 @@ export default function AdminNewSurveyPage() {
         endDate,
         participantsRequired,
         questions,
+        documents: documents.length > 0 ? documents : undefined,
       });
 
       toast.success('Survey created successfully!');
@@ -372,40 +420,79 @@ export default function AdminNewSurveyPage() {
         </button>
       </div>
 
-      {/* Mobile Header (Sleek, Compact, Single-Row) */}
-      <div className="flex sm:hidden items-center justify-between gap-2.5">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <Link
-            href="/admin/surveys"
-            className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-600 flex items-center justify-center hover:bg-slate-50 transition-colors shrink-0 shadow-2xs"
-            aria-label="Back to surveys"
-          >
-            <ArrowLeft size={16} weight="bold" />
-          </Link>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <h1 className="text-base font-bold text-slate-900 truncate">Create Survey</h1>
-              <span className="text-[10px] px-1.5 py-0.2 rounded font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0">
-                Admin
-              </span>
+      {/* ── Mobile Frozen Header & Stepper (Stays pinned at top when scrolling) ── */}
+      <div className="sm:hidden sticky top-0 z-30 bg-slate-50/95 backdrop-blur-md -mx-4 px-4 pt-1.5 pb-2 space-y-2 border-b border-slate-200/80 shadow-2xs">
+        {/* Mobile Header (Sleek, Compact, Single-Row) */}
+        <div className="flex items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Link
+              href="/admin/surveys"
+              className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-600 flex items-center justify-center hover:bg-slate-50 transition-colors shrink-0 shadow-2xs"
+              aria-label="Back to surveys"
+            >
+              <ArrowLeft size={16} weight="bold" />
+            </Link>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-base font-bold text-slate-900 truncate">Create Survey</h1>
+                <span className="text-[10px] px-1.5 py-0.2 rounded font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0">
+                  Admin
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 truncate">Questionnaire builder</p>
             </div>
-            <p className="text-[11px] text-slate-400 truncate">Questionnaire builder</p>
           </div>
+
+          {/* Mobile Live Preview Button */}
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(true)}
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 bg-white text-slate-700 shadow-2xs shrink-0 cursor-pointer active:scale-95"
+          >
+            <Eye size={13} className="text-indigo-600" weight="bold" />
+            <span>Preview</span>
+          </button>
         </div>
 
-        {/* Mobile Live Preview Button */}
-        <button
-          type="button"
-          onClick={() => setPreviewOpen(true)}
-          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 bg-white text-slate-700 shadow-2xs shrink-0 cursor-pointer active:scale-95"
-        >
-          <Eye size={13} className="text-indigo-600" weight="bold" />
-          <span>Preview</span>
-        </button>
+        {/* Mobile Stepper (Slim 2-tab segmented control) */}
+        <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100/90 rounded-xl border border-slate-200/70 shadow-2xs">
+          <button
+            type="button"
+            onClick={() => setCurrentStep(1)}
+            className={cn(
+              'flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer',
+              currentStep === 1
+                ? 'bg-white text-indigo-700 shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900'
+            )}
+          >
+            <span className={cn('w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-extrabold', currentStep === 1 ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700')}>1</span>
+            <span className="truncate">General Details</span>
+            {title.trim() && <CheckCircle size={13} className="text-emerald-500 shrink-0" weight="fill" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (validateStep1()) setCurrentStep(2);
+            }}
+            className={cn(
+              'flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer',
+              currentStep === 2
+                ? 'bg-white text-indigo-700 shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900'
+            )}
+          >
+            <span className={cn('w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-extrabold', currentStep === 2 ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700')}>2</span>
+            <span className="truncate">Questions</span>
+            <span className="text-[10px] px-1 py-0.2 rounded bg-slate-200/70 text-slate-700 font-bold">
+              {questions.length}
+            </span>
+          </button>
+        </div>
       </div>
 
-      {/* ── Stepper Header Navigation ── */}
-      {/* Desktop Stepper */}
+      {/* ── Desktop Stepper Header Navigation ── */}
       <div className="hidden sm:block card p-2 sm:p-3 bg-white/90 backdrop-blur-md shadow-xs border border-slate-200/80">
         <div className="grid grid-cols-2 gap-2 relative">
           {/* Step 1 Button */}
@@ -474,43 +561,6 @@ export default function AdminNewSurveyPage() {
         </div>
       </div>
 
-      {/* Mobile Stepper (Slim 2-tab segmented control) */}
-      <div className="sm:hidden grid grid-cols-2 gap-1.5 p-1 bg-slate-100/90 rounded-xl border border-slate-200/70 shadow-2xs">
-        <button
-          type="button"
-          onClick={() => setCurrentStep(1)}
-          className={cn(
-            'flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer',
-            currentStep === 1
-              ? 'bg-white text-indigo-700 shadow-2xs'
-              : 'text-slate-600 hover:text-slate-900'
-          )}
-        >
-          <span className={cn('w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-extrabold', currentStep === 1 ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700')}>1</span>
-          <span className="truncate">General Details</span>
-          {title.trim() && <CheckCircle size={13} className="text-emerald-500 shrink-0" weight="fill" />}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            if (validateStep1()) setCurrentStep(2);
-          }}
-          className={cn(
-            'flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer',
-            currentStep === 2
-              ? 'bg-white text-indigo-700 shadow-2xs'
-              : 'text-slate-600 hover:text-slate-900'
-          )}
-        >
-          <span className={cn('w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-extrabold', currentStep === 2 ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700')}>2</span>
-          <span className="truncate">Questions</span>
-          <span className="text-[10px] px-1 py-0.2 rounded bg-slate-200/70 text-slate-700 font-bold">
-            {questions.length}
-          </span>
-        </button>
-      </div>
-
       {/* ══════════════════════════════════════════════════════════════════════
           STEP 1: GENERAL DETAILS
          ══════════════════════════════════════════════════════════════════════ */}
@@ -549,10 +599,10 @@ export default function AdminNewSurveyPage() {
               )}
             </div>
 
-            {/* Timeline: Start Date & End Date */}
-            <div className="grid sm:grid-cols-2 gap-4">
+            {/* Timeline: Start Date & End Date (Single row on all screens) */}
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label className="block text-sm font-semibold text-slate-800 mb-1.5">
+                <label className="block text-xs sm:text-sm font-semibold text-slate-800 mb-1.5">
                   Start Date <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
@@ -564,7 +614,7 @@ export default function AdminNewSurveyPage() {
                       if (step1Errors.startDate) setStep1Errors(prev => ({ ...prev, startDate: '' }));
                     }}
                     className={cn(
-                      'w-full px-4 py-2.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all',
+                      'w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border bg-white text-slate-900 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all',
                       step1Errors.startDate ? 'border-rose-400' : 'border-slate-200 hover:border-slate-300'
                     )}
                   />
@@ -577,7 +627,7 @@ export default function AdminNewSurveyPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-800 mb-1.5">
+                <label className="block text-xs sm:text-sm font-semibold text-slate-800 mb-1.5">
                   End Date <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
@@ -589,7 +639,7 @@ export default function AdminNewSurveyPage() {
                       if (step1Errors.endDate) setStep1Errors(prev => ({ ...prev, endDate: '' }));
                     }}
                     className={cn(
-                      'w-full px-4 py-2.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all',
+                      'w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border bg-white text-slate-900 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all',
                       step1Errors.endDate ? 'border-rose-400' : 'border-slate-200 hover:border-slate-300'
                     )}
                   />
@@ -671,6 +721,119 @@ export default function AdminNewSurveyPage() {
                 placeholder="Briefly explain the objective of this survey and instructions for field respondents or interviewing officers…"
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all resize-none hover:border-slate-300"
               />
+            </div>
+
+            {/* ── Upload Supporting Documents ── */}
+            <div className="space-y-3 pt-1 border-t border-slate-100">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-800">
+                    Upload Documents (optional)
+                  </label>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Attach survey questionnaires, field SOPs, guidelines, or reference materials
+                  </p>
+                </div>
+                {documents.length > 0 && (
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    {documents.length} {documents.length === 1 ? 'Document' : 'Documents'} Attached
+                  </span>
+                )}
+              </div>
+
+              {/* Drag and Drop Dropzone */}
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragging(false);
+                  if (e.dataTransfer.files?.length) {
+                    handleFilesAdded(e.dataTransfer.files);
+                  }
+                }}
+                onClick={() => fileInputRef.current?.click()}
+                className={cn(
+                  'border-2 border-dashed rounded-2xl p-5 sm:p-6 text-center cursor-pointer transition-all group',
+                  isDragging
+                    ? 'border-indigo-500 bg-indigo-50/70 scale-[0.99]'
+                    : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50/80 bg-slate-50/40'
+                )}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,image/*"
+                  onChange={(e) => {
+                    if (e.target.files?.length) {
+                      handleFilesAdded(e.target.files);
+                      e.target.value = '';
+                    }
+                  }}
+                  className="hidden"
+                />
+
+                <div className="flex flex-col items-center justify-center gap-2">
+                  <div className="w-11 h-11 rounded-2xl bg-indigo-100/80 text-indigo-600 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+                    <UploadSimple size={22} weight="bold" />
+                  </div>
+                  <div>
+                    <span className="text-sm font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
+                      Click to upload document
+                    </span>
+                    <span className="text-sm text-slate-500"> or drag &amp; drop</span>
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    Supports PDF, DOC, DOCX, XLS, XLSX, CSV, TXT (up to 10MB each)
+                  </p>
+                </div>
+              </div>
+
+              {/* Uploaded Documents List */}
+              {documents.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                  {documents.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-200 bg-white shadow-2xs hover:border-slate-300 transition-all"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100">
+                          <FileText size={20} weight="bold" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-slate-800 truncate" title={doc.name}>
+                            {doc.name}
+                          </div>
+                          <div className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                            <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 font-semibold text-[10px]">
+                              {doc.type}
+                            </span>
+                            <span>•</span>
+                            <span>{doc.size}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeDocument(doc.id);
+                        }}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
+                        title="Remove document"
+                      >
+                        <Trash size={15} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Navigation Actions (Desktop only - mobile has portalled bottom action bar) */}
@@ -1016,14 +1179,76 @@ export default function AdminNewSurveyPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* ── Media Capture Options (Voice, Video, Image) ── */}
+                  <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2.5">
+                    <div>
+                      <span className="text-xs font-bold text-slate-700 block">
+                        Participant Media Capture
+                      </span>
+                      <span className="text-[11px] text-slate-400">
+                        Allow surveyor to capture voice note, video, or participant photo
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Voice */}
+                      <button
+                        type="button"
+                        onClick={() => updateQuestion(qIndex, { ...q, allowVoice: !q.allowVoice })}
+                        className={cn(
+                          'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer select-none',
+                          q.allowVoice
+                            ? 'bg-purple-50 text-purple-700 border-purple-300 shadow-2xs'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                        )}
+                      >
+                        <Microphone size={14} weight={q.allowVoice ? 'fill' : 'bold'} className={q.allowVoice ? 'text-purple-600' : 'text-slate-400'} />
+                        <span>Voice Note</span>
+                        {q.allowVoice && <Check size={12} weight="bold" className="text-purple-600 ml-0.5" />}
+                      </button>
+
+                      {/* Video */}
+                      <button
+                        type="button"
+                        onClick={() => updateQuestion(qIndex, { ...q, allowVideo: !q.allowVideo })}
+                        className={cn(
+                          'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer select-none',
+                          q.allowVideo
+                            ? 'bg-blue-50 text-blue-700 border-blue-300 shadow-2xs'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                        )}
+                      >
+                        <VideoCamera size={14} weight={q.allowVideo ? 'fill' : 'bold'} className={q.allowVideo ? 'text-blue-600' : 'text-slate-400'} />
+                        <span>Video Note</span>
+                        {q.allowVideo && <Check size={12} weight="bold" className="text-blue-600 ml-0.5" />}
+                      </button>
+
+                      {/* Image */}
+                      <button
+                        type="button"
+                        onClick={() => updateQuestion(qIndex, { ...q, allowImage: !q.allowImage })}
+                        className={cn(
+                          'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer select-none',
+                          q.allowImage
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-2xs'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                        )}
+                      >
+                        <Camera size={14} weight={q.allowImage ? 'fill' : 'bold'} className={q.allowImage ? 'text-emerald-600' : 'text-slate-400'} />
+                        <span>Photo / Image</span>
+                        {q.allowImage && <Check size={12} weight="bold" className="text-emerald-600 ml-0.5" />}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               );
             })}
           </div>
         )}
 
-        {/* Add Question Card (Always appears below added questions) */}
-        <div className="card p-4 sm:p-5 border border-indigo-100/80 bg-gradient-to-br from-indigo-50/60 via-white to-purple-50/40 shadow-xs space-y-3">
+        {/* Desktop View: Full Add Question Card */}
+        <div className="hidden sm:block card p-5 border border-indigo-100/80 bg-gradient-to-br from-indigo-50/60 via-white to-purple-50/40 shadow-xs space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0">
@@ -1041,8 +1266,8 @@ export default function AdminNewSurveyPage() {
             </span>
           </div>
 
-          {/* The 5 Question Type Buttons */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
+          {/* 5 Question Type Rich Cards */}
+          <div className="grid grid-cols-5 gap-2.5 pt-1">
             {QUESTION_TYPES.map(cfg => {
               const Icon = cfg.icon;
               return (
@@ -1072,6 +1297,48 @@ export default function AdminNewSurveyPage() {
                 </button>
               );
             })}
+          </div>
+        </div>
+
+        {/* Mobile View: Ultra-slim card with pinned "+" button on extreme left and horizontally scrollable pills */}
+        <div className="sm:hidden card p-2 border border-indigo-100/80 bg-white/95 backdrop-blur-xs shadow-xs flex items-center gap-2 overflow-hidden">
+          {/* Stable '+' button on extreme left */}
+          <button
+            type="button"
+            onClick={() => addQuestion('single_choice')}
+            className="w-9 h-9 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs active:scale-90 transition-transform cursor-pointer"
+            title="Add Question"
+            aria-label="Add question"
+          >
+            <Plus size={18} weight="bold" />
+          </button>
+
+          {/* Vertical divider */}
+          <div className="w-[1px] h-6 bg-slate-200 shrink-0" />
+
+          {/* Horizontally scrollable pill buttons */}
+          <div className="flex-1 overflow-x-auto no-scrollbar py-0.5">
+            <div className="flex items-center gap-1.5 shrink-0 w-max pr-1">
+              {QUESTION_TYPES.map(cfg => {
+                const Icon = cfg.icon;
+                return (
+                  <button
+                    key={cfg.type}
+                    type="button"
+                    onClick={() => addQuestion(cfg.type)}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer bg-white text-slate-800 border-slate-200/90 shrink-0 hover:border-indigo-300',
+                      cfg.borderHover
+                    )}
+                  >
+                    <div className={cn('w-4 h-4 rounded-full flex items-center justify-center bg-gradient-to-br text-white shrink-0 shadow-2xs', cfg.gradient)}>
+                      <Icon size={10} weight="bold" />
+                    </div>
+                    <span className="whitespace-nowrap">{cfg.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 

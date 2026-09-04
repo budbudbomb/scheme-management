@@ -230,6 +230,18 @@ export interface SurveyQuestion {
   dichotomousLabels?: [string, string];
   placeholder?: string;
   required?: boolean;
+  allowVoice?: boolean;
+  allowVideo?: boolean;
+  allowImage?: boolean;
+}
+
+export interface SurveyDocument {
+  id: string;
+  name: string;
+  size: string;
+  type?: string;
+  url?: string;
+  uploadedAt?: string;
 }
 
 export interface Survey {
@@ -242,16 +254,35 @@ export interface Survey {
   responsesCount?: number;
   status?: 'draft' | 'active' | 'closed';
   questions?: SurveyQuestion[];
+  documents?: SurveyDocument[];
   createdBy: AssigneeRef;
   isAllocatedAsTask: boolean;
   createdAt: string;
+}
+
+export interface StakeholderDetails {
+  fullName: string;
+  contactInfo?: string;
+  district?: string;
+  notes?: string;
+}
+
+export interface QuestionMediaAnswer {
+  voiceUrl?: string;
+  voiceName?: string;
+  videoUrl?: string;
+  videoName?: string;
+  imageUrl?: string;
+  imageName?: string;
 }
 
 export interface SurveyResponse {
   id: string;
   surveyId: string;
   respondent: AssigneeRef;
+  stakeholder?: StakeholderDetails;
   answers: Record<string, string | string[] | number>;
+  mediaAnswers?: Record<string, QuestionMediaAnswer>;
   submittedAt: string;
   fileUrls?: string[];
 }

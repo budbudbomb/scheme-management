@@ -295,11 +295,11 @@ export const MOCK_SURVEYS: Survey[] = [
     isAllocatedAsTask: true,
     createdAt: '2026-08-01T00:00:00Z',
     questions: [
-      { id: 'q1', type: 'single_choice', question: 'What is the primary source of household income?', options: ['Agriculture', 'Daily Wage Labor', 'Small Business / Shop', 'Government / Private Job'], required: true },
+      { id: 'q1', type: 'single_choice', question: 'What is the primary source of household income?', options: ['Agriculture', 'Daily Wage Labor', 'Small Business / Shop', 'Government / Private Job'], required: true, allowImage: true },
       { id: 'q2', type: 'likert_scale', question: 'How satisfied is the community with current road connectivity?', likertConfig: { points: 5, lowLabel: 'Very Dissatisfied', highLabel: 'Very Satisfied', midLabel: 'Neutral' }, required: true },
-      { id: 'q3', type: 'dichotomous', question: 'Does the household have access to piped drinking water?', dichotomousLabels: ['Yes', 'No'], required: true },
+      { id: 'q3', type: 'dichotomous', question: 'Does the household have access to piped drinking water?', dichotomousLabels: ['Yes', 'No'], required: true, allowImage: true },
       { id: 'q4', type: 'multiple_choice', question: 'Which welfare schemes does the household benefit from?', options: ['PM Kisan', 'Ladli Behna Yojana', 'Ayushman Bharat', 'Ration (PDS)', 'None'], required: true },
-      { id: 'q5', type: 'descriptive', question: 'What are the main development challenges reported by the village head?', placeholder: 'Enter key observations, grievances, or community suggestions…', required: false },
+      { id: 'q5', type: 'descriptive', question: 'What are the main development challenges reported by the village head?', placeholder: 'Enter key observations, grievances, or community suggestions…', required: false, allowVoice: true, allowVideo: true },
     ],
   },
   {
@@ -315,10 +315,10 @@ export const MOCK_SURVEYS: Survey[] = [
     isAllocatedAsTask: true,
     createdAt: '2026-08-15T00:00:00Z',
     questions: [
-      { id: 'q1', type: 'dichotomous', question: 'Does the candidate have personal access to a smartphone or computer?', dichotomousLabels: ['Yes', 'No'], required: true },
+      { id: 'q1', type: 'dichotomous', question: 'Does the candidate have personal access to a smartphone or computer?', dichotomousLabels: ['Yes', 'No'], required: true, allowImage: true },
       { id: 'q2', type: 'multiple_choice', question: 'Which digital skills are you interested in learning?', options: ['Basic Computer Operations', 'Digital Payments & Banking', 'Graphic Design & Media', 'Online Government Services (MP e-District)', 'Coding & Programming'], required: true },
       { id: 'q3', type: 'likert_scale', question: 'How confident are you in using digital payment apps (UPI, DBT)?', likertConfig: { points: 5, lowLabel: 'Not Confident', highLabel: 'Extremely Confident', midLabel: 'Moderate' }, required: true },
-      { id: 'q4', type: 'descriptive', question: 'Describe your educational background and career aspiration.', placeholder: 'Write a brief description…', required: true },
+      { id: 'q4', type: 'descriptive', question: 'Describe your educational background and career aspiration.', placeholder: 'Write a brief description…', required: true, allowVoice: true },
     ],
   },
   {
