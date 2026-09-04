@@ -9,7 +9,6 @@ import { CheckSquare, ClipboardText, ArrowCircleUpRight, Users, MapPin } from '@
 import { get } from '@/lib/api/client';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/context';
-import GPSAttendanceWidget from '@/components/attendance/GPSAttendanceWidget';
 import HierarchicalTaskMonitor from '@/components/dashboard/HierarchicalTaskMonitor';
 
 async function fetchStats(): Promise<FellowDashboardStats> {
@@ -51,9 +50,6 @@ export default function FellowDashboardPage() {
         </h1>
         <p className="text-sm text-slate-500 mt-0.5">CMYPDP Fellow — {user?.district?.divisionName ?? 'Indore'}</p>
       </div>
-
-      {/* GPS attendance widget — prominent for field staff */}
-      <GPSAttendanceWidget />
 
       {loading ? <SkeletonStatGrid count={4} /> : error ? (
         <ErrorState message={error} onRetry={load} />
