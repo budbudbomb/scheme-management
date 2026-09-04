@@ -19,6 +19,7 @@ import {
   MapPin,
   Fingerprint,
   ArrowCircleUpRight,
+  BookOpen,
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils/formatters';
 import { useAuth } from '@/lib/auth/context';
@@ -39,6 +40,7 @@ function getNavItems(role: UserRole): NavItem[] {
       { href: `/${prefix}/tasks`, label: 'Tasks', icon: CheckSquare },
       { href: `/${prefix}/attendance`, label: 'Attendance', icon: Fingerprint },
       { href: `/${prefix}/leave`, label: 'Leave', icon: ClipboardText },
+      { href: `/${prefix}/leave/policy`, label: 'Leave Policy', icon: BookOpen },
       { href: `/${prefix}/exit`, label: 'Exit', icon: ArrowCircleUpRight },
       { href: `/${prefix}/training`, label: 'Training', icon: Calendar },
       { href: `/${prefix}/config`, label: 'Configuration', icon: GearSix },
@@ -49,7 +51,7 @@ function getNavItems(role: UserRole): NavItem[] {
       { href: `/${prefix}/tasks`, label: 'Tasks', icon: CheckSquare },
       { href: `/${prefix}/surveys`, label: 'Surveys', icon: ClipboardText },
       { href: `/${prefix}/attendance`, label: 'Attendance', icon: Fingerprint },
-      { href: `/${prefix}/leave`, label: 'Leave Approvals', icon: ShieldCheck },
+      { href: `/${prefix}/leave`, label: 'Leave', icon: ShieldCheck },
       { href: `/${prefix}/exit`, label: 'Exit Approvals', icon: ArrowCircleUpRight },
       { href: `/${prefix}/training`, label: 'Training', icon: Calendar },
     ],

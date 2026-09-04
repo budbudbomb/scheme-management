@@ -1,3 +1,4 @@
+"use client";
 import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -20,7 +21,7 @@ import { toast } from 'sonner';
 import { cn, formatDate } from '@/lib/utils/formatters';
 
 // ─── Types ────────────────────────────────────────────────────
-type LeaveTypeOption = 'casual' | 'medical' | 'unplanned' | 'earned';
+type LeaveTypeOption = 'casual' | 'unplanned' | 'earned';
 
 interface FellowLeaveApp {
   id: string;
@@ -41,7 +42,7 @@ interface InternLeaveApp {
   internId: string;
   internName: string;
   internBlock: string;
-  leaveType: 'casual' | 'medical' | 'unplanned';
+  leaveType: 'casual' | 'unplanned';
   startDate: string;
   endDate: string;
   totalDays: number;
@@ -66,7 +67,7 @@ const INITIAL_FELLOW_LEAVES: FellowLeaveApp[] = [
   },
   {
     id: 'fl-2',
-    leaveType: 'medical',
+    leaveType: 'casual',
     startDate: '2026-08-20',
     endDate: '2026-08-22',
     totalDays: 3,
@@ -109,7 +110,7 @@ const INITIAL_INTERN_LEAVES: InternLeaveApp[] = [
     internId: 'int-2',
     internName: 'Karan Malhotra',
     internBlock: 'Sanwer Block',
-    leaveType: 'medical',
+    leaveType: 'casual',
     startDate: '2026-09-03',
     endDate: '2026-09-04',
     totalDays: 2,
@@ -186,9 +187,8 @@ function calcDays(start: string, end: string): number {
 function leaveTypeBadge(type: string) {
   switch (type) {
     case 'casual':
-      return { label: 'Casual Leave (CL)', cls: 'bg-indigo-50 text-indigo-700 border-indigo-200' };
     case 'medical':
-      return { label: 'Medical Leave (ML)', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+      return { label: 'Casual Leave (CL)', cls: 'bg-indigo-50 text-indigo-700 border-indigo-200' };
     case 'unplanned':
       return { label: 'Unplanned Leave', cls: 'bg-amber-50 text-amber-700 border-amber-200' };
     case 'earned':
@@ -803,7 +803,6 @@ export default function FellowLeavePage() {
                         className="w-full text-sm rounded-[var(--radius)] border border-slate-200 bg-white px-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-400"
                       >
                         <option value="casual">Casual Leave (CL)</option>
-                        <option value="medical">Medical Leave (ML)</option>
                         <option value="unplanned">Unplanned Leave</option>
                         <option value="earned">Earned Leave (EL)</option>
                       </select>
