@@ -10,6 +10,7 @@ import { get } from '@/lib/api/client';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/context';
 import GPSAttendanceWidget from '@/components/attendance/GPSAttendanceWidget';
+import HierarchicalTaskMonitor from '@/components/dashboard/HierarchicalTaskMonitor';
 
 async function fetchStats(): Promise<FellowDashboardStats> {
   try {
@@ -64,6 +65,15 @@ export default function FellowDashboardPage() {
           <StatCard label="Intern Approvals" value={stats.pendingInternApprovals} icon={ArrowCircleUpRight} iconColor="text-rose-600" iconBg="bg-rose-50" />
         </div>
       )}
+
+      {/* Block-wise Intern Task Monitoring */}
+      <div className="pt-2">
+        <HierarchicalTaskMonitor
+          role="fellow"
+          districtId={user?.district?.id}
+          districtName={user?.district?.name}
+        />
+      </div>
 
       {/* Quick links */}
       <div>
