@@ -987,55 +987,52 @@ function NewTaskForm() {
             {assignmentMode === 'role' && (
               <div className="space-y-3 pt-0.5 animate-in fade-in duration-200">
                 {/* Role Filter Pills (Interns, Fellows, PCs) - NO "All" */}
-                <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1">
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs font-semibold text-slate-500 shrink-0 hidden sm:inline">Role:</span>
+                {/* Role Filter Pills (Interns, Fellows, PCs) - Centered below Role-Wise / Area-Wise Switch */}
+                <div className="flex items-center justify-center gap-2 sm:gap-2.5 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1">
+                  {/* Interns Button */}
+                  <button
+                    type="button"
+                    onClick={() => setRoleGroup(prev => prev === 'intern' ? null : 'intern')}
+                    className={cn(
+                      'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
+                      roleGroup === 'intern'
+                        ? 'bg-indigo-600 text-white border border-indigo-500 shadow-[0_0_16px_rgba(99,102,241,0.55)] ring-2 ring-indigo-400 ring-offset-1 font-bold scale-[1.02]'
+                        : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
+                    )}
+                  >
+                    <Checks size={14} className={roleGroup === 'intern' ? 'text-white' : 'text-indigo-600'} weight="bold" />
+                    <span>Interns</span>
+                  </button>
 
-                    {/* Interns Button */}
-                    <button
-                      type="button"
-                      onClick={() => setRoleGroup(prev => prev === 'intern' ? null : 'intern')}
-                      className={cn(
-                        'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
-                        roleGroup === 'intern'
-                          ? 'bg-indigo-600 text-white border border-indigo-500 shadow-[0_0_16px_rgba(99,102,241,0.55)] ring-2 ring-indigo-400 ring-offset-1 font-bold scale-[1.02]'
-                          : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
-                      )}
-                    >
-                      <Checks size={14} className={roleGroup === 'intern' ? 'text-white' : 'text-indigo-600'} weight="bold" />
-                      <span>Interns</span>
-                    </button>
+                  {/* Fellows Button */}
+                  <button
+                    type="button"
+                    onClick={() => setRoleGroup(prev => prev === 'fellow' ? null : 'fellow')}
+                    className={cn(
+                      'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
+                      roleGroup === 'fellow'
+                        ? 'bg-purple-600 text-white border border-purple-500 shadow-[0_0_16px_rgba(168,85,247,0.55)] ring-2 ring-purple-400 ring-offset-1 font-bold scale-[1.02]'
+                        : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
+                    )}
+                  >
+                    <Checks size={14} className={roleGroup === 'fellow' ? 'text-white' : 'text-purple-600'} weight="bold" />
+                    <span>Fellows</span>
+                  </button>
 
-                    {/* Fellows Button */}
-                    <button
-                      type="button"
-                      onClick={() => setRoleGroup(prev => prev === 'fellow' ? null : 'fellow')}
-                      className={cn(
-                        'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
-                        roleGroup === 'fellow'
-                          ? 'bg-purple-600 text-white border border-purple-500 shadow-[0_0_16px_rgba(168,85,247,0.55)] ring-2 ring-purple-400 ring-offset-1 font-bold scale-[1.02]'
-                          : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
-                      )}
-                    >
-                      <Checks size={14} className={roleGroup === 'fellow' ? 'text-white' : 'text-purple-600'} weight="bold" />
-                      <span>Fellows</span>
-                    </button>
-
-                    {/* PCs Button */}
-                    <button
-                      type="button"
-                      onClick={() => setRoleGroup(prev => prev === 'pc' ? null : 'pc')}
-                      className={cn(
-                        'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
-                        roleGroup === 'pc'
-                          ? 'bg-amber-600 text-white border border-amber-500 shadow-[0_0_16px_rgba(217,119,6,0.55)] ring-2 ring-amber-400 ring-offset-1 font-bold scale-[1.02]'
-                          : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
-                      )}
-                    >
-                      <Checks size={14} className={roleGroup === 'pc' ? 'text-white' : 'text-amber-600'} weight="bold" />
-                      <span>PCs</span>
-                    </button>
-                  </div>
+                  {/* PCs Button */}
+                  <button
+                    type="button"
+                    onClick={() => setRoleGroup(prev => prev === 'pc' ? null : 'pc')}
+                    className={cn(
+                      'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
+                      roleGroup === 'pc'
+                        ? 'bg-amber-600 text-white border border-amber-500 shadow-[0_0_16px_rgba(217,119,6,0.55)] ring-2 ring-amber-400 ring-offset-1 font-bold scale-[1.02]'
+                        : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
+                    )}
+                  >
+                    <Checks size={14} className={roleGroup === 'pc' ? 'text-white' : 'text-amber-600'} weight="bold" />
+                    <span>PCs</span>
+                  </button>
 
                   {/* Clear Selection Button */}
                   {selectedUsers.length > 0 && (
@@ -1045,7 +1042,7 @@ function NewTaskForm() {
                         setSelectedUsers([]);
                         setValue('assignedToIds', [], { shouldValidate: true });
                       }}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-all cursor-pointer shrink-0 active:scale-95 ml-auto sm:ml-0"
+                      className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-all cursor-pointer shrink-0 active:scale-95"
                     >
                       Clear ({selectedUsers.length})
                     </button>
