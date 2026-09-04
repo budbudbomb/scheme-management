@@ -639,7 +639,7 @@ export default function AdminLeavePage() {
 
             {/* Leave Policy Master Link */}
             <Link
-              href="/admin/leave/policy"
+              href="/admin/config"
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-slate-900 text-white hover:bg-slate-800 transition-colors shadow-sm"
             >
               <BookOpen size={16} weight="bold" />

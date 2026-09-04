@@ -40,7 +40,6 @@ function getNavItems(role: UserRole): NavItem[] {
       { href: `/${prefix}/tasks`, label: 'Tasks', icon: CheckSquare },
       { href: `/${prefix}/attendance`, label: 'Attendance', icon: Fingerprint },
       { href: `/${prefix}/leave`, label: 'Leave', icon: ClipboardText },
-      { href: `/${prefix}/leave/policy`, label: 'Leave Policy', icon: BookOpen },
       { href: `/${prefix}/exit`, label: 'Exit', icon: ArrowCircleUpRight },
       { href: `/${prefix}/training`, label: 'Training', icon: Calendar },
       { href: `/${prefix}/config`, label: 'Configuration', icon: GearSix },
