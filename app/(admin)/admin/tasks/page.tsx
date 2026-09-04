@@ -325,63 +325,63 @@ export default function AdminTasksPage() {
         </div>
       </div>
 
-      {/* 5 KPIs in a Single Row in Circular Cards */}
-      <div className="grid grid-cols-5 gap-2 sm:gap-4 max-w-xl sm:max-w-2xl mx-auto sm:mx-0 py-1">
+      {/* 5 Status KPIs in a Single Row */}
+      <div className="grid grid-cols-5 gap-1.5 sm:gap-3">
         {[
           {
             key: '',
             label: 'Total',
-            fullLabel: 'Total Tasks',
             value: stats.total,
             icon: ClipboardText,
-            color: 'text-slate-800',
-            bg: 'bg-slate-50/90 hover:bg-slate-100',
-            border: 'border-slate-300/80',
-            selectedStyle: 'border-slate-900 bg-slate-900 text-white shadow-md ring-2 ring-slate-400 ring-offset-2 scale-105',
+            color: 'text-slate-600',
+            activeStyle: 'bg-slate-900 text-white border-slate-900 shadow-xs',
+            activeText: 'text-white',
+            activeSub: 'text-slate-300',
+            activeIcon: 'text-slate-200',
           },
           {
             key: 'pending',
             label: 'Pending',
-            fullLabel: 'Pending Tasks',
             value: stats.pending,
             icon: Hourglass,
-            color: 'text-amber-800',
-            bg: 'bg-amber-50/90 hover:bg-amber-100',
-            border: 'border-amber-300',
-            selectedStyle: 'border-amber-500 bg-amber-500 text-white shadow-md ring-2 ring-amber-300 ring-offset-2 scale-105',
+            color: 'text-amber-500',
+            activeStyle: 'bg-amber-50/90 border-amber-300 text-amber-950 shadow-xs ring-1 ring-amber-400/30',
+            activeText: 'text-amber-950',
+            activeSub: 'text-amber-700 font-semibold',
+            activeIcon: 'text-amber-600',
           },
           {
             key: 'in_progress',
             label: 'In Progress',
-            fullLabel: 'In Progress Tasks',
             value: stats.inProgress,
             icon: Clock,
-            color: 'text-sky-800',
-            bg: 'bg-sky-50/90 hover:bg-sky-100',
-            border: 'border-sky-300',
-            selectedStyle: 'border-sky-500 bg-sky-500 text-white shadow-md ring-2 ring-sky-300 ring-offset-2 scale-105',
+            color: 'text-sky-500',
+            activeStyle: 'bg-sky-50/90 border-sky-300 text-sky-950 shadow-xs ring-1 ring-sky-400/30',
+            activeText: 'text-sky-950',
+            activeSub: 'text-sky-700 font-semibold',
+            activeIcon: 'text-sky-600',
           },
           {
             key: 'completed',
             label: 'Done',
-            fullLabel: 'Completed Tasks',
             value: stats.completed,
             icon: CheckCircle,
-            color: 'text-emerald-800',
-            bg: 'bg-emerald-50/90 hover:bg-emerald-100',
-            border: 'border-emerald-300',
-            selectedStyle: 'border-emerald-600 bg-emerald-600 text-white shadow-md ring-2 ring-emerald-300 ring-offset-2 scale-105',
+            color: 'text-emerald-500',
+            activeStyle: 'bg-emerald-50/90 border-emerald-300 text-emerald-950 shadow-xs ring-1 ring-emerald-400/30',
+            activeText: 'text-emerald-950',
+            activeSub: 'text-emerald-700 font-semibold',
+            activeIcon: 'text-emerald-600',
           },
           {
             key: 'overdue',
             label: 'Overdue',
-            fullLabel: 'Overdue Tasks',
             value: stats.overdue,
             icon: WarningCircle,
-            color: 'text-rose-800',
-            bg: 'bg-rose-50/90 hover:bg-rose-100',
-            border: 'border-rose-300',
-            selectedStyle: 'border-rose-500 bg-rose-500 text-white shadow-md ring-2 ring-rose-300 ring-offset-2 scale-105',
+            color: 'text-rose-500',
+            activeStyle: 'bg-rose-50/90 border-rose-300 text-rose-950 shadow-xs ring-1 ring-rose-400/30',
+            activeText: 'text-rose-950',
+            activeSub: 'text-rose-700 font-semibold',
+            activeIcon: 'text-rose-600',
           },
         ].map(item => {
           const Icon = item.icon;
@@ -393,36 +393,43 @@ export default function AdminTasksPage() {
               onClick={() => {
                 setStatusFilter(prev => prev === item.key ? '' : item.key);
               }}
-              title={`Filter by ${item.fullLabel}`}
+              title={`Filter by ${item.label}`}
               className={cn(
-                'aspect-square rounded-full flex flex-col items-center justify-center p-1 sm:p-2 text-center transition-all duration-200 cursor-pointer select-none border-2 shadow-2xs',
-                isSelected ? item.selectedStyle : cn(item.bg, item.border, item.color)
+                'group flex flex-col items-center justify-center py-2 px-1 sm:py-2.5 sm:px-2 rounded-xl sm:rounded-2xl border transition-all duration-150 cursor-pointer select-none text-center',
+                isSelected
+                  ? item.activeStyle
+                  : 'bg-white border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/60 shadow-2xs'
               )}
             >
-              <Icon
-                size={13}
-                weight={isSelected ? 'fill' : 'bold'}
-                className={cn(
-                  'mb-0.5 sm:mb-1 shrink-0',
-                  isSelected ? 'text-white' : item.color
-                )}
-              />
+              {/* Metric Number */}
               <span
                 className={cn(
-                  'text-sm sm:text-xl font-black leading-none tracking-tight',
-                  isSelected ? 'text-white' : item.color
+                  'text-base sm:text-2xl font-bold tracking-tight leading-none',
+                  isSelected ? item.activeText : 'text-slate-800'
                 )}
               >
                 {item.value}
               </span>
-              <span
-                className={cn(
-                  'text-[8px] sm:text-[10px] font-bold uppercase tracking-tight leading-tight mt-0.5 truncate max-w-full px-0.5',
-                  isSelected ? 'text-white/90' : 'text-slate-600'
-                )}
-              >
-                {item.label}
-              </span>
+
+              {/* Icon & Label Subtext */}
+              <div className="flex items-center justify-center gap-1 mt-1 sm:mt-1.5 max-w-full">
+                <Icon
+                  size={12}
+                  weight={isSelected ? 'fill' : 'bold'}
+                  className={cn(
+                    'shrink-0 transition-colors',
+                    isSelected ? item.activeIcon : item.color
+                  )}
+                />
+                <span
+                  className={cn(
+                    'text-[10px] sm:text-xs font-medium tracking-tight truncate',
+                    isSelected ? item.activeSub : 'text-slate-500'
+                  )}
+                >
+                  {item.label}
+                </span>
+              </div>
             </button>
           );
         })}
