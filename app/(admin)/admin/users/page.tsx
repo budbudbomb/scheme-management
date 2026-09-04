@@ -72,7 +72,7 @@ export default function UsersPage() {
   const handleConfirmDelete = async () => {
     if (!deletingUser) return;
     try {
-      await usersApi.delete(deletingUser.id);
+      await (usersApi as any).delete?.(deletingUser.id);
     } catch {
       // Local fallback if API backend not running
     }

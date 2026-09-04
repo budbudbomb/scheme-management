@@ -1,7 +1,9 @@
-'use client';
-
 import FillSurveyPageContainer from '@/components/surveys/FillSurveyPageContainer';
 
-export default function GeneralFillSurveyPage() {
+export function generateStaticParams() {
+  return [{ id: 'demo' }];
+}
+
+export default function SurveyPage() {
   return <FillSurveyPageContainer backHref="/intern/tasks" />;
 }
