@@ -9,6 +9,7 @@ import { Users, CheckSquare, ClipboardText, ArrowCircleUpRight, ShieldCheck, Fin
 import { get } from '@/lib/api/client';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/context';
+import HierarchicalTaskMonitor from '@/components/dashboard/HierarchicalTaskMonitor';
 
 async function fetchStats(): Promise<PCDashboardStats> {
   try {
@@ -62,6 +63,14 @@ export default function PCDashboardPage() {
           <StatCard label="Pending Exit" value={stats.pendingExitApprovals} icon={ArrowCircleUpRight} iconColor="text-violet-600" iconBg="bg-violet-50" />
         </div>
       )}
+
+      {/* Division District & Block Intern Task Monitoring */}
+      <div className="pt-2">
+        <HierarchicalTaskMonitor
+          role="pc"
+          divisionId={user?.division?.id}
+        />
+      </div>
 
       {/* Quick actions */}
       <div>
