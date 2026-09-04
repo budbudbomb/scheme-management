@@ -4,7 +4,7 @@ const isProd = process.env.NODE_ENV === "production";
 const repoName = "scheme-management";
 
 const nextConfig: NextConfig = {
-  output: "export",
+  ...(isProd ? { output: "export" } : {}),
   basePath: isProd ? `/${repoName}` : "",
   assetPrefix: isProd ? `/${repoName}/` : "",
   trailingSlash: true,

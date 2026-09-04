@@ -123,7 +123,7 @@ export const MOCK_TASKS: Task[] = [
     createdBy: me, assignedTo: [intern1],
     targetAudience: 'all_interns',
     isSurveyTask: true,
-    surveyId: 'surv-01',
+    surveyId: 'survey-01',
     createdAt: '2026-08-10T00:00:00Z', updatedAt: '2026-08-20T00:00:00Z',
   },
   {
@@ -143,7 +143,7 @@ export const MOCK_TASKS: Task[] = [
     createdBy: fellow1, assignedTo: [intern1],
     targetAudience: 'all_interns',
     isSurveyTask: true,
-    surveyId: 'surv-02',
+    surveyId: 'survey-02',
     createdAt: '2026-06-28T00:00:00Z', updatedAt: '2026-07-31T00:00:00Z',
   },
   {
@@ -154,7 +154,7 @@ export const MOCK_TASKS: Task[] = [
     createdBy: me, assignedTo: [intern1],
     targetAudience: 'all_interns',
     isSurveyTask: true,
-    surveyId: 'surv-03',
+    surveyId: 'survey-03',
     createdAt: '2026-09-01T00:00:00Z', updatedAt: '2026-09-01T00:00:00Z',
   },
   {
