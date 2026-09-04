@@ -1,11 +1,15 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
 import { cn, taskStatusColor, taskStatusLabel, taskPriorityColor, taskPriorityLabel, formatDate } from '@/lib/utils/formatters';
 import type { Task } from '@/types/models';
-import { CalendarBlank, User, ClipboardText, PencilSimple, Trash, ArrowRight } from '@phosphor-icons/react';
+import { CalendarBlank, User, ClipboardText, PencilSimple, Trash, ArrowRight, ArrowsClockwise } from '@phosphor-icons/react';
+import UpdateTaskStatusModal from './UpdateTaskStatusModal';
 
 interface TaskCardProps {
   task: Task;
-  onStatusUpdate?: (taskId: string, status: Task['status']) => void;
+  onStatusUpdate?: (taskId: string, status: Task['status'], comment?: string) => Promise<void> | void;
   onEdit?: (task: Task) => void;
   onDelete?: (taskId: string) => void;
   showAssignedByPc?: boolean;
@@ -47,6 +51,8 @@ export default function TaskCard({
   showAssignedByPc = false,
   compact = false,
 }: TaskCardProps) {
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+
   return (
     <div className={cn(
       'card card-hover flex overflow-hidden transition-all duration-200',
@@ -73,18 +79,17 @@ export default function TaskCard({
           </div>
 
           {/* Action icons */}
-          <div className="flex items-center gap-0.5 shrink-0 -mt-0.5">
+          <div className="flex items-center gap-1 shrink-0 -mt-0.5">
             {onStatusUpdate && (
-              <select
-                value={task.status}
-                onChange={(e) => onStatusUpdate(task.id, e.target.value as Task['status'])}
-                className="text-xs rounded-md border border-slate-200 bg-white py-1 px-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 mr-1"
-                aria-label="Update task status"
+              <button
+                type="button"
+                onClick={() => setIsStatusModalOpen(true)}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300 transition-colors cursor-pointer mr-0.5 shrink-0 shadow-2xs"
+                title="Update task status"
               >
-                <option value="pending">Pending</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
-              </select>
+                <ArrowsClockwise size={13} weight="bold" />
+                <span>Update Status</span>
+              </button>
             )}
             {onEdit && (
               <button
@@ -182,6 +187,16 @@ export default function TaskCard({
           </Link>
         )}
       </div>
+
+      {/* Status Update Popup Modal */}
+      {isStatusModalOpen && onStatusUpdate && (
+        <UpdateTaskStatusModal
+          task={task}
+          isOpen={isStatusModalOpen}
+          onClose={() => setIsStatusModalOpen(false)}
+          onUpdateStatus={onStatusUpdate}
+        />
+      )}
     </div>
   );
 }

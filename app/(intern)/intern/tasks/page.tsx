@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { tasksApi } from '@/lib/api/tasks';
 import type { Task } from '@/types/models';
 import TaskCard from '@/components/tasks/TaskCard';
@@ -13,12 +13,23 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils/formatters';
 
 type PageView = 'calendar' | 'list';
+type StatusFilter = 'all' | 'pending' | 'in_progress' | 'overdue' | 'completed';
+
+function isTaskOverdue(task: Task): boolean {
+  if (task.status === 'overdue') return true;
+  if (task.status === 'completed') return false;
+  if (!task.endDate) return false;
+  const end = new Date(task.endDate);
+  end.setHours(23, 59, 59, 999);
+  return end.getTime() < Date.now();
+}
 
 export default function InternTasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pageView, setPageView] = useState<PageView>('calendar');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -34,15 +45,34 @@ export default function InternTasksPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const updateStatus = async (taskId: string, status: Task['status']) => {
+  const updateStatus = async (taskId: string, status: Task['status'], comment?: string) => {
     try {
-      await tasksApi.updateStatus(taskId, { status });
-      toast.success('Status updated');
+      await tasksApi.updateStatus(taskId, { status, comment });
+      toast.success('Task status updated');
       load();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update');
+      toast.error(err instanceof Error ? err.message : 'Failed to update status');
     }
   };
+
+  const counts = useMemo(() => {
+    return {
+      all: tasks.length,
+      pending: tasks.filter(t => t.status === 'pending' && !isTaskOverdue(t)).length,
+      in_progress: tasks.filter(t => t.status === 'in_progress' && !isTaskOverdue(t)).length,
+      overdue: tasks.filter(t => isTaskOverdue(t)).length,
+      completed: tasks.filter(t => t.status === 'completed').length,
+    };
+  }, [tasks]);
+
+  const filteredTasks = useMemo(() => {
+    if (statusFilter === 'all') return tasks;
+    if (statusFilter === 'pending') return tasks.filter(t => t.status === 'pending' && !isTaskOverdue(t));
+    if (statusFilter === 'in_progress') return tasks.filter(t => t.status === 'in_progress' && !isTaskOverdue(t));
+    if (statusFilter === 'overdue') return tasks.filter(t => isTaskOverdue(t));
+    if (statusFilter === 'completed') return tasks.filter(t => t.status === 'completed');
+    return tasks;
+  }, [tasks, statusFilter]);
 
   return (
     <div className="space-y-5">
@@ -57,7 +87,7 @@ export default function InternTasksPage() {
           type="button"
           onClick={() => setPageView('calendar')}
           className={cn(
-            'flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200',
+            'flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer',
             pageView === 'calendar'
               ? 'bg-white text-indigo-600 shadow-sm'
               : 'text-slate-500 hover:text-slate-700',
@@ -70,7 +100,7 @@ export default function InternTasksPage() {
           type="button"
           onClick={() => setPageView('list')}
           className={cn(
-            'flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200',
+            'flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer',
             pageView === 'list'
               ? 'bg-white text-indigo-600 shadow-sm'
               : 'text-slate-500 hover:text-slate-700',
@@ -100,10 +130,56 @@ export default function InternTasksPage() {
 
           {/* List view */}
           {pageView === 'list' && (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {tasks.map(task => (
-                <TaskCard key={task.id} task={task} onStatusUpdate={updateStatus} />
-              ))}
+            <div className="space-y-4">
+              {/* Status Selector: To do - In progress - Overdue - Done */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+                {[
+                  { id: 'all' as const, label: 'All Tasks', count: counts.all },
+                  { id: 'pending' as const, label: 'To do', count: counts.pending },
+                  { id: 'in_progress' as const, label: 'In progress', count: counts.in_progress },
+                  { id: 'overdue' as const, label: 'Overdue', count: counts.overdue },
+                  { id: 'completed' as const, label: 'Done', count: counts.completed },
+                ].map((f) => {
+                  const active = statusFilter === f.id;
+                  return (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => setStatusFilter(f.id)}
+                      className={cn(
+                        'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border',
+                        active
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
+                      )}
+                    >
+                      <span>{f.label}</span>
+                      <span
+                        className={cn(
+                          'px-1.5 py-0.2 rounded-full text-[10px] font-bold',
+                          active
+                            ? 'bg-white/20 text-white'
+                            : 'bg-slate-100 text-slate-600'
+                        )}
+                      >
+                        {f.count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {!filteredTasks.length ? (
+                <div className="card p-8 text-center text-slate-500 text-sm">
+                  No tasks found in this status category.
+                </div>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {filteredTasks.map(task => (
+                    <TaskCard key={task.id} task={task} onStatusUpdate={updateStatus} />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </>
