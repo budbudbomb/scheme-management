@@ -1,11 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import Link from 'next/link';
 import {
   ClipboardText,
-  BookOpen,
   Plus,
   Check,
   X,
@@ -26,12 +24,11 @@ import {
   UploadSimple,
   ShieldCheck,
   Info,
-  CalendarBlank,
-  CaretDown,
   Sparkle
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { cn, formatDate } from '@/lib/utils/formatters';
+import { useAuth } from '@/lib/auth/context';
 
 // ── Types ─────────────────────────────────────────────────────────────
 type AdminRole = 'chief_program_manager' | 'senior_program_manager';
@@ -109,24 +106,24 @@ const MANAGER_PROFILES: Record<AdminRole, ManagerProfile> = {
   chief_program_manager: {
     id: 'cpm-01',
     name: 'Dr. Rajesh Verma',
-    designation: 'Chief Program Manager (State PMU Lead)',
+    designation: 'Chief Program Manager',
     role: 'chief_program_manager',
     code: 'CPM-MP-001',
-    email: 'rajesh.verma@cmyp.mp.gov.in',
+    email: 'cpm@cmyp.mp.gov.in',
     phone: '+91 98260 11223',
-    department: 'State Project Monitoring Unit (SPMU)',
-    location: 'Atal Bihari Vajpayee Institute of Good Governance, Bhopal'
+    department: 'State PMU',
+    location: 'Bhopal'
   },
   senior_program_manager: {
     id: 'spm-01',
     name: 'Pooja Sharma',
-    designation: 'Senior Program Manager (Operations & Field)',
+    designation: 'Senior Program Manager',
     role: 'senior_program_manager',
     code: 'SPM-MP-004',
-    email: 'pooja.sharma@cmyp.mp.gov.in',
+    email: 'spm@cmyp.mp.gov.in',
     phone: '+91 94250 88771',
-    department: 'Operations & District Coordination Cell',
-    location: 'Vallabh Bhawan / PMU Central Office, Bhopal'
+    department: 'Operations PMU',
+    location: 'Bhopal'
   }
 };
 
@@ -158,7 +155,7 @@ const INITIAL_MY_LEAVES: Record<AdminRole, ManagerLeaveApplication[]> = {
       status: 'approved',
       appliedAt: '2026-08-10T09:15:00Z',
       approverComment: 'Approved by State Project Director.',
-      approverName: 'Shri Manoj Govil, IAS (State Project Director)'
+      approverName: 'Shri Manoj Govil, IAS'
     },
     {
       id: 'ml-cpm-3',
@@ -173,7 +170,7 @@ const INITIAL_MY_LEAVES: Record<AdminRole, ManagerLeaveApplication[]> = {
       status: 'approved',
       appliedAt: '2026-07-05T14:30:00Z',
       approverComment: 'Sanctioned with medical certificate submitted.',
-      approverName: 'Shri Manoj Govil, IAS (State Project Director)'
+      approverName: 'Shri Manoj Govil, IAS'
     }
   ],
   senior_program_manager: [
@@ -200,8 +197,8 @@ const INITIAL_MY_LEAVES: Record<AdminRole, ManagerLeaveApplication[]> = {
       emergencyContact: '+91 94250 88771',
       status: 'approved',
       appliedAt: '2026-07-30T16:00:00Z',
-      approverComment: 'Approved. Ensure field phone is reachable in emergency.',
-      approverName: 'Dr. Rajesh Verma (Chief Program Manager)'
+      approverComment: 'Approved. Field phone reachable.',
+      approverName: 'Dr. Rajesh Verma'
     }
   ]
 };
@@ -298,7 +295,7 @@ const INITIAL_PC_LEAVES: CoordinatorLeaveApplication[] = [
     status: 'rejected',
     appliedAt: '2026-08-03T16:45:00Z',
     reviewedAt: '2026-08-04T09:30:00Z',
-    approverComment: 'Rejected due to State Review Mission scheduled on the same dates with CM Secretariat.'
+    approverComment: 'Rejected due to State Review Mission scheduled on the same dates.'
   }
 ];
 
@@ -317,7 +314,7 @@ const INITIAL_MONITOR_LEAVES: CandidateLeaveApplication[] = [
     status: 'applied',
     appliedAt: '2026-09-02T10:00:00Z',
     reviewedByPC: 'Vikram Rathore (PC Sehore)',
-    pcComment: 'Application forwarded to PMU for monitoring. No critical event clash.'
+    pcComment: 'Application forwarded to PMU for monitoring.'
   },
   {
     id: 'cml-2',
@@ -397,7 +394,7 @@ const INITIAL_MONITOR_LEAVES: CandidateLeaveApplication[] = [
     status: 'rejected',
     appliedAt: '2026-08-14T19:00:00Z',
     reviewedByPC: 'Amit Saxena (PC Bhopal)',
-    pcComment: 'Independence Day state ceremony attendance mandatory for all Urban block interns.'
+    pcComment: 'Independence Day state ceremony attendance mandatory.'
   },
   {
     id: 'cml-7',
@@ -418,10 +415,25 @@ const INITIAL_MONITOR_LEAVES: CandidateLeaveApplication[] = [
 ];
 
 export default function AdminLeavePage() {
-  // ── Role & Tab State (2 Main Tabs) ──────────────────────────────────
-  const [activeRole, setActiveRole] = useState<AdminRole>('chief_program_manager');
+  const { user } = useAuth();
+
+  // ── Role & Tab State ────────────────────────────────────────────────
+  const [activeRole, setActiveRole] = useState<AdminRole>(() => {
+    if (user?.pmuDesignation === 'senior_program_manager') return 'senior_program_manager';
+    return 'chief_program_manager';
+  });
+
   const [activeTab, setActiveTab] = useState<TabType>('my_leave');
   const [teamSubTab, setTeamSubTab] = useState<TeamSubTab>('coordinators');
+
+  // Sync role if user changes
+  useEffect(() => {
+    if (user?.pmuDesignation === 'senior_program_manager') {
+      setActiveRole('senior_program_manager');
+    } else if (user?.pmuDesignation === 'chief_program_manager') {
+      setActiveRole('chief_program_manager');
+    }
+  }, [user]);
 
   // ── Data State ──────────────────────────────────────────────────────
   const [myLeaves, setMyLeaves] = useState<Record<AdminRole, ManagerLeaveApplication[]>>(INITIAL_MY_LEAVES);
@@ -504,7 +516,7 @@ export default function AdminLeavePage() {
       [activeRole]: [newApplication, ...(prev[activeRole] || [])]
     }));
 
-    toast.success('Leave application submitted successfully for review by State Project Director');
+    toast.success('Leave application submitted successfully');
     setIsApplyModalOpen(false);
     setApplyForm({
       leaveType: 'casual',
@@ -533,7 +545,7 @@ export default function AdminLeavePage() {
               ...item,
               status: decision,
               reviewedAt: new Date().toISOString(),
-              approverComment: pcRemark.trim() || (decision === 'approved' ? `Approved by ${currentManager.name} (${currentManager.designation})` : 'Rejected')
+              approverComment: pcRemark.trim() || (decision === 'approved' ? `Approved by ${currentManager.designation}` : 'Rejected')
             }
           : item
       )
@@ -593,83 +605,122 @@ export default function AdminLeavePage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* ── Top Header with Admin Switcher & Policy Master ── */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl p-5 md:p-6 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                <ShieldCheck size={14} weight="fill" className="text-indigo-600" />
-                State PMU Administration
-              </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
-                <MapPin size={12} />
-                Madhya Pradesh CMYP
-              </span>
-            </div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-              Leave Governance & Operations Portal
-            </h1>
-            <p className="text-sm text-slate-500">
-              Manage personal leave applications, evaluate Program Coordinator requests, and monitor Fellow & Intern leaves across all districts.
-            </p>
+      {/* ── Minimalist Clean Header: Title + Role Name + Role Switcher ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Leave Management</h1>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs">
+            <ShieldCheck size={14} weight="fill" className="text-indigo-600" />
+            {activeRole === 'chief_program_manager' ? 'Chief Program Manager' : 'Senior Program Manager'}
+          </span>
+        </div>
+
+        {/* 2 Clean Role Buttons */}
+        <div className="flex items-center gap-1.5 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveRole('chief_program_manager');
+              toast.info('Switched view to Chief Program Manager');
+            }}
+            className={cn(
+              'px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer',
+              activeRole === 'chief_program_manager'
+                ? 'bg-white text-indigo-700 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            )}
+          >
+            Chief Program Manager
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveRole('senior_program_manager');
+              toast.info('Switched view to Senior Program Manager');
+            }}
+            className={cn(
+              'px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer',
+              activeRole === 'senior_program_manager'
+                ? 'bg-white text-indigo-700 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            )}
+          >
+            Senior Program Manager
+          </button>
+        </div>
+      </div>
+
+      {/* ── Enhanced Visual KPIs (Leave Balance Cards) ── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Casual Leave */}
+        <div className="bg-gradient-to-br from-blue-50/70 to-indigo-50/30 border border-blue-200/70 rounded-2xl p-4.5 shadow-xs hover:shadow-md transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-blue-900 uppercase tracking-wider">Casual Leave</span>
+            <span className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center font-extrabold text-xs shadow-2xs">CL</span>
           </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Admin Type Dropdown */}
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 shadow-sm">
-              <label htmlFor="admin-role-select" className="text-xs font-semibold text-slate-600 flex items-center gap-1">
-                <Users size={15} className="text-indigo-600" />
-                Admin Role:
-              </label>
-              <select
-                id="admin-role-select"
-                value={activeRole}
-                onChange={e => {
-                  const newRole = e.target.value as AdminRole;
-                  setActiveRole(newRole);
-                  toast.info(`Switched view to ${MANAGER_PROFILES[newRole].name} (${MANAGER_PROFILES[newRole].designation})`);
-                }}
-                className="text-sm font-semibold text-slate-800 bg-transparent border-none focus:outline-none focus:ring-0 cursor-pointer py-1 pr-2"
-              >
-                <option value="chief_program_manager">Chief Program Manager (Dr. Rajesh Verma)</option>
-                <option value="senior_program_manager">Senior Program Manager (Pooja Sharma)</option>
-              </select>
-            </div>
-
-            {/* Leave Policy Master Link */}
-            <Link
-              href="/admin/config"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-slate-900 text-white hover:bg-slate-800 transition-colors shadow-sm"
-            >
-              <BookOpen size={16} weight="bold" />
-              <span>Leave Policy Master</span>
-            </Link>
+          <div className="mt-3 flex items-baseline gap-1.5">
+            <span className="text-3xl font-black text-slate-900">{leaveBalance.casual.available}</span>
+            <span className="text-xs text-slate-500 font-semibold">/ {leaveBalance.casual.total} Days Left</span>
+          </div>
+          <div className="w-full bg-blue-100/80 h-2 rounded-full mt-3 overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-300"
+              style={{ width: `${(leaveBalance.casual.available / leaveBalance.casual.total) * 100}%` }}
+            />
           </div>
         </div>
 
-        {/* Selected Persona Info Strip */}
-        <div className="mt-5 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-600 bg-slate-50/70 p-3 rounded-xl">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-sm shadow-sm">
-              {currentManager.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-            </div>
-            <div>
-              <div className="font-semibold text-slate-900 text-sm flex items-center gap-2">
-                {currentManager.name}
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-100 text-indigo-700">
-                  {activeRole === 'chief_program_manager' ? 'CPM' : 'SPM'}
-                </span>
-              </div>
-              <div className="text-slate-500">{currentManager.designation} • {currentManager.code}</div>
-            </div>
+        {/* Earned Leave */}
+        <div className="bg-gradient-to-br from-emerald-50/70 to-teal-50/30 border border-emerald-200/70 rounded-2xl p-4.5 shadow-xs hover:shadow-md transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider">Earned Leave</span>
+            <span className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-extrabold text-xs shadow-2xs">EL</span>
           </div>
-          <div className="flex items-center gap-4 flex-wrap text-slate-500">
-            <span className="flex items-center gap-1"><Buildings size={14} /> {currentManager.department}</span>
-            <span className="text-slate-300">|</span>
-            <span className="text-emerald-700 font-medium bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">
-              Approving Authority: State Project Director (SPD / IAS)
-            </span>
+          <div className="mt-3 flex items-baseline gap-1.5">
+            <span className="text-3xl font-black text-slate-900">{leaveBalance.earned.available}</span>
+            <span className="text-xs text-slate-500 font-semibold">/ {leaveBalance.earned.total} Days Left</span>
+          </div>
+          <div className="w-full bg-emerald-100/80 h-2 rounded-full mt-3 overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-emerald-500 to-teal-600 h-full rounded-full transition-all duration-300"
+              style={{ width: `${(leaveBalance.earned.available / leaveBalance.earned.total) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Medical Leave */}
+        <div className="bg-gradient-to-br from-rose-50/70 to-pink-50/30 border border-rose-200/70 rounded-2xl p-4.5 shadow-xs hover:shadow-md transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-rose-900 uppercase tracking-wider">Medical Leave</span>
+            <span className="w-7 h-7 rounded-lg bg-rose-600 text-white flex items-center justify-center font-extrabold text-xs shadow-2xs">ML</span>
+          </div>
+          <div className="mt-3 flex items-baseline gap-1.5">
+            <span className="text-3xl font-black text-slate-900">{leaveBalance.medical.available}</span>
+            <span className="text-xs text-slate-500 font-semibold">/ {leaveBalance.medical.total} Days Left</span>
+          </div>
+          <div className="w-full bg-rose-100/80 h-2 rounded-full mt-3 overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-rose-500 to-pink-600 h-full rounded-full transition-all duration-300"
+              style={{ width: `${(leaveBalance.medical.available / leaveBalance.medical.total) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Special Leave */}
+        <div className="bg-gradient-to-br from-purple-50/70 to-violet-50/30 border border-purple-200/70 rounded-2xl p-4.5 shadow-xs hover:shadow-md transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-purple-900 uppercase tracking-wider">Special / Restricted</span>
+            <span className="w-7 h-7 rounded-lg bg-purple-600 text-white flex items-center justify-center font-extrabold text-xs shadow-2xs">SL</span>
+          </div>
+          <div className="mt-3 flex items-baseline gap-1.5">
+            <span className="text-3xl font-black text-slate-900">{leaveBalance.special.available}</span>
+            <span className="text-xs text-slate-500 font-semibold">/ {leaveBalance.special.total} Days Left</span>
+          </div>
+          <div className="w-full bg-purple-100/80 h-2 rounded-full mt-3 overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-purple-500 to-violet-600 h-full rounded-full transition-all duration-300"
+              style={{ width: `${(leaveBalance.special.available / leaveBalance.special.total) * 100}%` }}
+            />
           </div>
         </div>
       </div>
@@ -735,91 +786,20 @@ export default function AdminLeavePage() {
          ══════════════════════════════════════════════════════════════════ */}
       {activeTab === 'my_leave' && (
         <div className="space-y-6">
-          {/* Manager Leave Balance Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs hover:border-indigo-200 transition-all">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Casual Leave (CL)</span>
-                <span className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">CL</span>
-              </div>
-              <div className="mt-3 flex items-baseline gap-1.5">
-                <span className="text-2xl font-extrabold text-slate-900">{leaveBalance.casual.available}</span>
-                <span className="text-xs text-slate-500 font-medium">/ {leaveBalance.casual.total} Days Left</span>
-              </div>
-              <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2 overflow-hidden">
-                <div
-                  className="bg-blue-600 h-full rounded-full"
-                  style={{ width: `${(leaveBalance.casual.available / leaveBalance.casual.total) * 100}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs hover:border-indigo-200 transition-all">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Earned Leave (EL)</span>
-                <span className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs">EL</span>
-              </div>
-              <div className="mt-3 flex items-baseline gap-1.5">
-                <span className="text-2xl font-extrabold text-slate-900">{leaveBalance.earned.available}</span>
-                <span className="text-xs text-slate-500 font-medium">/ {leaveBalance.earned.total} Days Left</span>
-              </div>
-              <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2 overflow-hidden">
-                <div
-                  className="bg-emerald-600 h-full rounded-full"
-                  style={{ width: `${(leaveBalance.earned.available / leaveBalance.earned.total) * 100}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs hover:border-indigo-200 transition-all">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Medical Leave (ML)</span>
-                <span className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-xs">ML</span>
-              </div>
-              <div className="mt-3 flex items-baseline gap-1.5">
-                <span className="text-2xl font-extrabold text-slate-900">{leaveBalance.medical.available}</span>
-                <span className="text-xs text-slate-500 font-medium">/ {leaveBalance.medical.total} Days Left</span>
-              </div>
-              <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2 overflow-hidden">
-                <div
-                  className="bg-rose-600 h-full rounded-full"
-                  style={{ width: `${(leaveBalance.medical.available / leaveBalance.medical.total) * 100}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs hover:border-indigo-200 transition-all">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Special / Restricted</span>
-                <span className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-xs">SL</span>
-              </div>
-              <div className="mt-3 flex items-baseline gap-1.5">
-                <span className="text-2xl font-extrabold text-slate-900">{leaveBalance.special.available}</span>
-                <span className="text-xs text-slate-500 font-medium">/ {leaveBalance.special.total} Days Left</span>
-              </div>
-              <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2 overflow-hidden">
-                <div
-                  className="bg-purple-600 h-full rounded-full"
-                  style={{ width: `${(leaveBalance.special.available / leaveBalance.special.total) * 100}%` }}
-                />
-              </div>
-            </div>
-          </div>
-
           {/* Action Bar & Apply Button */}
-          <div className="flex items-center justify-between flex-wrap gap-4 bg-white p-4 rounded-2xl border border-slate-200">
+          <div className="flex items-center justify-between flex-wrap gap-4 bg-white p-4.5 rounded-2xl border border-slate-200">
             <div>
               <h2 className="text-base font-bold text-slate-900">
-                {currentManager.name}&apos;s Leave History
+                My Leave Applications
               </h2>
               <p className="text-xs text-slate-500">
-                Applications submitted here are directly routed to the State Project Director (IAS) for formal sanction.
+                Track status of your submitted leaves or apply for a new leave.
               </p>
             </div>
             <button
               type="button"
               onClick={() => setIsApplyModalOpen(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm cursor-pointer"
             >
               <Plus size={18} weight="bold" />
               <span>+ Apply My Leave</span>
@@ -892,7 +872,7 @@ export default function AdminLeavePage() {
                           {formatDate(item.appliedAt)}
                         </td>
                         <td className="px-5 py-4 text-xs text-slate-500">
-                          {item.approverName || 'State Project Director (SPD)'}
+                          {item.approverName || 'State Project Director'}
                           {item.approverComment && (
                             <p className="text-slate-400 italic text-[11px] mt-0.5">&quot;{item.approverComment}&quot;</p>
                           )}
@@ -927,11 +907,11 @@ export default function AdminLeavePage() {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════
-          TAB 2: APPROVE & MONITOR LEAVES (COMBINED TAB)
+          TAB 2: APPROVE & MONITOR LEAVES
          ══════════════════════════════════════════════════════════════════ */}
       {activeTab === 'team_leave' && (
         <div className="space-y-6">
-          {/* Sub-Tabs Switcher for Section 1 (Coordinators) and Section 2 (Fellows & Interns) */}
+          {/* Sub-Tabs Switcher */}
           <div className="bg-slate-100/90 p-1.5 rounded-2xl flex flex-wrap items-center gap-1.5 border border-slate-200/80">
             <button
               type="button"
@@ -977,40 +957,27 @@ export default function AdminLeavePage() {
           {/* ── Sub-Tab 1: Coordinators (Approve / Reject) ── */}
           {teamSubTab === 'coordinators' && (
             <div className="space-y-6 animate-in fade-in duration-150">
-              {/* Info Banner */}
-              <div className="bg-indigo-50/70 border border-indigo-200/80 rounded-2xl p-4 flex items-start gap-3">
-                <Info size={20} className="text-indigo-600 mt-0.5 shrink-0" />
-                <div className="text-xs text-indigo-900 leading-relaxed">
-                  <span className="font-bold">Coordinator Sanctioning Authority:</span> As{' '}
-                  <span className="font-semibold">{currentManager.designation}</span>, you are empowered to evaluate, approve, or reject leave applications submitted by Program Coordinators (PCs). Ensure field district duties are appropriately handed over before approving.
-                </div>
-              </div>
-
               {/* Quick Metrics */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
                   <div className="text-xs font-bold text-slate-500 uppercase">Total PC Applications</div>
                   <div className="text-2xl font-black text-slate-900 mt-2">{pcLeaves.length}</div>
-                  <div className="text-xs text-slate-400 mt-0.5">Across all 52 districts</div>
                 </div>
-                <div className="bg-white border border-amber-200 rounded-2xl p-4 shadow-xs bg-amber-50/20">
+                <div className="bg-amber-50/40 border border-amber-200 rounded-2xl p-4 shadow-xs">
                   <div className="text-xs font-bold text-amber-700 uppercase">Pending Approval</div>
                   <div className="text-2xl font-black text-amber-600 mt-2">{pendingPcCount}</div>
-                  <div className="text-xs text-amber-600/80 mt-0.5">Requires your review</div>
                 </div>
-                <div className="bg-white border border-emerald-200 rounded-2xl p-4 shadow-xs bg-emerald-50/20">
+                <div className="bg-emerald-50/40 border border-emerald-200 rounded-2xl p-4 shadow-xs">
                   <div className="text-xs font-bold text-emerald-700 uppercase">Approved Leaves</div>
                   <div className="text-2xl font-black text-emerald-600 mt-2">
                     {pcLeaves.filter(l => l.status === 'approved').length}
                   </div>
-                  <div className="text-xs text-emerald-600/80 mt-0.5">Sanctioned by PMU</div>
                 </div>
-                <div className="bg-white border border-rose-200 rounded-2xl p-4 shadow-xs bg-rose-50/20">
+                <div className="bg-rose-50/40 border border-rose-200 rounded-2xl p-4 shadow-xs">
                   <div className="text-xs font-bold text-rose-700 uppercase">Rejected Leaves</div>
                   <div className="text-2xl font-black text-rose-600 mt-2">
                     {pcLeaves.filter(l => l.status === 'rejected').length}
                   </div>
-                  <div className="text-xs text-rose-600/80 mt-0.5">Declined with remarks</div>
                 </div>
               </div>
 
@@ -1129,7 +1096,7 @@ export default function AdminLeavePage() {
                                     onClick={() => {
                                       setSelectedPcLeave(item);
                                       setPcModalMode('approve');
-                                      setPcRemark(`Sanctioned by ${currentManager.name} (${currentManager.designation})`);
+                                      setPcRemark(`Sanctioned by ${currentManager.designation}`);
                                     }}
                                     className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-xs cursor-pointer"
                                   >
@@ -1175,39 +1142,27 @@ export default function AdminLeavePage() {
           {/* ── Sub-Tab 2: Fellows & Interns (Monitor Only) ── */}
           {teamSubTab === 'fellows_interns' && (
             <div className="space-y-6 animate-in fade-in duration-150">
-              {/* Info Banner */}
-              <div className="bg-sky-50/70 border border-sky-200/80 rounded-2xl p-4 flex items-start gap-3">
-                <Info size={20} className="text-sky-600 mt-0.5 shrink-0" />
-                <div className="text-xs text-sky-900 leading-relaxed">
-                  <span className="font-bold">Monitoring & Oversight Console:</span> Program Coordinators (PCs) process Fellow & Intern leaves on the ground. As Program Manager, you have comprehensive state-wide visibility to track absence patterns, monitor approvals, and maintain field operational continuity.
-                </div>
-              </div>
-
               {/* Quick Metrics */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
                   <div className="text-xs font-bold text-slate-500 uppercase">Total Monitored</div>
                   <div className="text-2xl font-black text-slate-900 mt-2">{monitorLeaves.length}</div>
-                  <div className="text-xs text-slate-400 mt-0.5">Fellows & Interns state-wide</div>
                 </div>
-                <div className="bg-white border border-blue-200 rounded-2xl p-4 shadow-xs bg-blue-50/20">
+                <div className="bg-blue-50/40 border border-blue-200 rounded-2xl p-4 shadow-xs">
                   <div className="text-xs font-bold text-blue-700 uppercase">Fellow Applications</div>
                   <div className="text-2xl font-black text-blue-600 mt-2">
                     {monitorLeaves.filter(l => l.role === 'fellow').length}
                   </div>
-                  <div className="text-xs text-blue-600/80 mt-0.5">CM Young Professionals</div>
                 </div>
-                <div className="bg-white border border-purple-200 rounded-2xl p-4 shadow-xs bg-purple-50/20">
+                <div className="bg-purple-50/40 border border-purple-200 rounded-2xl p-4 shadow-xs">
                   <div className="text-xs font-bold text-purple-700 uppercase">Intern Applications</div>
                   <div className="text-2xl font-black text-purple-600 mt-2">
                     {monitorLeaves.filter(l => l.role === 'intern').length}
                   </div>
-                  <div className="text-xs text-purple-600/80 mt-0.5">District & Block Interns</div>
                 </div>
-                <div className="bg-white border border-emerald-200 rounded-2xl p-4 shadow-xs bg-emerald-50/20">
+                <div className="bg-emerald-50/40 border border-emerald-200 rounded-2xl p-4 shadow-xs">
                   <div className="text-xs font-bold text-emerald-700 uppercase">Currently Approved</div>
                   <div className="text-2xl font-black text-emerald-600 mt-2">{activeMonitorCount}</div>
-                  <div className="text-xs text-emerald-600/80 mt-0.5">Approved by District PCs</div>
                 </div>
               </div>
 
@@ -1382,8 +1337,8 @@ export default function AdminLeavePage() {
                   <CalendarCheck size={20} weight="bold" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">Apply Program Manager Leave</h3>
-                  <p className="text-xs text-slate-500">{currentManager.name} ({currentManager.designation})</p>
+                  <h3 className="text-lg font-bold text-slate-900">Apply Leave</h3>
+                  <p className="text-xs text-slate-500">{currentManager.designation}</p>
                 </div>
               </div>
               <button
