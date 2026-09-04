@@ -165,60 +165,60 @@ export default function HierarchicalTaskMonitor({
       {role === 'pc' && !activeDistrict && (
         <div className="space-y-5 animate-in fade-in duration-200">
           {/* Division Header Strip */}
-          <div className="card p-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl shadow-sm border border-slate-800">
+          <div className="card p-5 sm:p-6 bg-white border border-slate-200/90 rounded-2xl shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-md bg-indigo-500/30 border border-indigo-400/40 text-[11px] font-bold text-indigo-200 uppercase tracking-wider">
+                  <span className="px-2.5 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-[11px] font-bold text-indigo-700 uppercase tracking-wider">
                     Division Task Oversight
                   </span>
-                  <span className="text-xs text-slate-400">Admin-Assigned Intern Tasks</span>
+                  <span className="text-xs text-slate-500 font-medium">Admin-Assigned Intern Tasks</span>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-                  <Buildings size={24} className="text-indigo-400 shrink-0" weight="duotone" />
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                  <Buildings size={24} className="text-indigo-600 shrink-0" weight="duotone" />
                   <span>{divisionData.divisionName}</span>
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-300">
+                <p className="text-xs sm:text-sm text-slate-600">
                   Select a district below to monitor block-wise execution, intern submissions, and overdue alerts.
                 </p>
               </div>
 
               {/* Division Overall Progress Ring/Bar */}
-              <div className="bg-white/10 backdrop-blur-md px-4 py-3 rounded-xl border border-white/15 flex items-center gap-4 shrink-0">
+              <div className="bg-slate-50 border border-slate-200/80 px-4 py-3 rounded-xl flex items-center gap-4 shrink-0 shadow-2xs">
                 <div>
-                  <div className="text-[11px] font-semibold text-indigo-200 uppercase tracking-wider">
+                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     Division Progress
                   </div>
-                  <div className="text-2xl font-black text-white">
+                  <div className="text-2xl font-black text-slate-900">
                     {divisionData.completionRate}%
                   </div>
-                  <div className="text-[11px] text-slate-300">
+                  <div className="text-[11px] text-slate-500 font-medium">
                     {divisionData.completedTasks} of {divisionData.totalInterns} Interns Done
                   </div>
                 </div>
-                <div className="w-12 h-12 rounded-full border-4 border-white/20 border-t-emerald-400 flex items-center justify-center font-bold text-xs text-white">
+                <div className="w-12 h-12 rounded-full border-4 border-slate-200 border-t-emerald-500 flex items-center justify-center font-bold text-xs text-emerald-700 bg-white shadow-2xs">
                   {divisionData.completionRate}%
                 </div>
               </div>
             </div>
 
             {/* Quick Metrics Strip */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-4 mt-4 border-t border-white/10 text-xs">
-              <div className="bg-white/5 p-2 rounded-lg">
-                <span className="text-slate-400 block text-[11px]">Total Districts</span>
-                <span className="text-base font-bold text-white">{divisionData.totalDistricts}</span>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-4 border-t border-slate-100 text-xs">
+              <div className="bg-slate-50/80 border border-slate-200/70 p-3 rounded-xl">
+                <span className="text-slate-500 block text-[11px] font-medium mb-0.5">Total Districts</span>
+                <span className="text-base font-bold text-slate-900">{divisionData.totalDistricts}</span>
               </div>
-              <div className="bg-white/5 p-2 rounded-lg">
-                <span className="text-slate-400 block text-[11px]">Total Blocks</span>
-                <span className="text-base font-bold text-white">{divisionData.totalBlocks}</span>
+              <div className="bg-slate-50/80 border border-slate-200/70 p-3 rounded-xl">
+                <span className="text-slate-500 block text-[11px] font-medium mb-0.5">Total Blocks</span>
+                <span className="text-base font-bold text-slate-900">{divisionData.totalBlocks}</span>
               </div>
-              <div className="bg-white/5 p-2 rounded-lg">
-                <span className="text-slate-400 block text-[11px]">Total Interns</span>
-                <span className="text-base font-bold text-white">{divisionData.totalInterns}</span>
+              <div className="bg-slate-50/80 border border-slate-200/70 p-3 rounded-xl">
+                <span className="text-slate-500 block text-[11px] font-medium mb-0.5">Total Interns</span>
+                <span className="text-base font-bold text-slate-900">{divisionData.totalInterns}</span>
               </div>
-              <div className="bg-white/5 p-2 rounded-lg">
-                <span className="text-slate-400 block text-[11px]">Overdue Tasks</span>
-                <span className="text-base font-bold text-rose-300">{divisionData.overdueTasks} Attention Needed</span>
+              <div className="bg-slate-50/80 border border-slate-200/70 p-3 rounded-xl">
+                <span className="text-slate-500 block text-[11px] font-medium mb-0.5">Overdue Tasks</span>
+                <span className="text-base font-bold text-rose-600">{divisionData.overdueTasks} Attention Needed</span>
               </div>
             </div>
           </div>
@@ -335,14 +335,14 @@ export default function HierarchicalTaskMonitor({
       {activeDistrict && (
         <div className="space-y-6 animate-in fade-in duration-200">
           {/* District Header & Breadcrumb for PC */}
-          <div className="card p-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl shadow-sm border border-slate-800">
+          <div className="card p-5 sm:p-6 bg-white border border-slate-200/90 rounded-2xl shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
                 {role === 'pc' && (
                   <button
                     type="button"
                     onClick={() => setSelectedDistrictId(null)}
-                    className="inline-flex items-center gap-1.5 text-xs text-indigo-300 hover:text-white font-semibold transition-colors cursor-pointer mb-1"
+                    className="inline-flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 font-semibold transition-colors cursor-pointer mb-1"
                   >
                     <ArrowLeft size={14} weight="bold" />
                     <span>Back to All {divisionData.divisionName} Districts</span>
@@ -350,58 +350,59 @@ export default function HierarchicalTaskMonitor({
                 )}
 
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-md bg-indigo-500/30 border border-indigo-400/40 text-[11px] font-bold text-indigo-200 uppercase tracking-wider">
+                  <span className="px-2.5 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-[11px] font-bold text-indigo-700 uppercase tracking-wider">
                     {role === 'pc' ? 'District Drill-Down' : 'District Task Oversight'}
                   </span>
-                  <span className="text-xs text-slate-400">Admin-Assigned Intern Tasks</span>
+                  <span className="text-xs text-slate-500 font-medium">Admin-Assigned Intern Tasks</span>
                 </div>
 
-                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-                  <MapPin size={24} className="text-indigo-400 shrink-0" weight="duotone" />
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                  <MapPin size={24} className="text-indigo-600 shrink-0" weight="duotone" />
                   <span>{activeDistrict.districtName} District</span>
                 </h2>
 
-                <p className="text-xs sm:text-sm text-slate-300">
-                  Fellow in Charge: <strong className="text-white">{activeDistrict.fellowName}</strong> ({activeDistrict.fellowPhone})
+                <p className="text-xs sm:text-sm text-slate-600">
+                  Fellow in Charge: <strong className="text-slate-900 font-semibold">{activeDistrict.fellowName}</strong>{' '}
+                  <span className="text-slate-500">({activeDistrict.fellowPhone})</span>
                 </p>
               </div>
 
               {/* District Completion Box */}
-              <div className="bg-white/10 backdrop-blur-md px-4 py-3 rounded-xl border border-white/15 flex items-center gap-4 shrink-0">
+              <div className="bg-slate-50 border border-slate-200/80 px-4 py-3 rounded-xl flex items-center gap-4 shrink-0 shadow-2xs">
                 <div>
-                  <div className="text-[11px] font-semibold text-indigo-200 uppercase tracking-wider">
+                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     District Progress
                   </div>
-                  <div className="text-2xl font-black text-white">
+                  <div className="text-2xl font-black text-slate-900">
                     {activeDistrict.completionRate}%
                   </div>
-                  <div className="text-[11px] text-slate-300">
+                  <div className="text-[11px] text-slate-500 font-medium">
                     {activeDistrict.completedTasks} of {activeDistrict.totalInterns} Interns Done
                   </div>
                 </div>
-                <div className="w-12 h-12 rounded-full border-4 border-white/20 border-t-emerald-400 flex items-center justify-center font-bold text-xs text-white">
+                <div className="w-12 h-12 rounded-full border-4 border-slate-200 border-t-emerald-500 flex items-center justify-center font-bold text-xs text-emerald-700 bg-white shadow-2xs">
                   {activeDistrict.completionRate}%
                 </div>
               </div>
             </div>
 
             {/* Quick Metrics Bar */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-4 mt-4 border-t border-white/10 text-xs">
-              <div className="bg-white/5 p-2 rounded-lg">
-                <span className="text-slate-400 block text-[11px]">Assigned Blocks</span>
-                <span className="text-base font-bold text-white">{activeDistrict.blocks.length} Blocks</span>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-4 border-t border-slate-100 text-xs">
+              <div className="bg-slate-50/80 border border-slate-200/70 p-3 rounded-xl">
+                <span className="text-slate-500 block text-[11px] font-medium mb-0.5">Assigned Blocks</span>
+                <span className="text-base font-bold text-slate-900">{activeDistrict.blocks.length} Blocks</span>
               </div>
-              <div className="bg-white/5 p-2 rounded-lg">
-                <span className="text-slate-400 block text-[11px]">Total Interns</span>
-                <span className="text-base font-bold text-white">{activeDistrict.totalInterns}</span>
+              <div className="bg-slate-50/80 border border-slate-200/70 p-3 rounded-xl">
+                <span className="text-slate-500 block text-[11px] font-medium mb-0.5">Total Interns</span>
+                <span className="text-base font-bold text-slate-900">{activeDistrict.totalInterns}</span>
               </div>
-              <div className="bg-white/5 p-2 rounded-lg">
-                <span className="text-slate-400 block text-[11px]">In Progress</span>
-                <span className="text-base font-bold text-blue-300">{activeDistrict.inProgressTasks}</span>
+              <div className="bg-slate-50/80 border border-slate-200/70 p-3 rounded-xl">
+                <span className="text-slate-500 block text-[11px] font-medium mb-0.5">In Progress</span>
+                <span className="text-base font-bold text-indigo-600">{activeDistrict.inProgressTasks}</span>
               </div>
-              <div className="bg-white/5 p-2 rounded-lg">
-                <span className="text-slate-400 block text-[11px]">Overdue Tasks</span>
-                <span className="text-base font-bold text-rose-300">{activeDistrict.overdueTasks} Action Needed</span>
+              <div className="bg-slate-50/80 border border-slate-200/70 p-3 rounded-xl">
+                <span className="text-slate-500 block text-[11px] font-medium mb-0.5">Overdue Tasks</span>
+                <span className="text-base font-bold text-rose-600">{activeDistrict.overdueTasks} Action Needed</span>
               </div>
             </div>
           </div>
