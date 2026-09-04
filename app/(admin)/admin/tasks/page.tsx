@@ -326,8 +326,8 @@ export default function AdminTasksPage() {
         </div>
       </div>
 
-      {/* 5 Status KPIs in a Single Row */}
-      <div className="grid grid-cols-5 gap-1.5 sm:gap-3">
+      {/* Horizontally Scrollable Circular KPI Cards (4 visible on phone, 5th scrollable) */}
+      <div className="flex items-center gap-2.5 sm:gap-3.5 overflow-x-auto no-scrollbar py-1 px-0.5 scroll-smooth snap-x">
         {[
           {
             key: '',
@@ -335,10 +335,10 @@ export default function AdminTasksPage() {
             value: stats.total,
             icon: ClipboardText,
             color: 'text-slate-600',
-            activeStyle: 'bg-slate-900 text-white border-slate-900 shadow-xs',
+            activeStyle: 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-400/50',
             activeText: 'text-white',
             activeSub: 'text-slate-300',
-            activeIcon: 'text-slate-200',
+            activeIcon: 'text-white',
           },
           {
             key: 'pending',
@@ -346,10 +346,10 @@ export default function AdminTasksPage() {
             value: stats.pending,
             icon: Hourglass,
             color: 'text-amber-500',
-            activeStyle: 'bg-amber-50/90 border-amber-300 text-amber-950 shadow-xs ring-1 ring-amber-400/30',
-            activeText: 'text-amber-950',
-            activeSub: 'text-amber-700 font-semibold',
-            activeIcon: 'text-amber-600',
+            activeStyle: 'bg-amber-500 text-white border-amber-500 shadow-md ring-2 ring-amber-300/60',
+            activeText: 'text-white',
+            activeSub: 'text-amber-100',
+            activeIcon: 'text-white',
           },
           {
             key: 'in_progress',
@@ -357,21 +357,21 @@ export default function AdminTasksPage() {
             value: stats.inProgress,
             icon: Clock,
             color: 'text-sky-500',
-            activeStyle: 'bg-sky-50/90 border-sky-300 text-sky-950 shadow-xs ring-1 ring-sky-400/30',
-            activeText: 'text-sky-950',
-            activeSub: 'text-sky-700 font-semibold',
-            activeIcon: 'text-sky-600',
+            activeStyle: 'bg-sky-500 text-white border-sky-500 shadow-md ring-2 ring-sky-300/60',
+            activeText: 'text-white',
+            activeSub: 'text-sky-100',
+            activeIcon: 'text-white',
           },
           {
             key: 'completed',
             label: 'Done',
             value: stats.completed,
             icon: CheckCircle,
-            color: 'text-emerald-500',
-            activeStyle: 'bg-emerald-50/90 border-emerald-300 text-emerald-950 shadow-xs ring-1 ring-emerald-400/30',
-            activeText: 'text-emerald-950',
-            activeSub: 'text-emerald-700 font-semibold',
-            activeIcon: 'text-emerald-600',
+            color: 'text-emerald-600',
+            activeStyle: 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-300/60',
+            activeText: 'text-white',
+            activeSub: 'text-emerald-100',
+            activeIcon: 'text-white',
           },
           {
             key: 'overdue',
@@ -379,10 +379,10 @@ export default function AdminTasksPage() {
             value: stats.overdue,
             icon: WarningCircle,
             color: 'text-rose-500',
-            activeStyle: 'bg-rose-50/90 border-rose-300 text-rose-950 shadow-xs ring-1 ring-rose-400/30',
-            activeText: 'text-rose-950',
-            activeSub: 'text-rose-700 font-semibold',
-            activeIcon: 'text-rose-600',
+            activeStyle: 'bg-rose-500 text-white border-rose-500 shadow-md ring-2 ring-rose-300/60',
+            activeText: 'text-white',
+            activeSub: 'text-rose-100',
+            activeIcon: 'text-white',
           },
         ].map(item => {
           const Icon = item.icon;
@@ -396,41 +396,41 @@ export default function AdminTasksPage() {
               }}
               title={`Filter by ${item.label}`}
               className={cn(
-                'group flex flex-col items-center justify-center py-2 px-1 sm:py-2.5 sm:px-2 rounded-xl sm:rounded-2xl border transition-all duration-150 cursor-pointer select-none text-center',
+                'group shrink-0 w-[74px] h-[74px] sm:w-[82px] sm:h-[82px] rounded-full aspect-square snap-start flex flex-col items-center justify-center p-1 border transition-all duration-200 cursor-pointer select-none text-center',
                 isSelected
                   ? item.activeStyle
-                  : 'bg-white border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/60 shadow-2xs'
+                  : 'bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/70 text-slate-700 shadow-2xs'
               )}
             >
+              {/* Micro Icon */}
+              <Icon
+                size={12}
+                weight={isSelected ? 'fill' : 'bold'}
+                className={cn(
+                  'shrink-0 mb-0.5 transition-colors',
+                  isSelected ? item.activeIcon : item.color
+                )}
+              />
+
               {/* Metric Number */}
               <span
                 className={cn(
-                  'text-base sm:text-2xl font-bold tracking-tight leading-none',
+                  'text-base sm:text-lg font-black tracking-tight leading-none',
                   isSelected ? item.activeText : 'text-slate-800'
                 )}
               >
                 {item.value}
               </span>
 
-              {/* Icon & Label Subtext */}
-              <div className="flex items-center justify-center gap-1 mt-1 sm:mt-1.5 max-w-full">
-                <Icon
-                  size={12}
-                  weight={isSelected ? 'fill' : 'bold'}
-                  className={cn(
-                    'shrink-0 transition-colors',
-                    isSelected ? item.activeIcon : item.color
-                  )}
-                />
-                <span
-                  className={cn(
-                    'text-[10px] sm:text-xs font-medium tracking-tight truncate',
-                    isSelected ? item.activeSub : 'text-slate-500'
-                  )}
-                >
-                  {item.label}
-                </span>
-              </div>
+              {/* Label Subtext */}
+              <span
+                className={cn(
+                  'text-[8.5px] sm:text-[9.5px] font-semibold tracking-tight mt-0.5 max-w-[62px] truncate px-0.5 text-center leading-tight',
+                  isSelected ? item.activeSub : 'text-slate-500'
+                )}
+              >
+                {item.label}
+              </span>
             </button>
           );
         })}
