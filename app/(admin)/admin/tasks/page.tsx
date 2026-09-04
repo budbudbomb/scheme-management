@@ -326,8 +326,10 @@ export default function AdminTasksPage() {
         </div>
       </div>
 
-      {/* Horizontally Scrollable Circular KPI Cards (4 visible on phone, 5th scrollable) */}
-      <div className="flex items-center gap-2.5 sm:gap-3.5 overflow-x-auto no-scrollbar py-1 px-0.5 scroll-smooth snap-x">
+      {/* ── KPI Metrics Section ── */}
+
+      {/* Phone View: Horizontally Scrollable Circular Cards (4 visible on phone, 5th scrollable) */}
+      <div className="flex sm:hidden items-center gap-2.5 overflow-x-auto no-scrollbar py-1 px-0.5 scroll-smooth snap-x">
         {[
           {
             key: '',
@@ -389,14 +391,14 @@ export default function AdminTasksPage() {
           const isSelected = statusFilter === item.key;
           return (
             <button
-              key={item.label}
+              key={`phone-${item.label}`}
               type="button"
               onClick={() => {
                 setStatusFilter(prev => prev === item.key ? '' : item.key);
               }}
               title={`Filter by ${item.label}`}
               className={cn(
-                'group shrink-0 w-[74px] h-[74px] sm:w-[82px] sm:h-[82px] rounded-full aspect-square snap-start flex flex-col items-center justify-center p-1 border transition-all duration-200 cursor-pointer select-none text-center',
+                'group shrink-0 w-[74px] h-[74px] rounded-full aspect-square snap-start flex flex-col items-center justify-center p-1 border transition-all duration-200 cursor-pointer select-none text-center',
                 isSelected
                   ? item.activeStyle
                   : 'bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/70 text-slate-700 shadow-2xs'
@@ -415,7 +417,7 @@ export default function AdminTasksPage() {
               {/* Metric Number */}
               <span
                 className={cn(
-                  'text-base sm:text-lg font-black tracking-tight leading-none',
+                  'text-base font-black tracking-tight leading-none',
                   isSelected ? item.activeText : 'text-slate-800'
                 )}
               >
@@ -425,12 +427,122 @@ export default function AdminTasksPage() {
               {/* Label Subtext */}
               <span
                 className={cn(
-                  'text-[8.5px] sm:text-[9.5px] font-semibold tracking-tight mt-0.5 max-w-[62px] truncate px-0.5 text-center leading-tight',
+                  'text-[8.5px] font-semibold tracking-tight mt-0.5 max-w-[62px] truncate px-0.5 text-center leading-tight',
                   isSelected ? item.activeSub : 'text-slate-500'
                 )}
               >
                 {item.label}
               </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Desktop View: Full 5 Rounded KPI Cards in a Grid (reverted to previous design) */}
+      <div className="hidden sm:grid sm:grid-cols-5 sm:gap-3">
+        {[
+          {
+            key: '',
+            label: 'Total',
+            value: stats.total,
+            icon: ClipboardText,
+            color: 'text-slate-600',
+            activeStyle: 'bg-slate-900 text-white border-slate-900 shadow-xs',
+            activeText: 'text-white',
+            activeSub: 'text-slate-300',
+            activeIcon: 'text-slate-200',
+          },
+          {
+            key: 'pending',
+            label: 'Pending',
+            value: stats.pending,
+            icon: Hourglass,
+            color: 'text-amber-500',
+            activeStyle: 'bg-amber-50/90 border-amber-300 text-amber-950 shadow-xs ring-1 ring-amber-400/30',
+            activeText: 'text-amber-950',
+            activeSub: 'text-amber-700 font-semibold',
+            activeIcon: 'text-amber-600',
+          },
+          {
+            key: 'in_progress',
+            label: 'In Progress',
+            value: stats.inProgress,
+            icon: Clock,
+            color: 'text-sky-500',
+            activeStyle: 'bg-sky-50/90 border-sky-300 text-sky-950 shadow-xs ring-1 ring-sky-400/30',
+            activeText: 'text-sky-950',
+            activeSub: 'text-sky-700 font-semibold',
+            activeIcon: 'text-sky-600',
+          },
+          {
+            key: 'completed',
+            label: 'Done',
+            value: stats.completed,
+            icon: CheckCircle,
+            color: 'text-emerald-500',
+            activeStyle: 'bg-emerald-50/90 border-emerald-300 text-emerald-950 shadow-xs ring-1 ring-emerald-400/30',
+            activeText: 'text-emerald-950',
+            activeSub: 'text-emerald-700 font-semibold',
+            activeIcon: 'text-emerald-600',
+          },
+          {
+            key: 'overdue',
+            label: 'Overdue',
+            value: stats.overdue,
+            icon: WarningCircle,
+            color: 'text-rose-500',
+            activeStyle: 'bg-rose-50/90 border-rose-300 text-rose-950 shadow-xs ring-1 ring-rose-400/30',
+            activeText: 'text-rose-950',
+            activeSub: 'text-rose-700 font-semibold',
+            activeIcon: 'text-rose-600',
+          },
+        ].map(item => {
+          const Icon = item.icon;
+          const isSelected = statusFilter === item.key;
+          return (
+            <button
+              key={`desktop-${item.label}`}
+              type="button"
+              onClick={() => {
+                setStatusFilter(prev => prev === item.key ? '' : item.key);
+              }}
+              title={`Filter by ${item.label}`}
+              className={cn(
+                'group flex flex-col items-center justify-center py-2.5 px-2 rounded-2xl border transition-all duration-150 cursor-pointer select-none text-center',
+                isSelected
+                  ? item.activeStyle
+                  : 'bg-white border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/60 shadow-2xs'
+              )}
+            >
+              {/* Metric Number */}
+              <span
+                className={cn(
+                  'text-2xl font-bold tracking-tight leading-none',
+                  isSelected ? item.activeText : 'text-slate-800'
+                )}
+              >
+                {item.value}
+              </span>
+
+              {/* Icon & Label Subtext */}
+              <div className="flex items-center justify-center gap-1 mt-1.5 max-w-full">
+                <Icon
+                  size={12}
+                  weight={isSelected ? 'fill' : 'bold'}
+                  className={cn(
+                    'shrink-0 transition-colors',
+                    isSelected ? item.activeIcon : item.color
+                  )}
+                />
+                <span
+                  className={cn(
+                    'text-xs font-medium tracking-tight truncate',
+                    isSelected ? item.activeSub : 'text-slate-500'
+                  )}
+                >
+                  {item.label}
+                </span>
+              </div>
             </button>
           );
         })}
