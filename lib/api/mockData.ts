@@ -99,6 +99,17 @@ export const MOCK_USERS: User[] = [
     address: 'Rahatgarh Khurd, Sagar Rural, Sagar, Madhya Pradesh', samagraId: '100200300409',
     qualification: 'iti_diploma',
   },
+  {
+    id: 'u-intern-04', name: 'Deepak Sharma', email: 'intern.phanda@cmyp.mp.gov.in',
+    role: 'intern', status: 'active',
+    district: { id: 'dst-02', name: 'Bhopal', divisionId: 'div-01', divisionName: 'Bhopal Division' },
+    block: { id: 'blk-06', name: 'Phanda', districtId: 'dst-02', districtName: 'Bhopal' },
+    gramPanchayat: { id: 'gp-07', name: 'Phanda Kalan', blockId: 'blk-06', blockName: 'Phanda' },
+    profileComplete: true, createdAt: '2026-01-20T00:00:00Z',
+    lastName: 'Sharma', gender: 'male', fatherName: 'Ramakant Sharma',
+    address: 'Phanda Kalan, Phanda, Bhopal, Madhya Pradesh', samagraId: '100200300410',
+    qualification: 'graduate',
+  },
 ];
 
 export const MOCK_PAGINATED_USERS = {

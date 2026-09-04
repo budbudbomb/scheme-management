@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Check, Warning, Trash, ClipboardText, Checks, CheckCircle, CheckSquare, MagnifyingGlass, X, FunnelSimple, MapPin } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowRight, Check, Warning, Trash, ClipboardText, Checks, CheckCircle, CheckSquare, MagnifyingGlass, X, FunnelSimple, MapPin, CaretRight, UsersThree } from '@phosphor-icons/react';
 import { usersApi } from '@/lib/api/users';
 import { tasksApi } from '@/lib/api/tasks';
 import { surveysApi } from '@/lib/api/surveys';
@@ -64,6 +64,8 @@ function NewTaskForm() {
   const [selectedDistrict, setSelectedDistrict] = useState<string>('');
   const [selectedBlock, setSelectedBlock] = useState<string>('');
   const [selectedGP, setSelectedGP] = useState<string>('');
+  const [activeGroup, setActiveGroup] = useState<'intern' | 'fellow' | 'pc' | 'area' | null>(null);
+  const [areaStep, setAreaStep] = useState<'division' | 'district' | 'block' | 'gp' | 'completed'>('division');
 
   useEffect(() => {
     setMounted(true);
@@ -128,22 +130,99 @@ function NewTaskForm() {
     }
   }, [querySurveyId, querySurveyName, setValue]);
 
-  // Cascading location options
-  const availableDistricts = selectedDivision
+  // Cascading location options for Area drill-down
+  const currentDivisionDistricts = selectedDivision
     ? districts.filter(d => d.divisionId === selectedDivision)
-    : districts;
+    : [];
 
-  const availableBlocks = selectedDistrict
+  const currentDistrictBlocks = selectedDistrict
     ? blocks.filter(b => b.districtId === selectedDistrict)
-    : (selectedDivision
-        ? blocks.filter(b => b.divisionId === selectedDivision || availableDistricts.some(d => d.id === b.districtId))
-        : blocks);
+    : [];
 
-  const availableGPs = selectedBlock
+  const currentBlockGPs = selectedBlock
     ? gramPanchayats.filter(gp => gp.blockId === selectedBlock)
-    : gramPanchayats;
+    : [];
+
+  const handleSelectEntireDivision = (d: Division) => {
+    setSelectedDivision(d.id);
+    setSelectedDistrict('');
+    setSelectedBlock('');
+    setSelectedGP('');
+    setAreaStep('completed');
+  };
+
+  const handleDrillDownDivision = (d: Division) => {
+    setSelectedDivision(d.id);
+    setSelectedDistrict('');
+    setSelectedBlock('');
+    setSelectedGP('');
+    setAreaStep('district');
+  };
+
+  const handleSelectEntireDistrict = (dst: District) => {
+    setSelectedDistrict(dst.id);
+    setSelectedBlock('');
+    setSelectedGP('');
+    setAreaStep('completed');
+  };
+
+  const handleDrillDownDistrict = (dst: District) => {
+    setSelectedDistrict(dst.id);
+    setSelectedBlock('');
+    setSelectedGP('');
+    setAreaStep('block');
+  };
+
+  const handleSelectEntireBlock = (blk: Block) => {
+    setSelectedBlock(blk.id);
+    setSelectedGP('');
+    setAreaStep('completed');
+  };
+
+  const handleDrillDownBlock = (blk: Block) => {
+    setSelectedBlock(blk.id);
+    setSelectedGP('');
+    setAreaStep('gp');
+  };
+
+  const handleSelectGP = (gp: GramPanchayat) => {
+    setSelectedGP(gp.id);
+    setAreaStep('completed');
+  };
+
+  const resetAreaSelection = () => {
+    setSelectedDivision('');
+    setSelectedDistrict('');
+    setSelectedBlock('');
+    setSelectedGP('');
+    setAreaStep('division');
+  };
+
+  const getHierarchyBreadcrumb = (): string => {
+    const parts: string[] = [];
+    if (selectedDivision) {
+      const d = divisions.find(item => item.id === selectedDivision);
+      if (d) parts.push(d.name.replace(/\s+Division$/i, ''));
+    }
+    if (selectedDistrict) {
+      const dst = districts.find(item => item.id === selectedDistrict);
+      if (dst) parts.push(dst.name);
+    }
+    if (selectedBlock) {
+      const b = blocks.find(item => item.id === selectedBlock);
+      if (b) parts.push(b.name);
+    }
+    if (selectedGP) {
+      const gp = gramPanchayats.find(item => item.id === selectedGP);
+      if (gp) parts.push(gp.name);
+    }
+    return parts.join(' > ');
+  };
 
   const userMatchesLocation = (u: User) => {
+    if (!selectedDivision && !selectedDistrict && !selectedBlock && !selectedGP) {
+      return true;
+    }
     if (selectedGP) {
       return u.gramPanchayat?.id === selectedGP;
     }
@@ -157,10 +236,12 @@ function NewTaskForm() {
       );
     }
     if (selectedDivision) {
+      const divDistrictIds = new Set(districts.filter(d => d.divisionId === selectedDivision).map(d => d.id));
       return (
         u.division?.id === selectedDivision ||
-        u.district?.divisionId === selectedDivision ||
-        districts.some(d => d.divisionId === selectedDivision && (d.id === u.district?.id || d.id === u.block?.districtId))
+        (u.district?.divisionId && u.district.divisionId === selectedDivision) ||
+        (u.district?.id && divDistrictIds.has(u.district.id)) ||
+        (u.block?.districtId && divDistrictIds.has(u.block.districtId))
       );
     }
     return true;
@@ -168,36 +249,43 @@ function NewTaskForm() {
 
   const filteredUsers = users.filter(u => {
     const matchesSearch =
+      !userSearch.trim() ||
       u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
       u.email.toLowerCase().includes(userSearch.toLowerCase());
-    const matchesRole = roleFilter === 'all' || u.role === roleFilter;
+
+    const matchesRole =
+      roleFilter === 'all'
+        ? (activeGroup === 'intern'
+            ? u.role === 'intern'
+            : activeGroup === 'fellow'
+            ? u.role === 'fellow'
+            : activeGroup === 'pc'
+            ? u.role === 'pc'
+            : true)
+        : u.role === roleFilter;
+
     const matchesLocation = userMatchesLocation(u);
     return matchesSearch && matchesRole && matchesLocation;
   });
 
   const hasActiveLocation = !!(selectedDivision || selectedDistrict || selectedBlock || selectedGP);
 
-  const activeLocationName = selectedGP
-    ? `Gram Panchayat: ${gramPanchayats.find(g => g.id === selectedGP)?.name || selectedGP}`
-    : selectedBlock
-    ? `Block: ${blocks.find(b => b.id === selectedBlock)?.name || selectedBlock}`
-    : selectedDistrict
-    ? `District: ${districts.find(d => d.id === selectedDistrict)?.name || selectedDistrict}`
-    : selectedDivision
-    ? `Division: ${divisions.find(d => d.id === selectedDivision)?.name || selectedDivision}`
-    : '';
-
-  const clearLocationFilters = () => {
-    setSelectedDivision('');
-    setSelectedDistrict('');
-    setSelectedBlock('');
-    setSelectedGP('');
-  };
-
-  const selectAllFiltered = () => {
+  const selectAllCurrentGroup = () => {
     const existingIds = new Set(selectedUsers.map(u => u.id));
     const newUsers = filteredUsers.filter(u => !existingIds.has(u.id));
     const updated = [...selectedUsers, ...newUsers];
+    setSelectedUsers(updated);
+    setValue('assignedToIds', updated.map(u => u.id), { shouldValidate: true });
+    toast.success(`Added ${newUsers.length} assignees to selection`);
+  };
+
+  const isAllCurrentGroupSelected =
+    filteredUsers.length > 0 &&
+    filteredUsers.every(u => selectedUsers.some(s => s.id === u.id));
+
+  const deselectCurrentGroup = () => {
+    const currentIds = new Set(filteredUsers.map(u => u.id));
+    const updated = selectedUsers.filter(u => !currentIds.has(u.id));
     setSelectedUsers(updated);
     setValue('assignedToIds', updated.map(u => u.id), { shouldValidate: true });
   };
@@ -716,33 +804,80 @@ function NewTaskForm() {
 
             {/* ── Compact Assignee Controls: Bulk Add Buttons + Search & Filter Dropdown ── */}
             <div className="space-y-2.5 pt-0.5">
-              {/* Row 1: Bulk Add Buttons ONLY (Horizontal scrollable track on mobile) */}
-              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1">
-                <span className="text-xs font-semibold text-slate-500 shrink-0 hidden sm:inline">Bulk Add:</span>
+              {/* Row 1: Glowing Category & Area Buttons (Horizontal scrollable track on mobile) */}
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 px-1 -mx-1">
+                <span className="text-xs font-semibold text-slate-500 shrink-0 hidden sm:inline">Select:</span>
+                
+                {/* All Interns Button */}
                 <button
                   type="button"
-                  onClick={() => selectAllByRole('intern')}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0 active:scale-95"
+                  onClick={() => setActiveGroup(prev => prev === 'intern' ? null : 'intern')}
+                  className={cn(
+                    'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
+                    activeGroup === 'intern'
+                      ? 'bg-indigo-600 text-white border border-indigo-500 shadow-[0_0_16px_rgba(99,102,241,0.55)] ring-2 ring-indigo-400 ring-offset-1 font-bold scale-[1.02]'
+                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
+                  )}
                 >
-                  <Checks size={14} className="text-indigo-600" weight="bold" />
-                  <span>+ All Interns</span>
+                  <Checks size={14} className={activeGroup === 'intern' ? 'text-white' : 'text-indigo-600'} weight="bold" />
+                  <span>All Interns</span>
                 </button>
+
+                {/* All Fellows Button */}
                 <button
                   type="button"
-                  onClick={() => selectAllByRole('fellow')}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0 active:scale-95"
+                  onClick={() => setActiveGroup(prev => prev === 'fellow' ? null : 'fellow')}
+                  className={cn(
+                    'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
+                    activeGroup === 'fellow'
+                      ? 'bg-purple-600 text-white border border-purple-500 shadow-[0_0_16px_rgba(168,85,247,0.55)] ring-2 ring-purple-400 ring-offset-1 font-bold scale-[1.02]'
+                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
+                  )}
                 >
-                  <Checks size={14} className="text-purple-600" weight="bold" />
-                  <span>+ All Fellows</span>
+                  <Checks size={14} className={activeGroup === 'fellow' ? 'text-white' : 'text-purple-600'} weight="bold" />
+                  <span>All Fellows</span>
                 </button>
+
+                {/* All PCs Button */}
                 <button
                   type="button"
-                  onClick={() => selectAllByRole('pc')}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0 active:scale-95"
+                  onClick={() => setActiveGroup(prev => prev === 'pc' ? null : 'pc')}
+                  className={cn(
+                    'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
+                    activeGroup === 'pc'
+                      ? 'bg-amber-600 text-white border border-amber-500 shadow-[0_0_16px_rgba(217,119,6,0.55)] ring-2 ring-amber-400 ring-offset-1 font-bold scale-[1.02]'
+                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
+                  )}
                 >
-                  <Checks size={14} className="text-amber-600" weight="bold" />
-                  <span>+ All PCs</span>
+                  <Checks size={14} className={activeGroup === 'pc' ? 'text-white' : 'text-amber-600'} weight="bold" />
+                  <span>All PCs</span>
                 </button>
+
+                {/* Single Area Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (activeGroup === 'area') {
+                      setActiveGroup(null);
+                    } else {
+                      setActiveGroup('area');
+                      if (!selectedDivision && !selectedDistrict && !selectedBlock && !selectedGP) {
+                        setAreaStep('division');
+                      }
+                    }
+                  }}
+                  className={cn(
+                    'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
+                    activeGroup === 'area'
+                      ? 'bg-emerald-600 text-white border border-emerald-500 shadow-[0_0_16px_rgba(16,185,129,0.55)] ring-2 ring-emerald-400 ring-offset-1 font-bold scale-[1.02]'
+                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
+                  )}
+                >
+                  <MapPin size={14} className={activeGroup === 'area' ? 'text-white' : 'text-emerald-600'} weight="bold" />
+                  <span>Area</span>
+                </button>
+
+                {/* Clear Selection Button */}
                 {selectedUsers.length > 0 && (
                   <button
                     type="button"
@@ -750,7 +885,7 @@ function NewTaskForm() {
                       setSelectedUsers([]);
                       setValue('assignedToIds', [], { shouldValidate: true });
                     }}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-all cursor-pointer shrink-0 active:scale-95"
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-all cursor-pointer shrink-0 active:scale-95 ml-auto sm:ml-0"
                   >
                     Clear ({selectedUsers.length})
                   </button>
@@ -810,194 +945,356 @@ function NewTaskForm() {
                   </select>
                 </div>
               </div>
+            </div>
 
-              {/* Row 3: Location Hierarchy Selectors (Division, District, Block, Gram Panchayat) */}
-              <div className="space-y-2 p-2.5 sm:p-3 rounded-xl bg-slate-50/70 border border-slate-200/80">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                    <MapPin size={13} className="text-indigo-600" weight="bold" />
-                    Filter by Location
+            {/* ── CONDITIONAL CONTENT ── */}
+
+            {/* CASE 1: Area Hierarchy Drill-Down Navigation (Division -> District -> Block -> GP) */}
+            {activeGroup === 'area' && areaStep !== 'completed' && (
+              <div className="border border-emerald-200 rounded-xl bg-white shadow-2xs overflow-hidden animate-in fade-in duration-200">
+                {/* Navigation & Breadcrumb Header */}
+                <div className="p-3 sm:p-3.5 bg-gradient-to-r from-emerald-50/90 to-teal-50/60 border-b border-emerald-100 flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {areaStep !== 'division' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (areaStep === 'district') {
+                            setAreaStep('division');
+                            setSelectedDivision('');
+                          } else if (areaStep === 'block') {
+                            setAreaStep('district');
+                            setSelectedDistrict('');
+                          } else if (areaStep === 'gp') {
+                            setAreaStep('block');
+                            setSelectedGP('');
+                          }
+                        }}
+                        className="p-1.5 rounded-lg bg-white/80 hover:bg-white text-slate-700 hover:text-slate-900 border border-emerald-200/70 transition-colors cursor-pointer flex items-center gap-1 text-xs font-semibold shrink-0"
+                      >
+                        <ArrowLeft size={13} weight="bold" />
+                        <span className="hidden sm:inline">Back</span>
+                      </button>
+                    )}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 text-xs text-emerald-800 font-semibold truncate">
+                        <span>Area</span>
+                        {selectedDivision && (
+                          <>
+                            <CaretRight size={11} className="text-slate-400 shrink-0" weight="bold" />
+                            <span className="text-slate-700 truncate">{divisions.find(d => d.id === selectedDivision)?.name.replace(/\s+Division$/i, '')}</span>
+                          </>
+                        )}
+                        {selectedDistrict && (
+                          <>
+                            <CaretRight size={11} className="text-slate-400 shrink-0" weight="bold" />
+                            <span className="text-slate-700 truncate">{districts.find(d => d.id === selectedDistrict)?.name}</span>
+                          </>
+                        )}
+                        {selectedBlock && (
+                          <>
+                            <CaretRight size={11} className="text-slate-400 shrink-0" weight="bold" />
+                            <span className="text-slate-700 truncate">{blocks.find(b => b.id === selectedBlock)?.name}</span>
+                          </>
+                        )}
+                      </div>
+                      <h3 className="text-xs sm:text-sm font-bold text-slate-900 mt-0.5">
+                        {areaStep === 'division' && 'Select Division'}
+                        {areaStep === 'district' && `Select District in ${divisions.find(d => d.id === selectedDivision)?.name}`}
+                        {areaStep === 'block' && `Select Block in ${districts.find(d => d.id === selectedDistrict)?.name}`}
+                        {areaStep === 'gp' && `Select Gram Panchayat in ${blocks.find(b => b.id === selectedBlock)?.name}`}
+                      </h3>
+                    </div>
+                  </div>
+
+                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100/80 text-emerald-800 border border-emerald-200 shrink-0">
+                    {areaStep === 'division' && `${divisions.length} Divisions`}
+                    {areaStep === 'district' && `${currentDivisionDistricts.length} Districts`}
+                    {areaStep === 'block' && `${currentDistrictBlocks.length} Blocks`}
+                    {areaStep === 'gp' && `${currentBlockGPs.length} Gram Panchayats`}
                   </span>
-                  {hasActiveLocation && (
-                    <button
-                      type="button"
-                      onClick={clearLocationFilters}
-                      className="text-[11px] font-semibold text-rose-600 hover:text-rose-700 hover:underline cursor-pointer"
-                    >
-                      Reset Location
-                    </button>
+                </div>
+
+                {/* Hierarchy List Body */}
+                <div className="max-h-[320px] overflow-y-auto divide-y divide-slate-100">
+                  {/* Level 1: Divisions */}
+                  {areaStep === 'division' && divisions.map(d => (
+                    <div key={d.id} className="p-3 sm:p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/80 transition-colors">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-xs shrink-0 border border-emerald-100">
+                          {d.code || d.name.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{d.name}</div>
+                          <div className="text-[11px] text-slate-400">Division Level</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleSelectEntireDivision(d)}
+                          className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer active:scale-95"
+                        >
+                          Entire Division
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDrillDownDivision(d)}
+                          className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1 transition-colors cursor-pointer shadow-2xs active:scale-95"
+                        >
+                          <span>Select District</span>
+                          <CaretRight size={12} weight="bold" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Level 2: Districts */}
+                  {areaStep === 'district' && (
+                    currentDivisionDistricts.length === 0 ? (
+                      <div className="p-8 text-center text-slate-400 text-xs">
+                        No districts configured for this division.
+                      </div>
+                    ) : (
+                      currentDivisionDistricts.map(dst => (
+                        <div key={dst.id} className="p-3 sm:p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/80 transition-colors">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center font-bold text-xs shrink-0 border border-teal-100">
+                              DST
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{dst.name}</div>
+                              <div className="text-[11px] text-slate-400">District</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleSelectEntireDistrict(dst)}
+                              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer active:scale-95"
+                            >
+                              Entire District
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDrillDownDistrict(dst)}
+                              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1 transition-colors cursor-pointer shadow-2xs active:scale-95"
+                            >
+                              <span>Select Block</span>
+                              <CaretRight size={12} weight="bold" />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )
+                  )}
+
+                  {/* Level 3: Blocks */}
+                  {areaStep === 'block' && (
+                    currentDistrictBlocks.length === 0 ? (
+                      <div className="p-8 text-center text-slate-400 text-xs">
+                        No blocks configured for this district.
+                      </div>
+                    ) : (
+                      currentDistrictBlocks.map(blk => (
+                        <div key={blk.id} className="p-3 sm:p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/80 transition-colors">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-xs shrink-0 border border-indigo-100">
+                              BLK
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{blk.name}</div>
+                              <div className="text-[11px] text-slate-400">Block</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleSelectEntireBlock(blk)}
+                              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer active:scale-95"
+                            >
+                              Entire Block
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDrillDownBlock(blk)}
+                              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1 transition-colors cursor-pointer shadow-2xs active:scale-95"
+                            >
+                              <span>Select GP</span>
+                              <CaretRight size={12} weight="bold" />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )
+                  )}
+
+                  {/* Level 4: Gram Panchayats */}
+                  {areaStep === 'gp' && (
+                    currentBlockGPs.length === 0 ? (
+                      <div className="p-8 text-center text-slate-400 text-xs">
+                        No Gram Panchayats configured for this block.
+                      </div>
+                    ) : (
+                      currentBlockGPs.map(gp => (
+                        <div key={gp.id} className="p-3 sm:p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/80 transition-colors">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-lg bg-violet-50 text-violet-700 flex items-center justify-center font-bold text-xs shrink-0 border border-violet-100">
+                              GP
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{gp.name}</div>
+                              <div className="text-[11px] text-slate-400">Gram Panchayat</div>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectGP(gp)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors cursor-pointer shadow-2xs active:scale-95"
+                          >
+                            Select GP
+                          </button>
+                        </div>
+                      ))
+                    )
                   )}
                 </div>
+              </div>
+            )}
 
-                {/* 4-Tier Location Selectors: 2x2 grid on mobile, 4-col on desktop */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-                  {/* Division */}
-                  <div>
-                    <select
-                      value={selectedDivision}
-                      onChange={e => {
-                        setSelectedDivision(e.target.value);
-                        setSelectedDistrict('');
-                        setSelectedBlock('');
-                        setSelectedGP('');
-                      }}
-                      className={cn(
-                        'w-full text-xs py-2 px-2.5 rounded-lg border font-medium focus:outline-none focus:ring-1.5 focus:ring-indigo-500 transition-colors',
-                        selectedDivision
-                          ? 'bg-indigo-50 text-indigo-900 border-indigo-200 font-semibold'
-                          : 'bg-white text-slate-700 border-slate-200'
-                      )}
-                    >
-                      <option value="">Division: All ({divisions.length})</option>
-                      {divisions.map(d => (
-                        <option key={d.id} value={d.id}>{d.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* District */}
-                  <div>
-                    <select
-                      value={selectedDistrict}
-                      onChange={e => {
-                        setSelectedDistrict(e.target.value);
-                        setSelectedBlock('');
-                        setSelectedGP('');
-                      }}
-                      className={cn(
-                        'w-full text-xs py-2 px-2.5 rounded-lg border font-medium focus:outline-none focus:ring-1.5 focus:ring-indigo-500 transition-colors',
-                        selectedDistrict
-                          ? 'bg-indigo-50 text-indigo-900 border-indigo-200 font-semibold'
-                          : 'bg-white text-slate-700 border-slate-200'
-                      )}
-                    >
-                      <option value="">District: All ({availableDistricts.length})</option>
-                      {availableDistricts.map(d => (
-                        <option key={d.id} value={d.id}>{d.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Block */}
-                  <div>
-                    <select
-                      value={selectedBlock}
-                      onChange={e => {
-                        setSelectedBlock(e.target.value);
-                        setSelectedGP('');
-                      }}
-                      className={cn(
-                        'w-full text-xs py-2 px-2.5 rounded-lg border font-medium focus:outline-none focus:ring-1.5 focus:ring-indigo-500 transition-colors',
-                        selectedBlock
-                          ? 'bg-indigo-50 text-indigo-900 border-indigo-200 font-semibold'
-                          : 'bg-white text-slate-700 border-slate-200'
-                      )}
-                    >
-                      <option value="">Block: All ({availableBlocks.length})</option>
-                      {availableBlocks.map(b => (
-                        <option key={b.id} value={b.id}>{b.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Gram Panchayat */}
-                  <div>
-                    <select
-                      value={selectedGP}
-                      onChange={e => setSelectedGP(e.target.value)}
-                      className={cn(
-                        'w-full text-xs py-2 px-2.5 rounded-lg border font-medium focus:outline-none focus:ring-1.5 focus:ring-indigo-500 transition-colors',
-                        selectedGP
-                          ? 'bg-indigo-50 text-indigo-900 border-indigo-200 font-semibold'
-                          : 'bg-white text-slate-700 border-slate-200'
-                      )}
-                    >
-                      <option value="">Gram Panchayat: All ({availableGPs.length})</option>
-                      {availableGPs.map(gp => (
-                        <option key={gp.id} value={gp.id}>{gp.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Active Location Info & Batch Select */}
-                {hasActiveLocation && (
-                  <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-indigo-50/90 border border-indigo-200 text-xs text-indigo-950 mt-1">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="font-bold shrink-0">📍 {activeLocationName}:</span>
-                      <span className="font-semibold text-indigo-700 truncate">
-                        {filteredUsers.length} personnel found
-                      </span>
+            {/* CASE 2: Active Assignees Display (When a category is active OR area selection is complete OR search is active) */}
+            {((activeGroup && (activeGroup !== 'area' || areaStep === 'completed')) || userSearch.trim()) ? (
+              <div className="space-y-3 animate-in fade-in duration-200">
+                {/* Header Banner for Completed Area */}
+                {activeGroup === 'area' && areaStep === 'completed' && (
+                  <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-r from-emerald-50/90 via-teal-50/70 to-indigo-50/50 border border-emerald-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                        <MapPin size={18} weight="bold" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">Selected Area Hierarchy</span>
+                        <p className="text-xs sm:text-sm font-bold text-slate-900 truncate">
+                          {getHierarchyBreadcrumb()}
+                        </p>
+                      </div>
                     </div>
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                      <button
+                        type="button"
+                        onClick={resetAreaSelection}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer active:scale-95"
+                      >
+                        Change Area
+                      </button>
+                      {filteredUsers.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={isAllCurrentGroupSelected ? deselectCurrentGroup : selectAllCurrentGroup}
+                          className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-xs cursor-pointer active:scale-95"
+                        >
+                          {isAllCurrentGroupSelected ? `Deselect All (${filteredUsers.length})` : `+ Assign All in Area (${filteredUsers.length})`}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Header Banner for Role Selection (Intern / Fellow / PC) */}
+                {activeGroup && activeGroup !== 'area' && (
+                  <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50/80 border border-slate-200 text-xs">
+                    <span className="font-semibold text-slate-700">
+                      Showing {filteredUsers.length} {activeGroup === 'intern' ? 'Interns' : activeGroup === 'fellow' ? 'Fellows' : 'Program Coordinators'}
+                    </span>
                     {filteredUsers.length > 0 && (
                       <button
                         type="button"
-                        onClick={selectAllFiltered}
-                        className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shrink-0 cursor-pointer shadow-2xs"
+                        onClick={isAllCurrentGroupSelected ? deselectCurrentGroup : selectAllCurrentGroup}
+                        className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors cursor-pointer shadow-2xs active:scale-95"
                       >
-                        + Select All in Location
+                        {isAllCurrentGroupSelected ? `Deselect All (${filteredUsers.length})` : `+ Assign All (${filteredUsers.length})`}
                       </button>
                     )}
                   </div>
                 )}
-              </div>
-            </div>
 
-            {/* Assignee list with Checkboxes */}
-            <div className="max-h-[340px] overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-white shadow-2xs">
-              {filteredUsers.length === 0 ? (
-                <div className="p-8 text-center text-slate-400 text-xs">
-                  No assignees match your current search, role, or location filters
+                {/* Header Banner when only search is active */}
+                {!activeGroup && userSearch.trim() && (
+                  <div className="p-2.5 rounded-xl bg-slate-50/80 border border-slate-200 text-xs text-slate-600 font-medium">
+                    Found <span className="font-bold text-slate-900">{filteredUsers.length}</span> assignees matching &ldquo;{userSearch}&rdquo;
+                  </div>
+                )}
+
+                {/* Assignee list with Checkboxes */}
+                <div className="max-h-[340px] overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-white shadow-2xs">
+                  {filteredUsers.length === 0 ? (
+                    <div className="p-8 text-center text-slate-400 text-xs">
+                      No assignees match your current selection or search filter
+                    </div>
+                  ) : (
+                    filteredUsers.slice(0, 50).map(u => {
+                      const isAdded = !!selectedUsers.find(s => s.id === u.id);
+                      return (
+                        <label
+                          key={u.id}
+                          className={cn(
+                            'w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors cursor-pointer select-none',
+                            isAdded ? 'bg-indigo-50/70 text-indigo-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                          )}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isAdded}
+                            onChange={() => toggleUser(u)}
+                            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
+                          />
+                          <div className={cn(
+                            'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0',
+                            isAdded ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-600'
+                          )}>
+                            {u.name.slice(0, 1).toUpperCase()}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="font-semibold truncate text-slate-900 leading-snug">{u.name}</div>
+                            <div className="text-xs text-slate-400 truncate">{u.email}</div>
+                            {/* Display location details */}
+                            <div className="flex items-center gap-1 text-[11px] text-slate-500 mt-0.5 truncate">
+                              <MapPin size={11} className="text-indigo-500 shrink-0" weight="bold" />
+                              <span className="truncate">{getUserLocationText(u)}</span>
+                            </div>
+                          </div>
+                          <span className={cn(
+                            'px-2.5 py-0.5 rounded-full text-[11px] font-semibold shrink-0 border capitalize',
+                            u.role === 'intern'
+                              ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                              : u.role === 'fellow'
+                              ? 'bg-purple-50 text-purple-700 border-purple-200'
+                              : u.role === 'pc'
+                              ? 'bg-amber-50 text-amber-800 border-amber-200'
+                              : 'bg-slate-50 text-slate-700 border-slate-200'
+                          )}>
+                            {roleLabel(u.role)}
+                          </span>
+                        </label>
+                      );
+                    })
+                  )}
                 </div>
-              ) : (
-                filteredUsers.slice(0, 50).map(u => {
-                  const isAdded = !!selectedUsers.find(s => s.id === u.id);
-                  return (
-                    <label
-                      key={u.id}
-                      className={cn(
-                        'w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors cursor-pointer select-none',
-                        isAdded ? 'bg-indigo-50/70 text-indigo-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
-                      )}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isAdded}
-                        onChange={() => toggleUser(u)}
-                        className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
-                      />
-                      <div className={cn(
-                        'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0',
-                        isAdded ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-600'
-                      )}>
-                        {u.name.slice(0, 1).toUpperCase()}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="font-semibold truncate text-slate-900 leading-snug">{u.name}</div>
-                        <div className="text-xs text-slate-400 truncate">{u.email}</div>
-                        {/* Display location details of the selected location type */}
-                        <div className="flex items-center gap-1 text-[11px] text-slate-500 mt-0.5 truncate">
-                          <MapPin size={11} className="text-indigo-500 shrink-0" weight="bold" />
-                          <span className="truncate">{getUserLocationText(u)}</span>
-                        </div>
-                      </div>
-                      <span className={cn(
-                        'px-2.5 py-0.5 rounded-full text-[11px] font-semibold shrink-0 border capitalize',
-                        u.role === 'intern'
-                          ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                          : u.role === 'fellow'
-                          ? 'bg-purple-50 text-purple-700 border-purple-200'
-                          : u.role === 'pc'
-                          ? 'bg-amber-50 text-amber-800 border-amber-200'
-                          : 'bg-slate-50 text-slate-700 border-slate-200'
-                      )}>
-                        {roleLabel(u.role)}
-                      </span>
-                    </label>
-                  );
-                })
-              )}
-            </div>
+              </div>
+            ) : (
+              /* CASE 3: Default State — List does NOT show up until a button is clicked or search is entered */
+              activeGroup !== 'area' && (
+                <div className="p-8 sm:p-12 text-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center animate-in fade-in duration-200">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3 shadow-2xs ring-4 ring-indigo-50/50">
+                    <UsersThree size={24} weight="duotone" />
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-800">Select an Assignee Category or Area</h3>
+                  <p className="text-xs text-slate-500 max-w-sm mt-1 leading-relaxed">
+                    Click <strong>All Interns</strong>, <strong>All Fellows</strong>, <strong>All PCs</strong>, or <strong>Area</strong> above to view and assign candidates.
+                  </p>
+                </div>
+              )
+            )}
 
             {errors.assignedToIds && (
               <p className="text-xs text-rose-600 font-medium flex items-center gap-1">

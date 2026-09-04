@@ -182,6 +182,7 @@ export const usersApi = {
         { id: 'blk-03', name: 'Sagar Rural', districtId: 'dst-06', districtName: 'Sagar' },
         { id: 'blk-04', name: 'Indore North', districtId: 'dst-01', districtName: 'Indore' },
         { id: 'blk-05', name: 'Bhopal Central', districtId: 'dst-02', districtName: 'Bhopal' },
+        { id: 'blk-06', name: 'Phanda', districtId: 'dst-02', districtName: 'Bhopal' },
       ].filter(b => !districtId || b.districtId === districtId);
     }
   },
@@ -197,6 +198,8 @@ export const usersApi = {
         { id: 'gp-04', name: 'Dabra Road', blockId: 'blk-02', blockName: 'Gwalior Block A' },
         { id: 'gp-05', name: 'Rahatgarh', blockId: 'blk-03', blockName: 'Sagar Rural' },
         { id: 'gp-06', name: 'Banda', blockId: 'blk-03', blockName: 'Sagar Rural' },
+        { id: 'gp-07', name: 'Phanda Kalan', blockId: 'blk-06', blockName: 'Phanda' },
+        { id: 'gp-08', name: 'Khajuri Sadak', blockId: 'blk-06', blockName: 'Phanda' },
       ].filter(gp => !blockId || gp.blockId === blockId);
     }
   },
