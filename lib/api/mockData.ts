@@ -105,6 +105,7 @@ export const MOCK_USERS: User[] = [
     district: { id: 'dst-02', name: 'Bhopal', divisionId: 'div-01', divisionName: 'Bhopal Division' },
     block: { id: 'blk-06', name: 'Phanda', districtId: 'dst-02', districtName: 'Bhopal' },
     gramPanchayat: { id: 'gp-07', name: 'Phanda Kalan', blockId: 'blk-06', blockName: 'Phanda' },
+    village: { id: 'vlg-13', name: 'Phanda Gram', gramPanchayatId: 'gp-07', gramPanchayatName: 'Phanda Kalan' },
     profileComplete: true, createdAt: '2026-01-20T00:00:00Z',
     lastName: 'Sharma', gender: 'male', fatherName: 'Ramakant Sharma',
     address: 'Phanda Kalan, Phanda, Bhopal, Madhya Pradesh', samagraId: '100200300410',

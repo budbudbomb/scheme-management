@@ -221,6 +221,9 @@ export const usersApi = {
         { id: 'vlg-10', name: 'Rahatgarh Kalan', gramPanchayatId: 'gp-05', gramPanchayatName: 'Rahatgarh' },
         { id: 'vlg-11', name: 'Banda Basti', gramPanchayatId: 'gp-06', gramPanchayatName: 'Banda' },
         { id: 'vlg-12', name: 'Banda Purwa', gramPanchayatId: 'gp-06', gramPanchayatName: 'Banda' },
+        { id: 'vlg-13', name: 'Phanda Gram', gramPanchayatId: 'gp-07', gramPanchayatName: 'Phanda Kalan' },
+        { id: 'vlg-14', name: 'Kalan Purwa', gramPanchayatId: 'gp-07', gramPanchayatName: 'Phanda Kalan' },
+        { id: 'vlg-15', name: 'Khajuri Gaon', gramPanchayatId: 'gp-08', gramPanchayatName: 'Khajuri Sadak' },
       ].filter(v => !gramPanchayatId || v.gramPanchayatId === gramPanchayatId);
     }
   },

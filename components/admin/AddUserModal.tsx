@@ -313,13 +313,14 @@ export default function AddUserModal({ open, user, onClose, onCreated, onUpdated
       setMode('single');
       setSingleCredential(null);
       if (user) {
+        const u = user as any;
         reset({
           ...user,
-          divisionId: user.division?.id || user.divisionId || '',
-          districtId: user.district?.id || user.districtId || '',
-          blockId: user.block?.id || user.blockId || '',
-          gramPanchayatId: user.gramPanchayat?.id || user.gramPanchayatId || '',
-          villageId: user.village?.id || user.villageId || '',
+          divisionId: user.division?.id || u.divisionId || '',
+          districtId: user.district?.id || u.districtId || '',
+          blockId: user.block?.id || u.blockId || '',
+          gramPanchayatId: user.gramPanchayat?.id || u.gramPanchayatId || '',
+          villageId: user.village?.id || u.villageId || '',
         } as FormData);
       } else {
         reset({ role: 'intern' } as FormData);
@@ -342,7 +343,7 @@ export default function AddUserModal({ open, user, onClose, onCreated, onUpdated
       };
       
       if (user && onUpdated) {
-        onUpdated(buildCreatePayload(data, resolved, user.password || ''));
+        onUpdated(buildCreatePayload(data, resolved, (user as any).password || ''));
         return;
       }
       

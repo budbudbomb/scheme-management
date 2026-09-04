@@ -7,11 +7,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Check, Warning, Trash, ClipboardText, Checks, CheckCircle, CheckSquare, MagnifyingGlass, X, FunnelSimple, MapPin, CaretRight, UsersThree } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowRight, Check, Warning, Trash, ClipboardText, Checks, CheckCircle, CheckSquare, MagnifyingGlass, X, FunnelSimple, MapPin, CaretRight, UsersThree, Users, UserCheck } from '@phosphor-icons/react';
 import { usersApi } from '@/lib/api/users';
 import { tasksApi } from '@/lib/api/tasks';
 import { surveysApi } from '@/lib/api/surveys';
-import type { User, Survey, Division, District, Block, GramPanchayat } from '@/types/models';
+import type { User, Survey, Division, District, Block, GramPanchayat, Village } from '@/types/models';
 import { cn, roleLabel } from '@/lib/utils/formatters';
 import { toast } from 'sonner';
 
@@ -44,28 +44,30 @@ function NewTaskForm() {
   const querySurveyId = searchParams?.get('surveyId') || '';
   const querySurveyName = searchParams?.get('surveyName') || '';
 
+  const [step, setStep] = useState<number>(0);
+  const [mounted, setMounted] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [surveys, setSurveys] = useState<Survey[]>([]);
-  const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
-  const [userSearch, setUserSearch] = useState('');
+  const [isSurveyToggle, setIsSurveyToggle] = useState<boolean>(false);
+  const [surveyError, setSurveyError] = useState<boolean>(false);
+  const [cameFromSurvey, setCameFromSurvey] = useState<boolean>(false);
+  const [userSearch, setUserSearch] = useState<string>('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'intern' | 'fellow' | 'pc'>('all');
-  const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
-  const [isSurveyToggle, setIsSurveyToggle] = useState(false);
-  const [surveyError, setSurveyError] = useState(false);
-  const [cameFromSurvey, setCameFromSurvey] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  // Location Hierarchy lists & filters
   const [divisions, setDivisions] = useState<Division[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [gramPanchayats, setGramPanchayats] = useState<GramPanchayat[]>([]);
+  const [villages, setVillages] = useState<Village[]>([]);
   const [selectedDivision, setSelectedDivision] = useState<string>('');
   const [selectedDistrict, setSelectedDistrict] = useState<string>('');
   const [selectedBlock, setSelectedBlock] = useState<string>('');
   const [selectedGP, setSelectedGP] = useState<string>('');
-  const [activeGroup, setActiveGroup] = useState<'intern' | 'fellow' | 'pc' | 'area' | null>(null);
-  const [areaStep, setAreaStep] = useState<'division' | 'district' | 'block' | 'gp' | 'completed'>('division');
+  const [selectedVillage, setSelectedVillage] = useState<string>('');
+  const [assignmentMode, setAssignmentMode] = useState<'role' | 'area'>('role');
+  const [roleGroup, setRoleGroup] = useState<'intern' | 'fellow' | 'pc' | null>('intern');
+  const [areaStep, setAreaStep] = useState<'division' | 'district' | 'block' | 'gp' | 'village' | 'person' | 'completed'>('division');
+  const [stoppedLevelName, setStoppedLevelName] = useState<string>('');
   const [checkedAreaItem, setCheckedAreaItem] = useState<string | null>(null);
 
   useEffect(() => {
@@ -98,6 +100,7 @@ function NewTaskForm() {
     usersApi.getDistricts().then(setDistricts).catch(console.error);
     usersApi.getBlocks().then(setBlocks).catch(console.error);
     usersApi.getGramPanchayats().then(setGramPanchayats).catch(console.error);
+    usersApi.getVillages().then(setVillages).catch(console.error);
   }, []);
 
   // When coming directly from "Save & Allocate" in Survey: prefill & jump straight to Assignee step (Step 3)
@@ -144,12 +147,30 @@ function NewTaskForm() {
     ? gramPanchayats.filter(gp => gp.blockId === selectedBlock)
     : [];
 
+  const currentGPVillages = selectedGP
+    ? villages.filter(v => v.gramPanchayatId === selectedGP)
+    : [];
+
+  // Stop at Division Level
   const handleSelectEntireDivision = (d: Division) => {
     setSelectedDivision(d.id);
     setSelectedDistrict('');
     setSelectedBlock('');
     setSelectedGP('');
+    setSelectedVillage('');
+    setStoppedLevelName(`Division: ${d.name}`);
     setCheckedAreaItem(null);
+
+    const divDistrictIds = new Set(districts.filter(dist => dist.divisionId === d.id).map(dist => dist.id));
+    const matched = users.filter(u =>
+      u.division?.id === d.id ||
+      (u.district && divDistrictIds.has(u.district.id)) ||
+      (u.block && districts.some(dist => dist.id === u.block?.districtId && dist.divisionId === d.id))
+    );
+    if (matched.length > 0) {
+      setSelectedUsers(matched);
+      setValue('assignedToIds', matched.map(m => m.id), { shouldValidate: true });
+    }
     setAreaStep('completed');
   };
 
@@ -158,15 +179,28 @@ function NewTaskForm() {
     setSelectedDistrict('');
     setSelectedBlock('');
     setSelectedGP('');
+    setSelectedVillage('');
     setCheckedAreaItem(null);
     setAreaStep('district');
   };
 
+  // Stop at District Level
   const handleSelectEntireDistrict = (dst: District) => {
     setSelectedDistrict(dst.id);
     setSelectedBlock('');
     setSelectedGP('');
+    setSelectedVillage('');
+    setStoppedLevelName(`District: ${dst.name}`);
     setCheckedAreaItem(null);
+
+    const matched = users.filter(u =>
+      u.district?.id === dst.id ||
+      u.block?.districtId === dst.id
+    );
+    if (matched.length > 0) {
+      setSelectedUsers(matched);
+      setValue('assignedToIds', matched.map(m => m.id), { shouldValidate: true });
+    }
     setAreaStep('completed');
   };
 
@@ -174,27 +208,94 @@ function NewTaskForm() {
     setSelectedDistrict(dst.id);
     setSelectedBlock('');
     setSelectedGP('');
+    setSelectedVillage('');
     setCheckedAreaItem(null);
     setAreaStep('block');
   };
 
+  // Stop at Block Level
   const handleSelectEntireBlock = (blk: Block) => {
     setSelectedBlock(blk.id);
     setSelectedGP('');
+    setSelectedVillage('');
+    setStoppedLevelName(`Block: ${blk.name}`);
     setCheckedAreaItem(null);
+
+    const matched = users.filter(u =>
+      u.block?.id === blk.id ||
+      u.gramPanchayat?.blockId === blk.id ||
+      u.village?.blockId === blk.id
+    );
+    if (matched.length > 0) {
+      setSelectedUsers(matched);
+      setValue('assignedToIds', matched.map(m => m.id), { shouldValidate: true });
+    }
     setAreaStep('completed');
   };
 
   const handleDrillDownBlock = (blk: Block) => {
     setSelectedBlock(blk.id);
     setSelectedGP('');
+    setSelectedVillage('');
     setCheckedAreaItem(null);
     setAreaStep('gp');
   };
 
-  const handleSelectGP = (gp: GramPanchayat) => {
+  // Stop at Gram Panchayat Level
+  const handleSelectEntireGP = (gp: GramPanchayat) => {
     setSelectedGP(gp.id);
+    setSelectedVillage('');
+    setStoppedLevelName(`Gram Panchayat: ${gp.name}`);
     setCheckedAreaItem(null);
+
+    const matched = users.filter(u =>
+      u.gramPanchayat?.id === gp.id ||
+      u.village?.gramPanchayatId === gp.id
+    );
+    if (matched.length > 0) {
+      setSelectedUsers(matched);
+      setValue('assignedToIds', matched.map(m => m.id), { shouldValidate: true });
+    }
+    setAreaStep('completed');
+  };
+
+  const handleDrillDownGP = (gp: GramPanchayat) => {
+    setSelectedGP(gp.id);
+    setSelectedVillage('');
+    setCheckedAreaItem(null);
+    setAreaStep('village');
+  };
+
+  // Stop at Village Level
+  const handleSelectEntireVillage = (v: Village) => {
+    setSelectedVillage(v.id);
+    setStoppedLevelName(`Village: ${v.name}`);
+    setCheckedAreaItem(null);
+
+    const matched = users.filter(u => u.village?.id === v.id);
+    if (matched.length > 0) {
+      setSelectedUsers(matched);
+      setValue('assignedToIds', matched.map(m => m.id), { shouldValidate: true });
+    }
+    setAreaStep('completed');
+  };
+
+  const handleDrillDownVillage = (v: Village) => {
+    setSelectedVillage(v.id);
+    setStoppedLevelName(`Person in ${v.name}`);
+    setCheckedAreaItem(null);
+    setAreaStep('person');
+  };
+
+  const handleSelectPerson = (person: User) => {
+    setCheckedAreaItem(null);
+    setStoppedLevelName(`Person: ${person.name}`);
+    const exists = selectedUsers.some(u => u.id === person.id);
+    if (!exists) {
+      const updated = [...selectedUsers, person];
+      setSelectedUsers(updated);
+      setValue('assignedToIds', updated.map(u => u.id), { shouldValidate: true });
+    }
     setAreaStep('completed');
   };
 
@@ -203,6 +304,8 @@ function NewTaskForm() {
     setSelectedDistrict('');
     setSelectedBlock('');
     setSelectedGP('');
+    setSelectedVillage('');
+    setStoppedLevelName('');
     setCheckedAreaItem(null);
     setAreaStep('division');
   };
@@ -225,23 +328,35 @@ function NewTaskForm() {
       const gp = gramPanchayats.find(item => item.id === selectedGP);
       if (gp) parts.push(gp.name);
     }
+    if (selectedVillage) {
+      const v = villages.find(item => item.id === selectedVillage);
+      if (v) parts.push(v.name);
+    }
     return parts.join(' > ');
   };
 
   const userMatchesLocation = (u: User) => {
-    if (!selectedDivision && !selectedDistrict && !selectedBlock && !selectedGP) {
+    if (!selectedDivision && !selectedDistrict && !selectedBlock && !selectedGP && !selectedVillage) {
       return true;
     }
+    if (selectedVillage) {
+      return u.village?.id === selectedVillage;
+    }
     if (selectedGP) {
-      return u.gramPanchayat?.id === selectedGP;
+      return u.gramPanchayat?.id === selectedGP || u.village?.gramPanchayatId === selectedGP;
     }
     if (selectedBlock) {
-      return u.block?.id === selectedBlock || u.gramPanchayat?.blockId === selectedBlock;
+      return (
+        u.block?.id === selectedBlock ||
+        u.gramPanchayat?.blockId === selectedBlock ||
+        u.village?.blockId === selectedBlock
+      );
     }
     if (selectedDistrict) {
       return (
         u.district?.id === selectedDistrict ||
-        u.block?.districtId === selectedDistrict
+        u.block?.districtId === selectedDistrict ||
+        (u.division && districts.some(d => d.id === selectedDistrict && d.divisionId === u.division?.id))
       );
     }
     if (selectedDivision) {
@@ -263,17 +378,19 @@ function NewTaskForm() {
       u.email.toLowerCase().includes(userSearch.toLowerCase());
 
     const matchesRole =
-      roleFilter === 'all'
-        ? (activeGroup === 'intern'
-            ? u.role === 'intern'
-            : activeGroup === 'fellow'
-            ? u.role === 'fellow'
-            : activeGroup === 'pc'
-            ? u.role === 'pc'
-            : true)
-        : u.role === roleFilter;
+      assignmentMode === 'role'
+        ? (roleFilter !== 'all'
+            ? u.role === roleFilter
+            : (roleGroup === 'intern'
+                ? u.role === 'intern'
+                : roleGroup === 'fellow'
+                ? u.role === 'fellow'
+                : roleGroup === 'pc'
+                ? u.role === 'pc'
+                : true))
+        : true;
 
-    const matchesLocation = userMatchesLocation(u);
+    const matchesLocation = assignmentMode === 'area' ? userMatchesLocation(u) : true;
     return matchesSearch && matchesRole && matchesLocation;
   });
 
@@ -301,6 +418,9 @@ function NewTaskForm() {
 
   const getUserLocationText = (u: User): string => {
     const parts: string[] = [];
+    if (u.village?.name) {
+      parts.push(`${u.village.name} Village`);
+    }
     if (u.gramPanchayat?.name) {
       parts.push(`${u.gramPanchayat.name} GP`);
     }
@@ -795,7 +915,7 @@ function NewTaskForm() {
 
         {/* STEP 3: ASSIGN USERS */}
         {step === 3 && (
-          <div className="card p-4 sm:p-8 space-y-4 sm:space-y-6 border border-slate-200/80 shadow-xs bg-white animate-in fade-in duration-200">
+          <div className="card p-4 sm:p-8 space-y-4 sm:space-y-6 border border-slate-200/80 shadow-xs bg-white animate-in fade-in duration-200 pb-28 sm:pb-8">
 
             <div className="border-b border-slate-100 pb-2.5 sm:pb-4 flex items-center justify-between flex-wrap gap-2">
               <div>
@@ -803,7 +923,7 @@ function NewTaskForm() {
                   {cameFromSurvey || isSurveyTask ? 'Step 2: Select Assignees' : 'Step 4: Select Assignees'}
                 </h2>
                 <p className="hidden sm:block text-xs sm:text-sm text-slate-500 mt-0.5">
-                  Assign this task to Interns, Fellows, or Program Coordinators across districts
+                  Assign this task role-wise or geographically by division, district, block, gram panchayat, village, or a specific person
                 </p>
               </div>
               <span className="hidden sm:inline-flex text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
@@ -811,577 +931,184 @@ function NewTaskForm() {
               </span>
             </div>
 
-            {/* ── Compact Assignee Controls: Role Buttons + Dedicated Area Button + Search ── */}
-            <div className="space-y-2.5 pt-0.5">
-              {/* Row 1: Role Buttons (Interns, Fellows, PCs) - NO "All" */}
-              <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1">
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-xs font-semibold text-slate-500 shrink-0 hidden sm:inline">Roles:</span>
-                  
-                  {/* Interns Button */}
-                  <button
-                    type="button"
-                    onClick={() => setActiveGroup(prev => prev === 'intern' ? null : 'intern')}
-                    className={cn(
-                      'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
-                      activeGroup === 'intern'
-                        ? 'bg-indigo-600 text-white border border-indigo-500 shadow-[0_0_16px_rgba(99,102,241,0.55)] ring-2 ring-indigo-400 ring-offset-1 font-bold scale-[1.02]'
-                        : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
-                    )}
-                  >
-                    <Checks size={14} className={activeGroup === 'intern' ? 'text-white' : 'text-indigo-600'} weight="bold" />
-                    <span>Interns</span>
-                  </button>
-
-                  {/* Fellows Button */}
-                  <button
-                    type="button"
-                    onClick={() => setActiveGroup(prev => prev === 'fellow' ? null : 'fellow')}
-                    className={cn(
-                      'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
-                      activeGroup === 'fellow'
-                        ? 'bg-purple-600 text-white border border-purple-500 shadow-[0_0_16px_rgba(168,85,247,0.55)] ring-2 ring-purple-400 ring-offset-1 font-bold scale-[1.02]'
-                        : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
-                    )}
-                  >
-                    <Checks size={14} className={activeGroup === 'fellow' ? 'text-white' : 'text-purple-600'} weight="bold" />
-                    <span>Fellows</span>
-                  </button>
-
-                  {/* PCs Button */}
-                  <button
-                    type="button"
-                    onClick={() => setActiveGroup(prev => prev === 'pc' ? null : 'pc')}
-                    className={cn(
-                      'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
-                      activeGroup === 'pc'
-                        ? 'bg-amber-600 text-white border border-amber-500 shadow-[0_0_16px_rgba(217,119,6,0.55)] ring-2 ring-amber-400 ring-offset-1 font-bold scale-[1.02]'
-                        : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
-                    )}
-                  >
-                    <Checks size={14} className={activeGroup === 'pc' ? 'text-white' : 'text-amber-600'} weight="bold" />
-                    <span>PCs</span>
-                  </button>
-                </div>
-
-                {/* Clear Selection Button */}
-                {selectedUsers.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedUsers([]);
-                      setValue('assignedToIds', [], { shouldValidate: true });
-                    }}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-all cursor-pointer shrink-0 active:scale-95 ml-auto sm:ml-0"
-                  >
-                    Clear ({selectedUsers.length})
-                  </button>
+            {/* ── ASSIGNMENT MODE SELECTOR: ROLE-WISE vs AREA-WISE (Phone & Desktop optimized) ── */}
+            <div className="bg-slate-100/90 p-1 sm:p-1.5 rounded-2xl border border-slate-200/90 grid grid-cols-2 gap-1.5">
+              {/* Tab 1: Role-Wise */}
+              <button
+                type="button"
+                onClick={() => {
+                  setAssignmentMode('role');
+                  if (!roleGroup) setRoleGroup('intern');
+                }}
+                className={cn(
+                  'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer select-none',
+                  assignmentMode === 'role'
+                    ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 ring-1 ring-slate-900/5'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
                 )}
-              </div>
+              >
+                <div className={cn(
+                  'w-6 h-6 rounded-lg flex items-center justify-center shrink-0',
+                  assignmentMode === 'role' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200/70 text-slate-600'
+                )}>
+                  <Users size={14} weight="bold" />
+                </div>
+                <span>Role-Wise</span>
+              </button>
 
-              {/* Row 2: Dedicated Area Button - Appears separately below the interns/fellows row for the entire width in phone view, and dedicated distinct bar in desktop */}
-              <div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (activeGroup === 'area') {
-                      setActiveGroup(null);
-                    } else {
-                      setActiveGroup('area');
-                      if (!selectedDivision && !selectedDistrict && !selectedBlock && !selectedGP) {
-                        setAreaStep('division');
-                        setCheckedAreaItem(null);
-                      }
-                    }
-                  }}
-                  className={cn(
-                    'w-full py-2.5 px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-between cursor-pointer active:scale-[0.99] border',
-                    activeGroup === 'area'
-                      ? 'bg-emerald-600 text-white border-emerald-500 shadow-[0_0_16px_rgba(16,185,129,0.55)] ring-2 ring-emerald-400 ring-offset-1 font-bold scale-[1.01]'
-                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs'
-                  )}
-                >
-                  <div className="flex items-center gap-2 sm:gap-2.5">
-                    <div className={cn(
-                      'w-7 h-7 rounded-lg flex items-center justify-center text-xs shrink-0 transition-colors',
-                      activeGroup === 'area'
-                        ? 'bg-white/20 text-white'
-                        : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                    )}>
-                      <MapPin size={15} weight="bold" />
-                    </div>
-                    <span className="font-bold">Area</span>
-                    <span className={cn(
-                      'text-[11px] font-normal hidden xs:inline sm:inline',
-                      activeGroup === 'area' ? 'text-emerald-100' : 'text-slate-400'
-                    )}>
-                      (Filter by Division, District, Block, Gram Panchayat)
-                    </span>
-                  </div>
-                  <div className={cn(
-                    'flex items-center gap-1 text-[11px] font-medium shrink-0',
-                    activeGroup === 'area' ? 'text-emerald-100' : 'text-slate-400'
-                  )}>
-                    <span>Hierarchy</span>
-                    <CaretRight size={13} weight="bold" />
-                  </div>
-                </button>
-              </div>
+              {/* Tab 2: Area-Wise */}
+              <button
+                type="button"
+                onClick={() => {
+                  setAssignmentMode('area');
+                  if (areaStep !== 'completed' && !selectedDivision) {
+                    setAreaStep('division');
+                    setCheckedAreaItem(null);
+                  }
+                }}
+                className={cn(
+                  'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer select-none',
+                  assignmentMode === 'area'
+                    ? 'bg-white text-emerald-700 shadow-sm border border-slate-200/80 ring-1 ring-slate-900/5'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+                )}
+              >
+                <div className={cn(
+                  'w-6 h-6 rounded-lg flex items-center justify-center shrink-0',
+                  assignmentMode === 'area' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200/70 text-slate-600'
+                )}>
+                  <MapPin size={14} weight="bold" />
+                </div>
+                <span>Area-Wise</span>
+              </button>
+            </div>
 
-              {/* Row 3: Expanded Search Bar + Icon-Only Filter Dropdown */}
-              <div className="flex items-center gap-2">
-                {/* Search Input (Expanded length) */}
-                <div className="relative flex-1 min-w-0">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <MagnifyingGlass size={16} weight="bold" />
-                  </div>
-                  <input
-                    type="search"
-                    placeholder="Search assignees by name or email…"
-                    value={userSearch}
-                    onChange={e => setUserSearch(e.target.value)}
-                    className={cn(inputCls(), 'pl-10 h-10 text-xs sm:text-sm bg-white w-full shadow-2xs')}
-                  />
-                  {userSearch && (
+            {/* ── MODE 1: ROLE-WISE CONTROLS ── */}
+            {assignmentMode === 'role' && (
+              <div className="space-y-3 pt-0.5 animate-in fade-in duration-200">
+                {/* Role Filter Pills (Interns, Fellows, PCs) - NO "All" */}
+                <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs font-semibold text-slate-500 shrink-0 hidden sm:inline">Role:</span>
+
+                    {/* Interns Button */}
                     <button
                       type="button"
-                      onClick={() => setUserSearch('')}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                      onClick={() => setRoleGroup(prev => prev === 'intern' ? null : 'intern')}
+                      className={cn(
+                        'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
+                        roleGroup === 'intern'
+                          ? 'bg-indigo-600 text-white border border-indigo-500 shadow-[0_0_16px_rgba(99,102,241,0.55)] ring-2 ring-indigo-400 ring-offset-1 font-bold scale-[1.02]'
+                          : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
+                      )}
                     >
-                      <X size={14} weight="bold" />
+                      <Checks size={14} className={roleGroup === 'intern' ? 'text-white' : 'text-indigo-600'} weight="bold" />
+                      <span>Interns</span>
+                    </button>
+
+                    {/* Fellows Button */}
+                    <button
+                      type="button"
+                      onClick={() => setRoleGroup(prev => prev === 'fellow' ? null : 'fellow')}
+                      className={cn(
+                        'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
+                        roleGroup === 'fellow'
+                          ? 'bg-purple-600 text-white border border-purple-500 shadow-[0_0_16px_rgba(168,85,247,0.55)] ring-2 ring-purple-400 ring-offset-1 font-bold scale-[1.02]'
+                          : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
+                      )}
+                    >
+                      <Checks size={14} className={roleGroup === 'fellow' ? 'text-white' : 'text-purple-600'} weight="bold" />
+                      <span>Fellows</span>
+                    </button>
+
+                    {/* PCs Button */}
+                    <button
+                      type="button"
+                      onClick={() => setRoleGroup(prev => prev === 'pc' ? null : 'pc')}
+                      className={cn(
+                        'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
+                        roleGroup === 'pc'
+                          ? 'bg-amber-600 text-white border border-amber-500 shadow-[0_0_16px_rgba(217,119,6,0.55)] ring-2 ring-amber-400 ring-offset-1 font-bold scale-[1.02]'
+                          : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
+                      )}
+                    >
+                      <Checks size={14} className={roleGroup === 'pc' ? 'text-white' : 'text-amber-600'} weight="bold" />
+                      <span>PCs</span>
+                    </button>
+                  </div>
+
+                  {/* Clear Selection Button */}
+                  {selectedUsers.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedUsers([]);
+                        setValue('assignedToIds', [], { shouldValidate: true });
+                      }}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-all cursor-pointer shrink-0 active:scale-95 ml-auto sm:ml-0"
+                    >
+                      Clear ({selectedUsers.length})
                     </button>
                   )}
                 </div>
 
-                {/* Filter Button (Icon-Only) with Native Select Overlay */}
-                <div className="relative shrink-0">
-                  <div
-                    className={cn(
-                      'w-10 h-10 rounded-[var(--radius)] border flex items-center justify-center transition-colors shadow-2xs',
-                      roleFilter !== 'all'
-                        ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
-                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                    )}
-                  >
-                    <FunnelSimple size={18} weight={roleFilter !== 'all' ? 'bold' : 'regular'} />
-                    {roleFilter !== 'all' && (
-                      <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-indigo-600 ring-2 ring-white" />
-                    )}
-                  </div>
-                  <select
-                    value={roleFilter}
-                    onChange={(e) => setRoleFilter(e.target.value as any)}
-                    aria-label="Filter assignees by role"
-                    className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                  >
-                    <option value="all">All Roles ({users.length})</option>
-                    <option value="intern">Interns ({internCount})</option>
-                    <option value="fellow">Fellows ({fellowCount})</option>
-                    <option value="pc">PCs ({pcCount})</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* ── CONDITIONAL CONTENT ── */}
-
-            {/* CASE 1: Area Hierarchy Drill-Down Navigation with Checkboxes & Action Buttons in Table Header */}
-            {activeGroup === 'area' && areaStep !== 'completed' && (
-              <div className="border border-emerald-200 rounded-xl bg-white shadow-2xs overflow-hidden animate-in fade-in duration-200">
-                {/* Navigation, Breadcrumb & Action Buttons Header */}
-                <div className="p-3 sm:p-3.5 bg-gradient-to-r from-emerald-50/90 to-teal-50/60 border-b border-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                  {/* Left: Back button & Breadcrumb Info */}
-                  <div className="flex items-center gap-2 min-w-0">
-                    {areaStep !== 'division' && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCheckedAreaItem(null);
-                          if (areaStep === 'district') {
-                            setAreaStep('division');
-                            setSelectedDivision('');
-                          } else if (areaStep === 'block') {
-                            setAreaStep('district');
-                            setSelectedDistrict('');
-                          } else if (areaStep === 'gp') {
-                            setAreaStep('block');
-                            setSelectedGP('');
-                          }
-                        }}
-                        className="p-1.5 rounded-lg bg-white/80 hover:bg-white text-slate-700 hover:text-slate-900 border border-emerald-200/70 transition-colors cursor-pointer flex items-center gap-1 text-xs font-semibold shrink-0"
-                      >
-                        <ArrowLeft size={13} weight="bold" />
-                        <span className="hidden sm:inline">Back</span>
-                      </button>
-                    )}
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 text-xs text-emerald-800 font-semibold truncate">
-                        <span>Area</span>
-                        {selectedDivision && (
-                          <>
-                            <CaretRight size={11} className="text-slate-400 shrink-0" weight="bold" />
-                            <span className="text-slate-700 truncate">{divisions.find(d => d.id === selectedDivision)?.name.replace(/\s+Division$/i, '')}</span>
-                          </>
-                        )}
-                        {selectedDistrict && (
-                          <>
-                            <CaretRight size={11} className="text-slate-400 shrink-0" weight="bold" />
-                            <span className="text-slate-700 truncate">{districts.find(d => d.id === selectedDistrict)?.name}</span>
-                          </>
-                        )}
-                        {selectedBlock && (
-                          <>
-                            <CaretRight size={11} className="text-slate-400 shrink-0" weight="bold" />
-                            <span className="text-slate-700 truncate">{blocks.find(b => b.id === selectedBlock)?.name}</span>
-                          </>
-                        )}
-                      </div>
-                      <h3 className="text-xs sm:text-sm font-bold text-slate-900 mt-0.5 truncate">
-                        {areaStep === 'division' && 'Select Division'}
-                        {areaStep === 'district' && `Select District in ${divisions.find(d => d.id === selectedDivision)?.name}`}
-                        {areaStep === 'block' && `Select Block in ${districts.find(d => d.id === selectedDistrict)?.name}`}
-                        {areaStep === 'gp' && `Select Gram Panchayat in ${blocks.find(b => b.id === selectedBlock)?.name}`}
-                      </h3>
+                {/* Expanded Search Bar + Icon-Only Filter Dropdown */}
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1 min-w-0">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <MagnifyingGlass size={16} weight="bold" />
                     </div>
-                  </div>
-
-                  {/* Right: Action Buttons in the Header (enabled when an item checkbox is checked) */}
-                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-                    {areaStep === 'division' && (
-                      <>
-                        <button
-                          type="button"
-                          disabled={!checkedAreaItem}
-                          onClick={() => {
-                            const d = divisions.find(item => item.id === checkedAreaItem);
-                            if (d) handleSelectEntireDivision(d);
-                          }}
-                          className={cn(
-                            'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs',
-                            checkedAreaItem
-                              ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
-                              : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
-                          )}
-                        >
-                          Entire Division
-                        </button>
-                        <button
-                          type="button"
-                          disabled={!checkedAreaItem}
-                          onClick={() => {
-                            const d = divisions.find(item => item.id === checkedAreaItem);
-                            if (d) handleDrillDownDivision(d);
-                          }}
-                          className={cn(
-                            'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
-                            checkedAreaItem
-                              ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
-                              : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
-                          )}
-                        >
-                          <span>Select District</span>
-                          <CaretRight size={12} weight="bold" />
-                        </button>
-                      </>
-                    )}
-
-                    {areaStep === 'district' && (
-                      <>
-                        <button
-                          type="button"
-                          disabled={!checkedAreaItem}
-                          onClick={() => {
-                            const dst = currentDivisionDistricts.find(item => item.id === checkedAreaItem);
-                            if (dst) handleSelectEntireDistrict(dst);
-                          }}
-                          className={cn(
-                            'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs',
-                            checkedAreaItem
-                              ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
-                              : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
-                          )}
-                        >
-                          Entire District
-                        </button>
-                        <button
-                          type="button"
-                          disabled={!checkedAreaItem}
-                          onClick={() => {
-                            const dst = currentDivisionDistricts.find(item => item.id === checkedAreaItem);
-                            if (dst) handleDrillDownDistrict(dst);
-                          }}
-                          className={cn(
-                            'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
-                            checkedAreaItem
-                              ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
-                              : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
-                          )}
-                        >
-                          <span>Select Block</span>
-                          <CaretRight size={12} weight="bold" />
-                        </button>
-                      </>
-                    )}
-
-                    {areaStep === 'block' && (
-                      <>
-                        <button
-                          type="button"
-                          disabled={!checkedAreaItem}
-                          onClick={() => {
-                            const blk = currentDistrictBlocks.find(item => item.id === checkedAreaItem);
-                            if (blk) handleSelectEntireBlock(blk);
-                          }}
-                          className={cn(
-                            'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs',
-                            checkedAreaItem
-                              ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
-                              : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
-                          )}
-                        >
-                          Entire Block
-                        </button>
-                        <button
-                          type="button"
-                          disabled={!checkedAreaItem}
-                          onClick={() => {
-                            const blk = currentDistrictBlocks.find(item => item.id === checkedAreaItem);
-                            if (blk) handleDrillDownBlock(blk);
-                          }}
-                          className={cn(
-                            'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
-                            checkedAreaItem
-                              ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
-                              : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
-                          )}
-                        >
-                          <span>Select GP</span>
-                          <CaretRight size={12} weight="bold" />
-                        </button>
-                      </>
-                    )}
-
-                    {areaStep === 'gp' && (
+                    <input
+                      type="search"
+                      placeholder="Search assignees by name or email…"
+                      value={userSearch}
+                      onChange={e => setUserSearch(e.target.value)}
+                      className={cn(inputCls(), 'pl-10 h-10 text-xs sm:text-sm bg-white w-full shadow-2xs')}
+                    />
+                    {userSearch && (
                       <button
                         type="button"
-                        disabled={!checkedAreaItem}
-                        onClick={() => {
-                          const gp = currentBlockGPs.find(item => item.id === checkedAreaItem);
-                          if (gp) handleSelectGP(gp);
-                        }}
-                        className={cn(
-                          'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs',
-                          checkedAreaItem
-                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
-                            : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
-                        )}
+                        onClick={() => setUserSearch('')}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
                       >
-                        Select GP
+                        <X size={14} weight="bold" />
                       </button>
                     )}
                   </div>
-                </div>
 
-                {/* Hierarchy List Body: Clean rows with checkboxes ONLY (No buttons in rows!) */}
-                <div className="max-h-[320px] overflow-y-auto divide-y divide-slate-100">
-                  {/* Level 1: Divisions */}
-                  {areaStep === 'division' && divisions.map(d => {
-                    const isChecked = checkedAreaItem === d.id;
-                    return (
-                      <div
-                        key={d.id}
-                        onClick={() => setCheckedAreaItem(prev => prev === d.id ? null : d.id)}
-                        className={cn(
-                          'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
-                          isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
-                        )}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => {}} // toggled by row click
-                          className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
-                        />
-                        <div className={cn(
-                          'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
-                          isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                        )}>
-                          {d.code || d.name.slice(0, 2).toUpperCase()}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{d.name}</div>
-                          <div className="text-[11px] text-slate-400">Division Level</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* Level 2: Districts */}
-                  {areaStep === 'district' && (
-                    currentDivisionDistricts.length === 0 ? (
-                      <div className="p-8 text-center text-slate-400 text-xs">
-                        No districts configured for this division.
-                      </div>
-                    ) : (
-                      currentDivisionDistricts.map(dst => {
-                        const isChecked = checkedAreaItem === dst.id;
-                        return (
-                          <div
-                            key={dst.id}
-                            onClick={() => setCheckedAreaItem(prev => prev === dst.id ? null : dst.id)}
-                            className={cn(
-                              'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
-                              isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
-                            )}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => {}}
-                              className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
-                            />
-                            <div className={cn(
-                              'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
-                              isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-teal-50 text-teal-700 border-teal-100'
-                            )}>
-                              DST
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{dst.name}</div>
-                              <div className="text-[11px] text-slate-400">District</div>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )
-                  )}
-
-                  {/* Level 3: Blocks */}
-                  {areaStep === 'block' && (
-                    currentDistrictBlocks.length === 0 ? (
-                      <div className="p-8 text-center text-slate-400 text-xs">
-                        No blocks configured for this district.
-                      </div>
-                    ) : (
-                      currentDistrictBlocks.map(blk => {
-                        const isChecked = checkedAreaItem === blk.id;
-                        return (
-                          <div
-                            key={blk.id}
-                            onClick={() => setCheckedAreaItem(prev => prev === blk.id ? null : blk.id)}
-                            className={cn(
-                              'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
-                              isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
-                            )}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => {}}
-                              className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
-                            />
-                            <div className={cn(
-                              'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
-                              isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-indigo-50 text-indigo-700 border-indigo-100'
-                            )}>
-                              BLK
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{blk.name}</div>
-                              <div className="text-[11px] text-slate-400">Block</div>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )
-                  )}
-
-                  {/* Level 4: Gram Panchayats */}
-                  {areaStep === 'gp' && (
-                    currentBlockGPs.length === 0 ? (
-                      <div className="p-8 text-center text-slate-400 text-xs">
-                        No Gram Panchayats configured for this block.
-                      </div>
-                    ) : (
-                      currentBlockGPs.map(gp => {
-                        const isChecked = checkedAreaItem === gp.id;
-                        return (
-                          <div
-                            key={gp.id}
-                            onClick={() => setCheckedAreaItem(prev => prev === gp.id ? null : gp.id)}
-                            className={cn(
-                              'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
-                              isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
-                            )}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => {}}
-                              className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
-                            />
-                            <div className={cn(
-                              'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
-                              isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-violet-50 text-violet-700 border-violet-100'
-                            )}>
-                              GP
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{gp.name}</div>
-                              <div className="text-[11px] text-slate-400">Gram Panchayat</div>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* CASE 2: Active Assignees Display (When a category is active OR area selection is complete OR search is active) */}
-            {((activeGroup && (activeGroup !== 'area' || areaStep === 'completed')) || userSearch.trim()) ? (
-              <div className="space-y-3 animate-in fade-in duration-200">
-                {/* Header Banner for Completed Area */}
-                {activeGroup === 'area' && areaStep === 'completed' && (
-                  <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-r from-emerald-50/90 via-teal-50/70 to-indigo-50/50 border border-emerald-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-                        <MapPin size={18} weight="bold" />
-                      </div>
-                      <div className="min-w-0">
-                        <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">Selected Area Hierarchy</span>
-                        <p className="text-xs sm:text-sm font-bold text-slate-900 truncate">
-                          {getHierarchyBreadcrumb()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-                      <button
-                        type="button"
-                        onClick={resetAreaSelection}
-                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer active:scale-95"
-                      >
-                        Change Area
-                      </button>
-                      {filteredUsers.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={isAllCurrentGroupSelected ? deselectCurrentGroup : selectAllCurrentGroup}
-                          className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-xs cursor-pointer active:scale-95"
-                        >
-                          {isAllCurrentGroupSelected ? `Deselect (${filteredUsers.length})` : `+ Assign in Area (${filteredUsers.length})`}
-                        </button>
+                  <div className="relative shrink-0">
+                    <div
+                      className={cn(
+                        'w-10 h-10 rounded-[var(--radius)] border flex items-center justify-center transition-colors shadow-2xs',
+                        roleFilter !== 'all'
+                          ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
+                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                      )}
+                    >
+                      <FunnelSimple size={18} weight={roleFilter !== 'all' ? 'bold' : 'regular'} />
+                      {roleFilter !== 'all' && (
+                        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-indigo-600 ring-2 ring-white" />
                       )}
                     </div>
+                    <select
+                      value={roleFilter}
+                      onChange={(e) => setRoleFilter(e.target.value as any)}
+                      aria-label="Filter assignees by role"
+                      className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                    >
+                      <option value="all">All Roles ({users.length})</option>
+                      <option value="intern">Interns ({internCount})</option>
+                      <option value="fellow">Fellows ({fellowCount})</option>
+                      <option value="pc">PCs ({pcCount})</option>
+                    </select>
                   </div>
-                )}
+                </div>
 
-                {/* Header Banner for Role Selection (Intern / Fellow / PC) */}
-                {activeGroup && activeGroup !== 'area' && (
+                {/* Role Group Candidates List Banner & Selection List */}
+                <div className="space-y-3">
                   <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50/80 border border-slate-200 text-xs">
                     <span className="font-semibold text-slate-700">
-                      Showing {filteredUsers.length} {activeGroup === 'intern' ? 'Interns' : activeGroup === 'fellow' ? 'Fellows' : 'Program Coordinators'}
+                      Showing {filteredUsers.length} {roleGroup === 'intern' ? 'Interns' : roleGroup === 'fellow' ? 'Fellows' : roleGroup === 'pc' ? 'Program Coordinators' : 'Candidates'}
                     </span>
                     {filteredUsers.length > 0 && (
                       <button
@@ -1391,88 +1118,706 @@ function NewTaskForm() {
                       >
                         {isAllCurrentGroupSelected
                           ? `Deselect (${filteredUsers.length})`
-                          : `+ Assign ${activeGroup === 'intern' ? 'Interns' : activeGroup === 'fellow' ? 'Fellows' : 'PCs'} (${filteredUsers.length})`}
+                          : `+ Assign ${roleGroup === 'intern' ? 'Interns' : roleGroup === 'fellow' ? 'Fellows' : roleGroup === 'pc' ? 'PCs' : 'All'} (${filteredUsers.length})`}
                       </button>
                     )}
                   </div>
-                )}
 
-                {/* Header Banner when only search is active */}
-                {!activeGroup && userSearch.trim() && (
-                  <div className="p-2.5 rounded-xl bg-slate-50/80 border border-slate-200 text-xs text-slate-600 font-medium">
-                    Found <span className="font-bold text-slate-900">{filteredUsers.length}</span> assignees matching &ldquo;{userSearch}&rdquo;
-                  </div>
-                )}
-
-                {/* Assignee list with Checkboxes */}
-                <div className="max-h-[340px] overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-white shadow-2xs">
-                  {filteredUsers.length === 0 ? (
-                    <div className="p-8 text-center text-slate-400 text-xs">
-                      No assignees match your current selection or search filter
-                    </div>
-                  ) : (
-                    filteredUsers.slice(0, 50).map(u => {
-                      const isAdded = !!selectedUsers.find(s => s.id === u.id);
-                      return (
-                        <label
-                          key={u.id}
-                          className={cn(
-                            'w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors cursor-pointer select-none',
-                            isAdded ? 'bg-indigo-50/70 text-indigo-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
-                          )}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isAdded}
-                            onChange={() => toggleUser(u)}
-                            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
-                          />
-                          <div className={cn(
-                            'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0',
-                            isAdded ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-600'
-                          )}>
-                            {u.name.slice(0, 1).toUpperCase()}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="font-semibold truncate text-slate-900 leading-snug">{u.name}</div>
-                            <div className="text-xs text-slate-400 truncate">{u.email}</div>
-                            {/* Display location details */}
-                            <div className="flex items-center gap-1 text-[11px] text-slate-500 mt-0.5 truncate">
-                              <MapPin size={11} className="text-indigo-500 shrink-0" weight="bold" />
-                              <span className="truncate">{getUserLocationText(u)}</span>
+                  {/* Assignee list with Checkboxes */}
+                  <div className="max-h-[340px] overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-white shadow-2xs">
+                    {filteredUsers.length === 0 ? (
+                      <div className="p-8 text-center text-slate-400 text-xs">
+                        No assignees match your current selection or search filter
+                      </div>
+                    ) : (
+                      filteredUsers.slice(0, 50).map(u => {
+                        const isAdded = !!selectedUsers.find(s => s.id === u.id);
+                        return (
+                          <label
+                            key={u.id}
+                            className={cn(
+                              'w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors cursor-pointer select-none',
+                              isAdded ? 'bg-indigo-50/70 text-indigo-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isAdded}
+                              onChange={() => toggleUser(u)}
+                              className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
+                            />
+                            <div className={cn(
+                              'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0',
+                              isAdded ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-600'
+                            )}>
+                              {u.name.slice(0, 1).toUpperCase()}
                             </div>
-                          </div>
-                          <span className={cn(
-                            'px-2.5 py-0.5 rounded-full text-[11px] font-semibold shrink-0 border capitalize',
-                            u.role === 'intern'
-                              ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                              : u.role === 'fellow'
-                              ? 'bg-purple-50 text-purple-700 border-purple-200'
-                              : u.role === 'pc'
-                              ? 'bg-amber-50 text-amber-800 border-amber-200'
-                              : 'bg-slate-50 text-slate-700 border-slate-200'
-                          )}>
-                            {roleLabel(u.role)}
-                          </span>
-                        </label>
-                      );
-                    })
-                  )}
+                            <div className="min-w-0 flex-1">
+                              <div className="font-semibold truncate text-slate-900 leading-snug">{u.name}</div>
+                              <div className="text-xs text-slate-400 truncate">{u.email}</div>
+                              <div className="flex items-center gap-1 text-[11px] text-slate-500 mt-0.5 truncate">
+                                <MapPin size={11} className="text-indigo-500 shrink-0" weight="bold" />
+                                <span className="truncate">{getUserLocationText(u)}</span>
+                              </div>
+                            </div>
+                            <span className={cn(
+                              'px-2.5 py-0.5 rounded-full text-[11px] font-semibold shrink-0 border capitalize',
+                              u.role === 'intern'
+                                ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                : u.role === 'fellow'
+                                ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                : u.role === 'pc'
+                                ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                : 'bg-slate-50 text-slate-700 border-slate-200'
+                            )}>
+                              {roleLabel(u.role)}
+                            </span>
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
               </div>
-            ) : (
-              /* CASE 3: Default State — List does NOT show up until a button is clicked or search is entered */
-              activeGroup !== 'area' && (
-                <div className="p-8 sm:p-12 text-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center animate-in fade-in duration-200">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3 shadow-2xs ring-4 ring-indigo-50/50">
-                    <UsersThree size={24} weight="duotone" />
+            )}
+
+            {/* ── MODE 2: AREA-WISE CONTROLS (Hierarchy Drill-down & Stop at Any Level) ── */}
+            {assignmentMode === 'area' && (
+              <div className="space-y-3 pt-0.5 animate-in fade-in duration-200">
+                {/* If still exploring hierarchy */}
+                {areaStep !== 'completed' && (
+                  <div className="border border-emerald-200 rounded-xl bg-white shadow-2xs overflow-hidden">
+                    {/* Navigation, Breadcrumb & Action Buttons Header */}
+                    <div className="p-3 sm:p-3.5 bg-gradient-to-r from-emerald-50/90 to-teal-50/60 border-b border-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                      {/* Left: Back button & Breadcrumb Info */}
+                      <div className="flex items-center gap-2 min-w-0">
+                        {areaStep !== 'division' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCheckedAreaItem(null);
+                              if (areaStep === 'district') {
+                                setAreaStep('division');
+                                setSelectedDivision('');
+                              } else if (areaStep === 'block') {
+                                setAreaStep('district');
+                                setSelectedDistrict('');
+                              } else if (areaStep === 'gp') {
+                                setAreaStep('block');
+                                setSelectedBlock('');
+                              } else if (areaStep === 'village') {
+                                setAreaStep('gp');
+                                setSelectedGP('');
+                              } else if (areaStep === 'person') {
+                                setAreaStep('village');
+                                setSelectedVillage('');
+                              }
+                            }}
+                            className="p-1.5 rounded-lg bg-white/80 hover:bg-white text-slate-700 hover:text-slate-900 border border-emerald-200/70 transition-colors cursor-pointer flex items-center gap-1 text-xs font-semibold shrink-0"
+                          >
+                            <ArrowLeft size={13} weight="bold" />
+                            <span className="hidden sm:inline">Back</span>
+                          </button>
+                        )}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 text-xs text-emerald-800 font-semibold truncate">
+                            <span>Area</span>
+                            {selectedDivision && (
+                              <>
+                                <CaretRight size={11} className="text-slate-400 shrink-0" weight="bold" />
+                                <span className="text-slate-700 truncate">{divisions.find(d => d.id === selectedDivision)?.name.replace(/\s+Division$/i, '')}</span>
+                              </>
+                            )}
+                            {selectedDistrict && (
+                              <>
+                                <CaretRight size={11} className="text-slate-400 shrink-0" weight="bold" />
+                                <span className="text-slate-700 truncate">{districts.find(d => d.id === selectedDistrict)?.name}</span>
+                              </>
+                            )}
+                            {selectedBlock && (
+                              <>
+                                <CaretRight size={11} className="text-slate-400 shrink-0" weight="bold" />
+                                <span className="text-slate-700 truncate">{blocks.find(b => b.id === selectedBlock)?.name}</span>
+                              </>
+                            )}
+                            {selectedGP && (
+                              <>
+                                <CaretRight size={11} className="text-slate-400 shrink-0" weight="bold" />
+                                <span className="text-slate-700 truncate">{gramPanchayats.find(g => g.id === selectedGP)?.name}</span>
+                              </>
+                            )}
+                            {selectedVillage && (
+                              <>
+                                <CaretRight size={11} className="text-slate-400 shrink-0" weight="bold" />
+                                <span className="text-slate-700 truncate">{villages.find(v => v.id === selectedVillage)?.name}</span>
+                              </>
+                            )}
+                          </div>
+                          <h3 className="text-xs sm:text-sm font-bold text-slate-900 mt-0.5 truncate">
+                            {areaStep === 'division' && 'Select Division'}
+                            {areaStep === 'district' && `Select District in ${divisions.find(d => d.id === selectedDivision)?.name}`}
+                            {areaStep === 'block' && `Select Block in ${districts.find(d => d.id === selectedDistrict)?.name}`}
+                            {areaStep === 'gp' && `Select Gram Panchayat in ${blocks.find(b => b.id === selectedBlock)?.name}`}
+                            {areaStep === 'village' && `Select Village in ${gramPanchayats.find(g => g.id === selectedGP)?.name}`}
+                            {areaStep === 'person' && `Select Person in ${villages.find(v => v.id === selectedVillage)?.name}`}
+                          </h3>
+                        </div>
+                      </div>
+
+                      {/* Right: Action Buttons in the Header (enabled when an item checkbox is checked) */}
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                        {areaStep === 'division' && (
+                          <>
+                            <button
+                              type="button"
+                              disabled={!checkedAreaItem}
+                              onClick={() => {
+                                const d = divisions.find(item => item.id === checkedAreaItem);
+                                if (d) handleSelectEntireDivision(d);
+                              }}
+                              className={cn(
+                                'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs',
+                                checkedAreaItem
+                                  ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
+                                  : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                              )}
+                            >
+                              Entire Division
+                            </button>
+                            <button
+                              type="button"
+                              disabled={!checkedAreaItem}
+                              onClick={() => {
+                                const d = divisions.find(item => item.id === checkedAreaItem);
+                                if (d) handleDrillDownDivision(d);
+                              }}
+                              className={cn(
+                                'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
+                                checkedAreaItem
+                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
+                                  : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
+                              )}
+                            >
+                              <span>Select District</span>
+                              <CaretRight size={12} weight="bold" />
+                            </button>
+                          </>
+                        )}
+
+                        {areaStep === 'district' && (
+                          <>
+                            <button
+                              type="button"
+                              disabled={!checkedAreaItem}
+                              onClick={() => {
+                                const dst = currentDivisionDistricts.find(item => item.id === checkedAreaItem);
+                                if (dst) handleSelectEntireDistrict(dst);
+                              }}
+                              className={cn(
+                                'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs',
+                                checkedAreaItem
+                                  ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
+                                  : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                              )}
+                            >
+                              Entire District
+                            </button>
+                            <button
+                              type="button"
+                              disabled={!checkedAreaItem}
+                              onClick={() => {
+                                const dst = currentDivisionDistricts.find(item => item.id === checkedAreaItem);
+                                if (dst) handleDrillDownDistrict(dst);
+                              }}
+                              className={cn(
+                                'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
+                                checkedAreaItem
+                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
+                                  : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
+                              )}
+                            >
+                              <span>Select Block</span>
+                              <CaretRight size={12} weight="bold" />
+                            </button>
+                          </>
+                        )}
+
+                        {areaStep === 'block' && (
+                          <>
+                            <button
+                              type="button"
+                              disabled={!checkedAreaItem}
+                              onClick={() => {
+                                const blk = currentDistrictBlocks.find(item => item.id === checkedAreaItem);
+                                if (blk) handleSelectEntireBlock(blk);
+                              }}
+                              className={cn(
+                                'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs',
+                                checkedAreaItem
+                                  ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
+                                  : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                              )}
+                            >
+                              Entire Block
+                            </button>
+                            <button
+                              type="button"
+                              disabled={!checkedAreaItem}
+                              onClick={() => {
+                                const blk = currentDistrictBlocks.find(item => item.id === checkedAreaItem);
+                                if (blk) handleDrillDownBlock(blk);
+                              }}
+                              className={cn(
+                                'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
+                                checkedAreaItem
+                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
+                                  : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
+                              )}
+                            >
+                              <span>Select GP</span>
+                              <CaretRight size={12} weight="bold" />
+                            </button>
+                          </>
+                        )}
+
+                        {areaStep === 'gp' && (
+                          <>
+                            <button
+                              type="button"
+                              disabled={!checkedAreaItem}
+                              onClick={() => {
+                                const gp = currentBlockGPs.find(item => item.id === checkedAreaItem);
+                                if (gp) handleSelectEntireGP(gp);
+                              }}
+                              className={cn(
+                                'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs',
+                                checkedAreaItem
+                                  ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
+                                  : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                              )}
+                            >
+                              Entire GP
+                            </button>
+                            <button
+                              type="button"
+                              disabled={!checkedAreaItem}
+                              onClick={() => {
+                                const gp = currentBlockGPs.find(item => item.id === checkedAreaItem);
+                                if (gp) handleDrillDownGP(gp);
+                              }}
+                              className={cn(
+                                'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
+                                checkedAreaItem
+                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
+                                  : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
+                              )}
+                            >
+                              <span>Select Village</span>
+                              <CaretRight size={12} weight="bold" />
+                            </button>
+                          </>
+                        )}
+
+                        {areaStep === 'village' && (
+                          <>
+                            <button
+                              type="button"
+                              disabled={!checkedAreaItem}
+                              onClick={() => {
+                                const v = currentGPVillages.find(item => item.id === checkedAreaItem);
+                                if (v) handleSelectEntireVillage(v);
+                              }}
+                              className={cn(
+                                'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs',
+                                checkedAreaItem
+                                  ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
+                                  : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                              )}
+                            >
+                              Entire Village
+                            </button>
+                            <button
+                              type="button"
+                              disabled={!checkedAreaItem}
+                              onClick={() => {
+                                const v = currentGPVillages.find(item => item.id === checkedAreaItem);
+                                if (v) handleDrillDownVillage(v);
+                              }}
+                              className={cn(
+                                'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
+                                checkedAreaItem
+                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
+                                  : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
+                              )}
+                            >
+                              <span>Select Person</span>
+                              <CaretRight size={12} weight="bold" />
+                            </button>
+                          </>
+                        )}
+
+                        {areaStep === 'person' && (
+                          <button
+                            type="button"
+                            disabled={!checkedAreaItem}
+                            onClick={() => {
+                              const p = users.find(item => item.id === checkedAreaItem);
+                              if (p) handleSelectPerson(p);
+                            }}
+                            className={cn(
+                              'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs flex items-center gap-1',
+                              checkedAreaItem
+                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
+                                : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
+                            )}
+                          >
+                            <UserCheck size={14} weight="bold" />
+                            <span>Assign Person</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Hierarchy List Body: Clean rows with checkboxes ONLY */}
+                    <div className="max-h-[320px] overflow-y-auto divide-y divide-slate-100">
+                      {/* Level 1: Divisions */}
+                      {areaStep === 'division' && divisions.map(d => {
+                        const isChecked = checkedAreaItem === d.id;
+                        return (
+                          <div
+                            key={d.id}
+                            onClick={() => setCheckedAreaItem(prev => prev === d.id ? null : d.id)}
+                            className={cn(
+                              'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
+                              isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {}}
+                              className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
+                            />
+                            <div className={cn(
+                              'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
+                              isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                            )}>
+                              {d.code || d.name.slice(0, 2).toUpperCase()}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{d.name}</div>
+                              <div className="text-[11px] text-slate-400">Division Level</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Level 2: Districts */}
+                      {areaStep === 'district' && (
+                        currentDivisionDistricts.length === 0 ? (
+                          <div className="p-8 text-center text-slate-400 text-xs">
+                            No districts configured for this division.
+                          </div>
+                        ) : (
+                          currentDivisionDistricts.map(dst => {
+                            const isChecked = checkedAreaItem === dst.id;
+                            return (
+                              <div
+                                key={dst.id}
+                                onClick={() => setCheckedAreaItem(prev => prev === dst.id ? null : dst.id)}
+                                className={cn(
+                                  'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
+                                  isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                                )}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => {}}
+                                  className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
+                                />
+                                <div className={cn(
+                                  'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
+                                  isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-teal-50 text-teal-700 border-teal-100'
+                                )}>
+                                  DST
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{dst.name}</div>
+                                  <div className="text-[11px] text-slate-400">District</div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )
+                      )}
+
+                      {/* Level 3: Blocks */}
+                      {areaStep === 'block' && (
+                        currentDistrictBlocks.length === 0 ? (
+                          <div className="p-8 text-center text-slate-400 text-xs">
+                            No blocks configured for this district.
+                          </div>
+                        ) : (
+                          currentDistrictBlocks.map(blk => {
+                            const isChecked = checkedAreaItem === blk.id;
+                            return (
+                              <div
+                                key={blk.id}
+                                onClick={() => setCheckedAreaItem(prev => prev === blk.id ? null : blk.id)}
+                                className={cn(
+                                  'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
+                                  isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                                )}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => {}}
+                                  className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
+                                />
+                                <div className={cn(
+                                  'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
+                                  isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-indigo-50 text-indigo-700 border-indigo-100'
+                                )}>
+                                  BLK
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{blk.name}</div>
+                                  <div className="text-[11px] text-slate-400">Block</div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )
+                      )}
+
+                      {/* Level 4: Gram Panchayats */}
+                      {areaStep === 'gp' && (
+                        currentBlockGPs.length === 0 ? (
+                          <div className="p-8 text-center text-slate-400 text-xs">
+                            No Gram Panchayats configured for this block.
+                          </div>
+                        ) : (
+                          currentBlockGPs.map(gp => {
+                            const isChecked = checkedAreaItem === gp.id;
+                            return (
+                              <div
+                                key={gp.id}
+                                onClick={() => setCheckedAreaItem(prev => prev === gp.id ? null : gp.id)}
+                                className={cn(
+                                  'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
+                                  isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                                )}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => {}}
+                                  className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
+                                />
+                                <div className={cn(
+                                  'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
+                                  isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-violet-50 text-violet-700 border-violet-100'
+                                )}>
+                                  GP
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{gp.name}</div>
+                                  <div className="text-[11px] text-slate-400">Gram Panchayat</div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )
+                      )}
+
+                      {/* Level 5: Villages */}
+                      {areaStep === 'village' && (
+                        currentGPVillages.length === 0 ? (
+                          <div className="p-8 text-center text-slate-400 text-xs">
+                            No villages configured for this Gram Panchayat.
+                          </div>
+                        ) : (
+                          currentGPVillages.map(v => {
+                            const isChecked = checkedAreaItem === v.id;
+                            return (
+                              <div
+                                key={v.id}
+                                onClick={() => setCheckedAreaItem(prev => prev === v.id ? null : v.id)}
+                                className={cn(
+                                  'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
+                                  isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                                )}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => {}}
+                                  className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
+                                />
+                                <div className={cn(
+                                  'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
+                                  isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                )}>
+                                  VLG
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{v.name}</div>
+                                  <div className="text-[11px] text-slate-400">Village</div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )
+                      )}
+
+                      {/* Level 6: Person in Village */}
+                      {areaStep === 'person' && (
+                        filteredUsers.length === 0 ? (
+                          <div className="p-8 text-center text-slate-400 text-xs">
+                            No field personnel currently assigned directly to this village.
+                          </div>
+                        ) : (
+                          filteredUsers.map(u => {
+                            const isChecked = checkedAreaItem === u.id;
+                            return (
+                              <div
+                                key={u.id}
+                                onClick={() => setCheckedAreaItem(prev => prev === u.id ? null : u.id)}
+                                className={cn(
+                                  'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
+                                  isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                                )}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => {}}
+                                  className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
+                                />
+                                <div className={cn(
+                                  'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0',
+                                  isChecked ? 'bg-emerald-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-600'
+                                )}>
+                                  {u.name.slice(0, 1).toUpperCase()}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{u.name}</div>
+                                  <div className="text-[11px] text-slate-400 truncate">{u.email}</div>
+                                </div>
+                                <span className={cn(
+                                  'px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 border capitalize',
+                                  u.role === 'intern' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-purple-50 text-purple-700 border-purple-200'
+                                )}>
+                                  {roleLabel(u.role)}
+                                </span>
+                              </div>
+                            );
+                          })
+                        )
+                      )}
+                    </div>
                   </div>
-                  <h3 className="text-sm font-bold text-slate-800">Select an Assignee Category or Area</h3>
-                  <p className="text-xs text-slate-500 max-w-sm mt-1 leading-relaxed">
-                    Click <strong>Interns</strong>, <strong>Fellows</strong>, <strong>PCs</strong>, or <strong>Area</strong> above to view and assign candidates.
-                  </p>
-                </div>
-              )
+                )}
+
+                {/* Completed Area Display (When scope is finalized at ANY level: Division, District, Block, GP, Village, or Person) */}
+                {areaStep === 'completed' && (
+                  <div className="space-y-3">
+                    {/* Header Banner for Selected Hierarchy */}
+                    <div className="p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-emerald-50/90 via-teal-50/70 to-indigo-50/50 border border-emerald-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                          <MapPin size={20} weight="bold" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-100/70 border border-emerald-200 shrink-0">
+                              {stoppedLevelName || 'Selected Scope'}
+                            </span>
+                          </div>
+                          <p className="text-xs sm:text-sm font-bold text-slate-900 truncate mt-0.5">
+                            {getHierarchyBreadcrumb() || 'Entire State / All Areas'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                        <button
+                          type="button"
+                          onClick={resetAreaSelection}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer active:scale-95"
+                        >
+                          Change Area
+                        </button>
+                        {filteredUsers.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={isAllCurrentGroupSelected ? deselectCurrentGroup : selectAllCurrentGroup}
+                            className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-xs cursor-pointer active:scale-95"
+                          >
+                            {isAllCurrentGroupSelected ? `Deselect (${filteredUsers.length})` : `+ Assign in Area (${filteredUsers.length})`}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Personnel Matching this Location */}
+                    <div className="max-h-[340px] overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-white shadow-2xs">
+                      {filteredUsers.length === 0 ? (
+                        <div className="p-8 text-center text-slate-400 text-xs">
+                          No personnel assigned directly to this location yet. The survey is registered for this area.
+                        </div>
+                      ) : (
+                        filteredUsers.map(u => {
+                          const isAdded = !!selectedUsers.find(s => s.id === u.id);
+                          return (
+                            <label
+                              key={u.id}
+                              className={cn(
+                                'w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors cursor-pointer select-none',
+                                isAdded ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                              )}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isAdded}
+                                onChange={() => toggleUser(u)}
+                                className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
+                              />
+                              <div className={cn(
+                                'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0',
+                                isAdded ? 'bg-emerald-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-600'
+                              )}>
+                                {u.name.slice(0, 1).toUpperCase()}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="font-semibold truncate text-slate-900 leading-snug">{u.name}</div>
+                                <div className="text-xs text-slate-400 truncate">{u.email}</div>
+                                <div className="flex items-center gap-1 text-[11px] text-slate-500 mt-0.5 truncate">
+                                  <MapPin size={11} className="text-emerald-500 shrink-0" weight="bold" />
+                                  <span className="truncate">{getUserLocationText(u)}</span>
+                                </div>
+                              </div>
+                              <span className={cn(
+                                'px-2.5 py-0.5 rounded-full text-[11px] font-semibold shrink-0 border capitalize',
+                                u.role === 'intern'
+                                  ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                  : u.role === 'fellow'
+                                  ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                  : u.role === 'pc'
+                                  ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                  : 'bg-slate-50 text-slate-700 border-slate-200'
+                              )}>
+                                {roleLabel(u.role)}
+                              </span>
+                            </label>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
             {errors.assignedToIds && (
