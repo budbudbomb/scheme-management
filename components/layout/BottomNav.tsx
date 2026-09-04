@@ -26,10 +26,10 @@ function getPrimaryNav(role: UserRole): BottomNavItem[] {
     case 'admin':
       return [
         { href: '/admin/dashboard', label: 'Home', icon: House },
-        { href: '/admin/users', label: 'Users', icon: Users },
         { href: '/admin/tasks', label: 'Tasks', icon: CheckSquare },
+        { href: '/admin/surveys', label: 'Surveys', icon: ClipboardText },
+        { href: '/admin/users', label: 'Users', icon: Users },
         { href: '/admin/leave', label: 'Leave', icon: ClipboardText },
-        { href: '/admin/config', label: 'Config', icon: GearSix },
       ];
     case 'pc':
       return [
@@ -43,17 +43,17 @@ function getPrimaryNav(role: UserRole): BottomNavItem[] {
       return [
         { href: '/fellow/dashboard', label: 'Home', icon: House },
         { href: '/fellow/tasks', label: 'Tasks', icon: CheckSquare },
-        { href: '/fellow/attendance', label: 'Check In', icon: MapPin },
+        { href: '/fellow/surveys', label: 'Surveys', icon: ClipboardText },
+        { href: '/fellow/attendance', label: 'Attendance', icon: MapPin },
         { href: '/fellow/leave', label: 'Leave', icon: ShieldCheck },
-        { href: '/fellow/training', label: 'Training', icon: Calendar },
       ];
     case 'intern':
       return [
         { href: '/intern/dashboard', label: 'Home', icon: House },
         { href: '/intern/tasks', label: 'Tasks', icon: CheckSquare },
-        { href: '/intern/attendance', label: 'Check In', icon: MapPin },
+        { href: '/intern/surveys', label: 'Surveys', icon: ClipboardText },
+        { href: '/intern/attendance', label: 'Attendance', icon: MapPin },
         { href: '/intern/leave', label: 'Leave', icon: ClipboardText },
-        { href: '/intern/training', label: 'Training', icon: Calendar },
       ];
     default:
       return [];

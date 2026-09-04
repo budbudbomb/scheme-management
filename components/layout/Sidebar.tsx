@@ -38,6 +38,7 @@ function getNavItems(role: UserRole): NavItem[] {
       { href: `/${prefix}/dashboard`, label: 'Dashboard', icon: House },
       { href: `/${prefix}/users`, label: 'Users', icon: Users },
       { href: `/${prefix}/tasks`, label: 'Tasks', icon: CheckSquare },
+      { href: `/${prefix}/surveys`, label: 'Surveys', icon: ClipboardText },
       { href: `/${prefix}/attendance`, label: 'Attendance', icon: Fingerprint },
       { href: `/${prefix}/leave`, label: 'Leave', icon: ClipboardText },
       { href: `/${prefix}/exit`, label: 'Exit', icon: ArrowCircleUpRight },
@@ -74,7 +75,10 @@ function getNavItems(role: UserRole): NavItem[] {
       { href: `/${prefix}/exit`, label: 'Exit', icon: ArrowCircleUpRight },
       { href: `/${prefix}/training`, label: 'Training', icon: Calendar },
     ],
-    pmu: [{ href: '/pmu', label: 'Dashboard', icon: House }],
+    pmu: [
+      { href: '/pmu', label: 'Dashboard', icon: House },
+      { href: '/admin/surveys', label: 'Surveys', icon: ClipboardText },
+    ],
   } as Record<UserRole, NavItem[]>);
 
   return base(role)[role] ?? [];
