@@ -21,6 +21,7 @@ import {
   ClipboardText,
   ListBullets,
   SquaresFour,
+  CaretDown,
 } from '@phosphor-icons/react';
 import { tasksApi } from '@/lib/api/tasks';
 import type { Task, UserRole, TaskStatus, TaskPriority } from '@/types/models';
@@ -298,7 +299,7 @@ export default function AdminTasksPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Frozen / Sticky Header */}
       <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md pt-1 pb-3.5 -mx-4 sm:-mx-6 px-4 sm:px-6 border-b border-slate-100 shadow-2xs">
         <div className="flex items-center justify-between gap-3">
@@ -427,137 +428,101 @@ export default function AdminTasksPage() {
         })}
       </div>
 
-      {/* Primary Filters Area */}
-      <div className="card p-4 space-y-4">
-        {/* Row 1: Assignee User Type Tabs + Time Window */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          {/* User Type Tabs */}
-          <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-              Assigned User Type
-            </span>
-            <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 overflow-x-auto no-scrollbar">
-              {[
-                { id: 'all', label: 'All Roles', count: roleCounts.all },
-                { id: 'pc', label: 'PCs', count: roleCounts.pc },
-                { id: 'fellow', label: 'Fellows', count: roleCounts.fellow },
-                { id: 'intern', label: 'Interns', count: roleCounts.intern },
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setRoleFilter(tab.id as RoleFilter)}
-                  className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200',
-                    roleFilter === tab.id
-                      ? 'bg-white text-indigo-700 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  )}
-                >
-                  <span>{tab.label}</span>
-                  <span className={cn(
-                    'text-[10px] px-1.5 py-0.2 rounded-full font-bold',
-                    roleFilter === tab.id
-                      ? 'bg-indigo-50 text-indigo-700'
-                      : 'bg-slate-200/70 text-slate-500'
-                  )}>
-                    {tab.count}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Time Window Tabs */}
-          <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-              Time Period
-            </span>
-            <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 overflow-x-auto no-scrollbar">
-              {[
-                { id: 'all', label: 'All Time' },
-                { id: 'today', label: 'Today' },
-                { id: 'week', label: 'This Week' },
-                { id: 'month', label: 'This Month' },
-              ].map(time => (
-                <button
-                  key={time.id}
-                  type="button"
-                  onClick={() => setTimeFilter(time.id as TimeFilter)}
-                  className={cn(
-                    'flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200',
-                    timeFilter === time.id
-                      ? 'bg-white text-indigo-700 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  )}
-                >
-                  <Clock size={12} weight={timeFilter === time.id ? 'bold' : 'regular'} />
-                  <span>{time.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+      {/* Primary Filters Toolbar (Ultra-compact single-row) */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-1.5 sm:p-2 shadow-2xs flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar">
+        {/* Search input */}
+        <div className="relative flex-1 min-w-[150px] sm:min-w-[220px]">
+          <MagnifyingGlass size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search tasks, descriptions, assignees..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full text-xs pl-8 pr-7 py-2 rounded-xl border border-slate-200/90 bg-slate-50/50 hover:bg-white focus:bg-white placeholder:text-slate-400 focus:outline-none focus:ring-1.5 focus:ring-indigo-500 transition-colors"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+            >
+              <X size={13} />
+            </button>
+          )}
         </div>
 
-        {/* Row 2: Search, Status, Priority refinements */}
-        <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-          {/* Search bar */}
-          <div className="relative flex-1 min-w-[220px]">
-            <MagnifyingGlass size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search by task name, description, or assignee..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full text-xs sm:text-sm pl-9 pr-8 py-2 rounded-[var(--radius)] border border-slate-200 bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-
-          {/* Status Dropdown */}
+        {/* Role Filter Dropdown */}
+        <div className="relative shrink-0">
           <select
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            className="text-xs sm:text-sm rounded-[var(--radius)] border border-slate-200 bg-white py-2 px-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-medium"
+            value={roleFilter}
+            onChange={e => setRoleFilter(e.target.value as RoleFilter)}
+            className={cn(
+              "text-xs font-semibold py-2 pl-2.5 pr-7 rounded-xl border appearance-none cursor-pointer transition-colors focus:outline-none focus:ring-1.5 focus:ring-indigo-500",
+              roleFilter !== 'all'
+                ? "bg-indigo-50 text-indigo-700 border-indigo-200 ring-1 ring-indigo-200"
+                : "bg-slate-50/70 hover:bg-white text-slate-700 border-slate-200/90"
+            )}
           >
-            <option value="">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="in_progress">In Progress</option>
-            <option value="completed">Completed</option>
-            <option value="overdue">Overdue</option>
+            <option value="all">Role: All ({roleCounts.all})</option>
+            <option value="pc">PCs ({roleCounts.pc})</option>
+            <option value="fellow">Fellows ({roleCounts.fellow})</option>
+            <option value="intern">Interns ({roleCounts.intern})</option>
           </select>
+          <CaretDown size={11} weight="bold" className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+        </div>
 
-          {/* Priority Dropdown */}
+        {/* Time Period Filter Dropdown */}
+        <div className="relative shrink-0">
+          <select
+            value={timeFilter}
+            onChange={e => setTimeFilter(e.target.value as TimeFilter)}
+            className={cn(
+              "text-xs font-semibold py-2 pl-2.5 pr-7 rounded-xl border appearance-none cursor-pointer transition-colors focus:outline-none focus:ring-1.5 focus:ring-indigo-500",
+              timeFilter !== 'all'
+                ? "bg-indigo-50 text-indigo-700 border-indigo-200 ring-1 ring-indigo-200"
+                : "bg-slate-50/70 hover:bg-white text-slate-700 border-slate-200/90"
+            )}
+          >
+            <option value="all">Time: All</option>
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+          </select>
+          <CaretDown size={11} weight="bold" className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+        </div>
+
+        {/* Priority Filter Dropdown */}
+        <div className="relative shrink-0">
           <select
             value={priorityFilter}
             onChange={e => setPriorityFilter(e.target.value)}
-            className="text-xs sm:text-sm rounded-[var(--radius)] border border-slate-200 bg-white py-2 px-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-medium"
+            className={cn(
+              "text-xs font-semibold py-2 pl-2.5 pr-7 rounded-xl border appearance-none cursor-pointer transition-colors focus:outline-none focus:ring-1.5 focus:ring-indigo-500",
+              priorityFilter !== ''
+                ? "bg-indigo-50 text-indigo-700 border-indigo-200 ring-1 ring-indigo-200"
+                : "bg-slate-50/70 hover:bg-white text-slate-700 border-slate-200/90"
+            )}
           >
-            <option value="">All Priorities</option>
+            <option value="">Priority: All</option>
             <option value="high">High Priority</option>
             <option value="medium">Medium Priority</option>
             <option value="low">Low Priority</option>
           </select>
-
-          {/* Reset Filters */}
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={clearAllFilters}
-              className="text-xs font-semibold px-3 py-2 rounded-[var(--radius)] text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors whitespace-nowrap"
-            >
-              Clear filters
-            </button>
-          )}
+          <CaretDown size={11} weight="bold" className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
         </div>
+
+        {/* Reset / Clear filters button */}
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            title="Clear all filters"
+            className="shrink-0 flex items-center gap-1 text-xs font-semibold px-2.5 py-2 rounded-xl text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100/80 border border-rose-100 transition-colors whitespace-nowrap cursor-pointer"
+          >
+            <X size={12} weight="bold" />
+            <span className="hidden sm:inline">Reset</span>
+          </button>
+        )}
       </div>
 
       {/* Task List Header & View Toggle */}
