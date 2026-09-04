@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -94,14 +96,14 @@ export default function Sidebar({
   return (
     <aside
       className={cn(
-        'hidden lg:flex flex-col h-full bg-slate-900 text-slate-300 sidebar-transition overflow-hidden shrink-0 rounded-2xl border border-slate-800 shadow-[0_12px_40px_-5px_rgba(0,0,0,0.4)] select-none',
+        'hidden lg:flex flex-col h-full bg-[#152033] text-slate-300 sidebar-transition overflow-hidden shrink-0 rounded-2xl border border-slate-800/80 shadow-[0_8px_30px_rgba(0,0,0,0.3)] shadow-[0_12px_40px_-5px_rgba(0,0,0,0.4)] select-none',
         open ? 'w-[256px]' : 'w-[72px]'
       )}
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 h-16 border-b border-slate-800/80 shrink-0">
-        <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0 shadow-sm">
-          <ShieldCheck size={18} weight="fill" className="text-white" />
+        <div className="w-8 h-8 rounded-xl bg-white p-1 flex items-center justify-center shrink-0 shadow-sm border border-slate-700/40">
+          <Image src="/logo.png" alt="CMYP Logo" width={26} height={26} className="object-contain" />
         </div>
         {open && (
           <div className="min-w-0">
