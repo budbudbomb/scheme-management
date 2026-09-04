@@ -66,6 +66,7 @@ function NewTaskForm() {
   const [selectedGP, setSelectedGP] = useState<string>('');
   const [activeGroup, setActiveGroup] = useState<'intern' | 'fellow' | 'pc' | 'area' | null>(null);
   const [areaStep, setAreaStep] = useState<'division' | 'district' | 'block' | 'gp' | 'completed'>('division');
+  const [checkedAreaItem, setCheckedAreaItem] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -148,6 +149,7 @@ function NewTaskForm() {
     setSelectedDistrict('');
     setSelectedBlock('');
     setSelectedGP('');
+    setCheckedAreaItem(null);
     setAreaStep('completed');
   };
 
@@ -156,6 +158,7 @@ function NewTaskForm() {
     setSelectedDistrict('');
     setSelectedBlock('');
     setSelectedGP('');
+    setCheckedAreaItem(null);
     setAreaStep('district');
   };
 
@@ -163,6 +166,7 @@ function NewTaskForm() {
     setSelectedDistrict(dst.id);
     setSelectedBlock('');
     setSelectedGP('');
+    setCheckedAreaItem(null);
     setAreaStep('completed');
   };
 
@@ -170,23 +174,27 @@ function NewTaskForm() {
     setSelectedDistrict(dst.id);
     setSelectedBlock('');
     setSelectedGP('');
+    setCheckedAreaItem(null);
     setAreaStep('block');
   };
 
   const handleSelectEntireBlock = (blk: Block) => {
     setSelectedBlock(blk.id);
     setSelectedGP('');
+    setCheckedAreaItem(null);
     setAreaStep('completed');
   };
 
   const handleDrillDownBlock = (blk: Block) => {
     setSelectedBlock(blk.id);
     setSelectedGP('');
+    setCheckedAreaItem(null);
     setAreaStep('gp');
   };
 
   const handleSelectGP = (gp: GramPanchayat) => {
     setSelectedGP(gp.id);
+    setCheckedAreaItem(null);
     setAreaStep('completed');
   };
 
@@ -195,6 +203,7 @@ function NewTaskForm() {
     setSelectedDistrict('');
     setSelectedBlock('');
     setSelectedGP('');
+    setCheckedAreaItem(null);
     setAreaStep('division');
   };
 
@@ -802,80 +811,58 @@ function NewTaskForm() {
               </span>
             </div>
 
-            {/* ── Compact Assignee Controls: Bulk Add Buttons + Search & Filter Dropdown ── */}
+            {/* ── Compact Assignee Controls: Role Buttons + Dedicated Area Button + Search ── */}
             <div className="space-y-2.5 pt-0.5">
-              {/* Row 1: Glowing Category & Area Buttons (Horizontal scrollable track on mobile) */}
-              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 px-1 -mx-1">
-                <span className="text-xs font-semibold text-slate-500 shrink-0 hidden sm:inline">Select:</span>
-                
-                {/* All Interns Button */}
-                <button
-                  type="button"
-                  onClick={() => setActiveGroup(prev => prev === 'intern' ? null : 'intern')}
-                  className={cn(
-                    'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
-                    activeGroup === 'intern'
-                      ? 'bg-indigo-600 text-white border border-indigo-500 shadow-[0_0_16px_rgba(99,102,241,0.55)] ring-2 ring-indigo-400 ring-offset-1 font-bold scale-[1.02]'
-                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
-                  )}
-                >
-                  <Checks size={14} className={activeGroup === 'intern' ? 'text-white' : 'text-indigo-600'} weight="bold" />
-                  <span>All Interns</span>
-                </button>
+              {/* Row 1: Role Buttons (Interns, Fellows, PCs) - NO "All" */}
+              <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1">
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs font-semibold text-slate-500 shrink-0 hidden sm:inline">Roles:</span>
+                  
+                  {/* Interns Button */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveGroup(prev => prev === 'intern' ? null : 'intern')}
+                    className={cn(
+                      'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
+                      activeGroup === 'intern'
+                        ? 'bg-indigo-600 text-white border border-indigo-500 shadow-[0_0_16px_rgba(99,102,241,0.55)] ring-2 ring-indigo-400 ring-offset-1 font-bold scale-[1.02]'
+                        : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
+                    )}
+                  >
+                    <Checks size={14} className={activeGroup === 'intern' ? 'text-white' : 'text-indigo-600'} weight="bold" />
+                    <span>Interns</span>
+                  </button>
 
-                {/* All Fellows Button */}
-                <button
-                  type="button"
-                  onClick={() => setActiveGroup(prev => prev === 'fellow' ? null : 'fellow')}
-                  className={cn(
-                    'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
-                    activeGroup === 'fellow'
-                      ? 'bg-purple-600 text-white border border-purple-500 shadow-[0_0_16px_rgba(168,85,247,0.55)] ring-2 ring-purple-400 ring-offset-1 font-bold scale-[1.02]'
-                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
-                  )}
-                >
-                  <Checks size={14} className={activeGroup === 'fellow' ? 'text-white' : 'text-purple-600'} weight="bold" />
-                  <span>All Fellows</span>
-                </button>
+                  {/* Fellows Button */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveGroup(prev => prev === 'fellow' ? null : 'fellow')}
+                    className={cn(
+                      'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
+                      activeGroup === 'fellow'
+                        ? 'bg-purple-600 text-white border border-purple-500 shadow-[0_0_16px_rgba(168,85,247,0.55)] ring-2 ring-purple-400 ring-offset-1 font-bold scale-[1.02]'
+                        : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
+                    )}
+                  >
+                    <Checks size={14} className={activeGroup === 'fellow' ? 'text-white' : 'text-purple-600'} weight="bold" />
+                    <span>Fellows</span>
+                  </button>
 
-                {/* All PCs Button */}
-                <button
-                  type="button"
-                  onClick={() => setActiveGroup(prev => prev === 'pc' ? null : 'pc')}
-                  className={cn(
-                    'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
-                    activeGroup === 'pc'
-                      ? 'bg-amber-600 text-white border border-amber-500 shadow-[0_0_16px_rgba(217,119,6,0.55)] ring-2 ring-amber-400 ring-offset-1 font-bold scale-[1.02]'
-                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
-                  )}
-                >
-                  <Checks size={14} className={activeGroup === 'pc' ? 'text-white' : 'text-amber-600'} weight="bold" />
-                  <span>All PCs</span>
-                </button>
-
-                {/* Single Area Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (activeGroup === 'area') {
-                      setActiveGroup(null);
-                    } else {
-                      setActiveGroup('area');
-                      if (!selectedDivision && !selectedDistrict && !selectedBlock && !selectedGP) {
-                        setAreaStep('division');
-                      }
-                    }
-                  }}
-                  className={cn(
-                    'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
-                    activeGroup === 'area'
-                      ? 'bg-emerald-600 text-white border border-emerald-500 shadow-[0_0_16px_rgba(16,185,129,0.55)] ring-2 ring-emerald-400 ring-offset-1 font-bold scale-[1.02]'
-                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
-                  )}
-                >
-                  <MapPin size={14} className={activeGroup === 'area' ? 'text-white' : 'text-emerald-600'} weight="bold" />
-                  <span>Area</span>
-                </button>
+                  {/* PCs Button */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveGroup(prev => prev === 'pc' ? null : 'pc')}
+                    className={cn(
+                      'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
+                      activeGroup === 'pc'
+                        ? 'bg-amber-600 text-white border border-amber-500 shadow-[0_0_16px_rgba(217,119,6,0.55)] ring-2 ring-amber-400 ring-offset-1 font-bold scale-[1.02]'
+                        : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
+                    )}
+                  >
+                    <Checks size={14} className={activeGroup === 'pc' ? 'text-white' : 'text-amber-600'} weight="bold" />
+                    <span>PCs</span>
+                  </button>
+                </div>
 
                 {/* Clear Selection Button */}
                 {selectedUsers.length > 0 && (
@@ -892,7 +879,56 @@ function NewTaskForm() {
                 )}
               </div>
 
-              {/* Row 2: Expanded Search Bar + Icon-Only Filter Dropdown */}
+              {/* Row 2: Dedicated Area Button - Appears separately below the interns/fellows row for the entire width in phone view, and dedicated distinct bar in desktop */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (activeGroup === 'area') {
+                      setActiveGroup(null);
+                    } else {
+                      setActiveGroup('area');
+                      if (!selectedDivision && !selectedDistrict && !selectedBlock && !selectedGP) {
+                        setAreaStep('division');
+                        setCheckedAreaItem(null);
+                      }
+                    }
+                  }}
+                  className={cn(
+                    'w-full py-2.5 px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-between cursor-pointer active:scale-[0.99] border',
+                    activeGroup === 'area'
+                      ? 'bg-emerald-600 text-white border-emerald-500 shadow-[0_0_16px_rgba(16,185,129,0.55)] ring-2 ring-emerald-400 ring-offset-1 font-bold scale-[1.01]'
+                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs'
+                  )}
+                >
+                  <div className="flex items-center gap-2 sm:gap-2.5">
+                    <div className={cn(
+                      'w-7 h-7 rounded-lg flex items-center justify-center text-xs shrink-0 transition-colors',
+                      activeGroup === 'area'
+                        ? 'bg-white/20 text-white'
+                        : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                    )}>
+                      <MapPin size={15} weight="bold" />
+                    </div>
+                    <span className="font-bold">Area</span>
+                    <span className={cn(
+                      'text-[11px] font-normal hidden xs:inline sm:inline',
+                      activeGroup === 'area' ? 'text-emerald-100' : 'text-slate-400'
+                    )}>
+                      (Filter by Division, District, Block, Gram Panchayat)
+                    </span>
+                  </div>
+                  <div className={cn(
+                    'flex items-center gap-1 text-[11px] font-medium shrink-0',
+                    activeGroup === 'area' ? 'text-emerald-100' : 'text-slate-400'
+                  )}>
+                    <span>Hierarchy</span>
+                    <CaretRight size={13} weight="bold" />
+                  </div>
+                </button>
+              </div>
+
+              {/* Row 3: Expanded Search Bar + Icon-Only Filter Dropdown */}
               <div className="flex items-center gap-2">
                 {/* Search Input (Expanded length) */}
                 <div className="relative flex-1 min-w-0">
@@ -949,16 +985,18 @@ function NewTaskForm() {
 
             {/* ── CONDITIONAL CONTENT ── */}
 
-            {/* CASE 1: Area Hierarchy Drill-Down Navigation (Division -> District -> Block -> GP) */}
+            {/* CASE 1: Area Hierarchy Drill-Down Navigation with Checkboxes & Action Buttons in Table Header */}
             {activeGroup === 'area' && areaStep !== 'completed' && (
               <div className="border border-emerald-200 rounded-xl bg-white shadow-2xs overflow-hidden animate-in fade-in duration-200">
-                {/* Navigation & Breadcrumb Header */}
-                <div className="p-3 sm:p-3.5 bg-gradient-to-r from-emerald-50/90 to-teal-50/60 border-b border-emerald-100 flex items-center justify-between gap-2 flex-wrap">
+                {/* Navigation, Breadcrumb & Action Buttons Header */}
+                <div className="p-3 sm:p-3.5 bg-gradient-to-r from-emerald-50/90 to-teal-50/60 border-b border-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  {/* Left: Back button & Breadcrumb Info */}
                   <div className="flex items-center gap-2 min-w-0">
                     {areaStep !== 'division' && (
                       <button
                         type="button"
                         onClick={() => {
+                          setCheckedAreaItem(null);
                           if (areaStep === 'district') {
                             setAreaStep('division');
                             setSelectedDivision('');
@@ -998,7 +1036,7 @@ function NewTaskForm() {
                           </>
                         )}
                       </div>
-                      <h3 className="text-xs sm:text-sm font-bold text-slate-900 mt-0.5">
+                      <h3 className="text-xs sm:text-sm font-bold text-slate-900 mt-0.5 truncate">
                         {areaStep === 'division' && 'Select Division'}
                         {areaStep === 'district' && `Select District in ${divisions.find(d => d.id === selectedDivision)?.name}`}
                         {areaStep === 'block' && `Select Block in ${districts.find(d => d.id === selectedDistrict)?.name}`}
@@ -1007,47 +1045,176 @@ function NewTaskForm() {
                     </div>
                   </div>
 
-                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100/80 text-emerald-800 border border-emerald-200 shrink-0">
-                    {areaStep === 'division' && `${divisions.length} Divisions`}
-                    {areaStep === 'district' && `${currentDivisionDistricts.length} Districts`}
-                    {areaStep === 'block' && `${currentDistrictBlocks.length} Blocks`}
-                    {areaStep === 'gp' && `${currentBlockGPs.length} Gram Panchayats`}
-                  </span>
-                </div>
-
-                {/* Hierarchy List Body */}
-                <div className="max-h-[320px] overflow-y-auto divide-y divide-slate-100">
-                  {/* Level 1: Divisions */}
-                  {areaStep === 'division' && divisions.map(d => (
-                    <div key={d.id} className="p-3 sm:p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/80 transition-colors">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-xs shrink-0 border border-emerald-100">
-                          {d.code || d.name.slice(0, 2).toUpperCase()}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{d.name}</div>
-                          <div className="text-[11px] text-slate-400">Division Level</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
+                  {/* Right: Action Buttons in the Header (enabled when an item checkbox is checked) */}
+                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                    {areaStep === 'division' && (
+                      <>
                         <button
                           type="button"
-                          onClick={() => handleSelectEntireDivision(d)}
-                          className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer active:scale-95"
+                          disabled={!checkedAreaItem}
+                          onClick={() => {
+                            const d = divisions.find(item => item.id === checkedAreaItem);
+                            if (d) handleSelectEntireDivision(d);
+                          }}
+                          className={cn(
+                            'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs',
+                            checkedAreaItem
+                              ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
+                              : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                          )}
                         >
                           Entire Division
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleDrillDownDivision(d)}
-                          className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1 transition-colors cursor-pointer shadow-2xs active:scale-95"
+                          disabled={!checkedAreaItem}
+                          onClick={() => {
+                            const d = divisions.find(item => item.id === checkedAreaItem);
+                            if (d) handleDrillDownDivision(d);
+                          }}
+                          className={cn(
+                            'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
+                            checkedAreaItem
+                              ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
+                              : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
+                          )}
                         >
                           <span>Select District</span>
                           <CaretRight size={12} weight="bold" />
                         </button>
+                      </>
+                    )}
+
+                    {areaStep === 'district' && (
+                      <>
+                        <button
+                          type="button"
+                          disabled={!checkedAreaItem}
+                          onClick={() => {
+                            const dst = currentDivisionDistricts.find(item => item.id === checkedAreaItem);
+                            if (dst) handleSelectEntireDistrict(dst);
+                          }}
+                          className={cn(
+                            'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs',
+                            checkedAreaItem
+                              ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
+                              : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                          )}
+                        >
+                          Entire District
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!checkedAreaItem}
+                          onClick={() => {
+                            const dst = currentDivisionDistricts.find(item => item.id === checkedAreaItem);
+                            if (dst) handleDrillDownDistrict(dst);
+                          }}
+                          className={cn(
+                            'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
+                            checkedAreaItem
+                              ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
+                              : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
+                          )}
+                        >
+                          <span>Select Block</span>
+                          <CaretRight size={12} weight="bold" />
+                        </button>
+                      </>
+                    )}
+
+                    {areaStep === 'block' && (
+                      <>
+                        <button
+                          type="button"
+                          disabled={!checkedAreaItem}
+                          onClick={() => {
+                            const blk = currentDistrictBlocks.find(item => item.id === checkedAreaItem);
+                            if (blk) handleSelectEntireBlock(blk);
+                          }}
+                          className={cn(
+                            'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs',
+                            checkedAreaItem
+                              ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
+                              : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                          )}
+                        >
+                          Entire Block
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!checkedAreaItem}
+                          onClick={() => {
+                            const blk = currentDistrictBlocks.find(item => item.id === checkedAreaItem);
+                            if (blk) handleDrillDownBlock(blk);
+                          }}
+                          className={cn(
+                            'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
+                            checkedAreaItem
+                              ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
+                              : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
+                          )}
+                        >
+                          <span>Select GP</span>
+                          <CaretRight size={12} weight="bold" />
+                        </button>
+                      </>
+                    )}
+
+                    {areaStep === 'gp' && (
+                      <button
+                        type="button"
+                        disabled={!checkedAreaItem}
+                        onClick={() => {
+                          const gp = currentBlockGPs.find(item => item.id === checkedAreaItem);
+                          if (gp) handleSelectGP(gp);
+                        }}
+                        className={cn(
+                          'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs',
+                          checkedAreaItem
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
+                            : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
+                        )}
+                      >
+                        Select GP
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Hierarchy List Body: Clean rows with checkboxes ONLY (No buttons in rows!) */}
+                <div className="max-h-[320px] overflow-y-auto divide-y divide-slate-100">
+                  {/* Level 1: Divisions */}
+                  {areaStep === 'division' && divisions.map(d => {
+                    const isChecked = checkedAreaItem === d.id;
+                    return (
+                      <div
+                        key={d.id}
+                        onClick={() => setCheckedAreaItem(prev => prev === d.id ? null : d.id)}
+                        className={cn(
+                          'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
+                          isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {}} // toggled by row click
+                          className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
+                        />
+                        <div className={cn(
+                          'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
+                          isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                        )}>
+                          {d.code || d.name.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{d.name}</div>
+                          <div className="text-[11px] text-slate-400">Division Level</div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
 
                   {/* Level 2: Districts */}
                   {areaStep === 'district' && (
@@ -1056,36 +1223,36 @@ function NewTaskForm() {
                         No districts configured for this division.
                       </div>
                     ) : (
-                      currentDivisionDistricts.map(dst => (
-                        <div key={dst.id} className="p-3 sm:p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/80 transition-colors">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center font-bold text-xs shrink-0 border border-teal-100">
+                      currentDivisionDistricts.map(dst => {
+                        const isChecked = checkedAreaItem === dst.id;
+                        return (
+                          <div
+                            key={dst.id}
+                            onClick={() => setCheckedAreaItem(prev => prev === dst.id ? null : dst.id)}
+                            className={cn(
+                              'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
+                              isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {}}
+                              className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
+                            />
+                            <div className={cn(
+                              'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
+                              isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-teal-50 text-teal-700 border-teal-100'
+                            )}>
                               DST
                             </div>
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{dst.name}</div>
                               <div className="text-[11px] text-slate-400">District</div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => handleSelectEntireDistrict(dst)}
-                              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer active:scale-95"
-                            >
-                              Entire District
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDrillDownDistrict(dst)}
-                              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1 transition-colors cursor-pointer shadow-2xs active:scale-95"
-                            >
-                              <span>Select Block</span>
-                              <CaretRight size={12} weight="bold" />
-                            </button>
-                          </div>
-                        </div>
-                      ))
+                        );
+                      })
                     )
                   )}
 
@@ -1096,36 +1263,36 @@ function NewTaskForm() {
                         No blocks configured for this district.
                       </div>
                     ) : (
-                      currentDistrictBlocks.map(blk => (
-                        <div key={blk.id} className="p-3 sm:p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/80 transition-colors">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-xs shrink-0 border border-indigo-100">
+                      currentDistrictBlocks.map(blk => {
+                        const isChecked = checkedAreaItem === blk.id;
+                        return (
+                          <div
+                            key={blk.id}
+                            onClick={() => setCheckedAreaItem(prev => prev === blk.id ? null : blk.id)}
+                            className={cn(
+                              'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
+                              isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {}}
+                              className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
+                            />
+                            <div className={cn(
+                              'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
+                              isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-indigo-50 text-indigo-700 border-indigo-100'
+                            )}>
                               BLK
                             </div>
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{blk.name}</div>
                               <div className="text-[11px] text-slate-400">Block</div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => handleSelectEntireBlock(blk)}
-                              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer active:scale-95"
-                            >
-                              Entire Block
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDrillDownBlock(blk)}
-                              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1 transition-colors cursor-pointer shadow-2xs active:scale-95"
-                            >
-                              <span>Select GP</span>
-                              <CaretRight size={12} weight="bold" />
-                            </button>
-                          </div>
-                        </div>
-                      ))
+                        );
+                      })
                     )
                   )}
 
@@ -1136,26 +1303,36 @@ function NewTaskForm() {
                         No Gram Panchayats configured for this block.
                       </div>
                     ) : (
-                      currentBlockGPs.map(gp => (
-                        <div key={gp.id} className="p-3 sm:p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/80 transition-colors">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-8 h-8 rounded-lg bg-violet-50 text-violet-700 flex items-center justify-center font-bold text-xs shrink-0 border border-violet-100">
+                      currentBlockGPs.map(gp => {
+                        const isChecked = checkedAreaItem === gp.id;
+                        return (
+                          <div
+                            key={gp.id}
+                            onClick={() => setCheckedAreaItem(prev => prev === gp.id ? null : gp.id)}
+                            className={cn(
+                              'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
+                              isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {}}
+                              className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
+                            />
+                            <div className={cn(
+                              'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
+                              isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-violet-50 text-violet-700 border-violet-100'
+                            )}>
                               GP
                             </div>
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{gp.name}</div>
                               <div className="text-[11px] text-slate-400">Gram Panchayat</div>
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => handleSelectGP(gp)}
-                            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors cursor-pointer shadow-2xs active:scale-95"
-                          >
-                            Select GP
-                          </button>
-                        </div>
-                      ))
+                        );
+                      })
                     )
                   )}
                 </div>
@@ -1193,7 +1370,7 @@ function NewTaskForm() {
                           onClick={isAllCurrentGroupSelected ? deselectCurrentGroup : selectAllCurrentGroup}
                           className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-xs cursor-pointer active:scale-95"
                         >
-                          {isAllCurrentGroupSelected ? `Deselect All (${filteredUsers.length})` : `+ Assign All in Area (${filteredUsers.length})`}
+                          {isAllCurrentGroupSelected ? `Deselect (${filteredUsers.length})` : `+ Assign in Area (${filteredUsers.length})`}
                         </button>
                       )}
                     </div>
@@ -1212,7 +1389,9 @@ function NewTaskForm() {
                         onClick={isAllCurrentGroupSelected ? deselectCurrentGroup : selectAllCurrentGroup}
                         className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors cursor-pointer shadow-2xs active:scale-95"
                       >
-                        {isAllCurrentGroupSelected ? `Deselect All (${filteredUsers.length})` : `+ Assign All (${filteredUsers.length})`}
+                        {isAllCurrentGroupSelected
+                          ? `Deselect (${filteredUsers.length})`
+                          : `+ Assign ${activeGroup === 'intern' ? 'Interns' : activeGroup === 'fellow' ? 'Fellows' : 'PCs'} (${filteredUsers.length})`}
                       </button>
                     )}
                   </div>
@@ -1290,7 +1469,7 @@ function NewTaskForm() {
                   </div>
                   <h3 className="text-sm font-bold text-slate-800">Select an Assignee Category or Area</h3>
                   <p className="text-xs text-slate-500 max-w-sm mt-1 leading-relaxed">
-                    Click <strong>All Interns</strong>, <strong>All Fellows</strong>, <strong>All PCs</strong>, or <strong>Area</strong> above to view and assign candidates.
+                    Click <strong>Interns</strong>, <strong>Fellows</strong>, <strong>PCs</strong>, or <strong>Area</strong> above to view and assign candidates.
                   </p>
                 </div>
               )
