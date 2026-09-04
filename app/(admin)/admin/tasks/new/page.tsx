@@ -7,11 +7,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Check, Warning, Trash, ClipboardText, Checks, CheckCircle, CheckSquare, MagnifyingGlass, X, FunnelSimple } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowRight, Check, Warning, Trash, ClipboardText, Checks, CheckCircle, CheckSquare, MagnifyingGlass, X, FunnelSimple, MapPin } from '@phosphor-icons/react';
 import { usersApi } from '@/lib/api/users';
 import { tasksApi } from '@/lib/api/tasks';
 import { surveysApi } from '@/lib/api/surveys';
-import type { User, Survey } from '@/types/models';
+import type { User, Survey, Division, District, Block, GramPanchayat } from '@/types/models';
 import { cn, roleLabel } from '@/lib/utils/formatters';
 import { toast } from 'sonner';
 
@@ -55,6 +55,16 @@ function NewTaskForm() {
   const [cameFromSurvey, setCameFromSurvey] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  // Location Hierarchy lists & filters
+  const [divisions, setDivisions] = useState<Division[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [blocks, setBlocks] = useState<Block[]>([]);
+  const [gramPanchayats, setGramPanchayats] = useState<GramPanchayat[]>([]);
+  const [selectedDivision, setSelectedDivision] = useState<string>('');
+  const [selectedDistrict, setSelectedDistrict] = useState<string>('');
+  const [selectedBlock, setSelectedBlock] = useState<string>('');
+  const [selectedGP, setSelectedGP] = useState<string>('');
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -81,6 +91,10 @@ function NewTaskForm() {
   useEffect(() => {
     usersApi.list({ limit: 100 }).then(res => setUsers(res.items)).catch(console.error);
     surveysApi.list({ limit: 100 }).then(res => setSurveys(res.items)).catch(console.error);
+    usersApi.getDivisions().then(setDivisions).catch(console.error);
+    usersApi.getDistricts().then(setDistricts).catch(console.error);
+    usersApi.getBlocks().then(setBlocks).catch(console.error);
+    usersApi.getGramPanchayats().then(setGramPanchayats).catch(console.error);
   }, []);
 
   // When coming directly from "Save & Allocate" in Survey: prefill & jump straight to Assignee step (Step 3)
@@ -114,12 +128,100 @@ function NewTaskForm() {
     }
   }, [querySurveyId, querySurveyName, setValue]);
 
+  // Cascading location options
+  const availableDistricts = selectedDivision
+    ? districts.filter(d => d.divisionId === selectedDivision)
+    : districts;
+
+  const availableBlocks = selectedDistrict
+    ? blocks.filter(b => b.districtId === selectedDistrict)
+    : (selectedDivision
+        ? blocks.filter(b => b.divisionId === selectedDivision || availableDistricts.some(d => d.id === b.districtId))
+        : blocks);
+
+  const availableGPs = selectedBlock
+    ? gramPanchayats.filter(gp => gp.blockId === selectedBlock)
+    : gramPanchayats;
+
+  const userMatchesLocation = (u: User) => {
+    if (selectedGP) {
+      return u.gramPanchayat?.id === selectedGP;
+    }
+    if (selectedBlock) {
+      return u.block?.id === selectedBlock || u.gramPanchayat?.blockId === selectedBlock;
+    }
+    if (selectedDistrict) {
+      return (
+        u.district?.id === selectedDistrict ||
+        u.block?.districtId === selectedDistrict
+      );
+    }
+    if (selectedDivision) {
+      return (
+        u.division?.id === selectedDivision ||
+        u.district?.divisionId === selectedDivision ||
+        districts.some(d => d.divisionId === selectedDivision && (d.id === u.district?.id || d.id === u.block?.districtId))
+      );
+    }
+    return true;
+  };
+
   const filteredUsers = users.filter(u => {
-    const matchesSearch = u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+    const matchesSearch =
+      u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
       u.email.toLowerCase().includes(userSearch.toLowerCase());
     const matchesRole = roleFilter === 'all' || u.role === roleFilter;
-    return matchesSearch && matchesRole;
+    const matchesLocation = userMatchesLocation(u);
+    return matchesSearch && matchesRole && matchesLocation;
   });
+
+  const hasActiveLocation = !!(selectedDivision || selectedDistrict || selectedBlock || selectedGP);
+
+  const activeLocationName = selectedGP
+    ? `Gram Panchayat: ${gramPanchayats.find(g => g.id === selectedGP)?.name || selectedGP}`
+    : selectedBlock
+    ? `Block: ${blocks.find(b => b.id === selectedBlock)?.name || selectedBlock}`
+    : selectedDistrict
+    ? `District: ${districts.find(d => d.id === selectedDistrict)?.name || selectedDistrict}`
+    : selectedDivision
+    ? `Division: ${divisions.find(d => d.id === selectedDivision)?.name || selectedDivision}`
+    : '';
+
+  const clearLocationFilters = () => {
+    setSelectedDivision('');
+    setSelectedDistrict('');
+    setSelectedBlock('');
+    setSelectedGP('');
+  };
+
+  const selectAllFiltered = () => {
+    const existingIds = new Set(selectedUsers.map(u => u.id));
+    const newUsers = filteredUsers.filter(u => !existingIds.has(u.id));
+    const updated = [...selectedUsers, ...newUsers];
+    setSelectedUsers(updated);
+    setValue('assignedToIds', updated.map(u => u.id), { shouldValidate: true });
+  };
+
+  const getUserLocationText = (u: User): string => {
+    const parts: string[] = [];
+    if (u.gramPanchayat?.name) {
+      parts.push(`${u.gramPanchayat.name} GP`);
+    }
+    if (u.block?.name) {
+      parts.push(`${u.block.name} Block`);
+    }
+    if (u.district?.name) {
+      parts.push(u.district.name);
+    } else if (u.block?.districtName) {
+      parts.push(u.block.districtName);
+    }
+    if (u.division?.name) {
+      parts.push(u.division.name);
+    } else if (u.district?.divisionName) {
+      parts.push(u.district.divisionName);
+    }
+    return parts.length > 0 ? parts.join(' · ') : 'State-wide / Unassigned';
+  };
 
   const toggleUser = (user: User) => {
     const exists = selectedUsers.some(u => u.id === user.id);
@@ -527,7 +629,7 @@ function NewTaskForm() {
               <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Define the active timeline window and urgency level for completion</p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <div className="space-y-4 sm:space-y-5">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                   Priority <span className="text-rose-500">*</span>
@@ -542,29 +644,33 @@ function NewTaskForm() {
                   <option value="low">Low</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                  Start Date <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={watchStartDate}
-                  onChange={e => setValue('startDate', e.target.value, { shouldValidate: true })}
-                  className={inputCls(!!errors.startDate)}
-                />
-                {errors.startDate && <p className="mt-1 text-xs text-rose-600">{errors.startDate.message}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                  End Date <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={watchEndDate}
-                  onChange={e => setValue('endDate', e.target.value, { shouldValidate: true })}
-                  className={inputCls(!!errors.endDate)}
-                />
-                {errors.endDate && <p className="mt-1 text-xs text-rose-600">{errors.endDate.message}</p>}
+
+              {/* Start Date and End Date side by side */}
+              <div className="grid grid-cols-2 gap-3 sm:gap-5">
+                <div>
+                  <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5 truncate">
+                    Start Date <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={watchStartDate}
+                    onChange={e => setValue('startDate', e.target.value, { shouldValidate: true })}
+                    className={inputCls(!!errors.startDate)}
+                  />
+                  {errors.startDate && <p className="mt-1 text-[11px] text-rose-600">{errors.startDate.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5 truncate">
+                    End Date <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={watchEndDate}
+                    onChange={e => setValue('endDate', e.target.value, { shouldValidate: true })}
+                    className={inputCls(!!errors.endDate)}
+                  />
+                  {errors.endDate && <p className="mt-1 text-[11px] text-rose-600">{errors.endDate.message}</p>}
+                </div>
               </div>
             </div>
 
@@ -704,13 +810,144 @@ function NewTaskForm() {
                   </select>
                 </div>
               </div>
+
+              {/* Row 3: Location Hierarchy Selectors (Division, District, Block, Gram Panchayat) */}
+              <div className="space-y-2 p-2.5 sm:p-3 rounded-xl bg-slate-50/70 border border-slate-200/80">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <MapPin size={13} className="text-indigo-600" weight="bold" />
+                    Filter by Location
+                  </span>
+                  {hasActiveLocation && (
+                    <button
+                      type="button"
+                      onClick={clearLocationFilters}
+                      className="text-[11px] font-semibold text-rose-600 hover:text-rose-700 hover:underline cursor-pointer"
+                    >
+                      Reset Location
+                    </button>
+                  )}
+                </div>
+
+                {/* 4-Tier Location Selectors: 2x2 grid on mobile, 4-col on desktop */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                  {/* Division */}
+                  <div>
+                    <select
+                      value={selectedDivision}
+                      onChange={e => {
+                        setSelectedDivision(e.target.value);
+                        setSelectedDistrict('');
+                        setSelectedBlock('');
+                        setSelectedGP('');
+                      }}
+                      className={cn(
+                        'w-full text-xs py-2 px-2.5 rounded-lg border font-medium focus:outline-none focus:ring-1.5 focus:ring-indigo-500 transition-colors',
+                        selectedDivision
+                          ? 'bg-indigo-50 text-indigo-900 border-indigo-200 font-semibold'
+                          : 'bg-white text-slate-700 border-slate-200'
+                      )}
+                    >
+                      <option value="">Division: All ({divisions.length})</option>
+                      {divisions.map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* District */}
+                  <div>
+                    <select
+                      value={selectedDistrict}
+                      onChange={e => {
+                        setSelectedDistrict(e.target.value);
+                        setSelectedBlock('');
+                        setSelectedGP('');
+                      }}
+                      className={cn(
+                        'w-full text-xs py-2 px-2.5 rounded-lg border font-medium focus:outline-none focus:ring-1.5 focus:ring-indigo-500 transition-colors',
+                        selectedDistrict
+                          ? 'bg-indigo-50 text-indigo-900 border-indigo-200 font-semibold'
+                          : 'bg-white text-slate-700 border-slate-200'
+                      )}
+                    >
+                      <option value="">District: All ({availableDistricts.length})</option>
+                      {availableDistricts.map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Block */}
+                  <div>
+                    <select
+                      value={selectedBlock}
+                      onChange={e => {
+                        setSelectedBlock(e.target.value);
+                        setSelectedGP('');
+                      }}
+                      className={cn(
+                        'w-full text-xs py-2 px-2.5 rounded-lg border font-medium focus:outline-none focus:ring-1.5 focus:ring-indigo-500 transition-colors',
+                        selectedBlock
+                          ? 'bg-indigo-50 text-indigo-900 border-indigo-200 font-semibold'
+                          : 'bg-white text-slate-700 border-slate-200'
+                      )}
+                    >
+                      <option value="">Block: All ({availableBlocks.length})</option>
+                      {availableBlocks.map(b => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Gram Panchayat */}
+                  <div>
+                    <select
+                      value={selectedGP}
+                      onChange={e => setSelectedGP(e.target.value)}
+                      className={cn(
+                        'w-full text-xs py-2 px-2.5 rounded-lg border font-medium focus:outline-none focus:ring-1.5 focus:ring-indigo-500 transition-colors',
+                        selectedGP
+                          ? 'bg-indigo-50 text-indigo-900 border-indigo-200 font-semibold'
+                          : 'bg-white text-slate-700 border-slate-200'
+                      )}
+                    >
+                      <option value="">Gram Panchayat: All ({availableGPs.length})</option>
+                      {availableGPs.map(gp => (
+                        <option key={gp.id} value={gp.id}>{gp.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Active Location Info & Batch Select */}
+                {hasActiveLocation && (
+                  <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-indigo-50/90 border border-indigo-200 text-xs text-indigo-950 mt-1">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="font-bold shrink-0">📍 {activeLocationName}:</span>
+                      <span className="font-semibold text-indigo-700 truncate">
+                        {filteredUsers.length} personnel found
+                      </span>
+                    </div>
+                    {filteredUsers.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={selectAllFiltered}
+                        className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shrink-0 cursor-pointer shadow-2xs"
+                      >
+                        + Select All in Location
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Assignee list with Checkboxes */}
             <div className="max-h-[340px] overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-white shadow-2xs">
               {filteredUsers.length === 0 ? (
                 <div className="p-8 text-center text-slate-400 text-xs">
-                  No assignees match your current search and role filters
+                  No assignees match your current search, role, or location filters
                 </div>
               ) : (
                 filteredUsers.slice(0, 50).map(u => {
@@ -738,6 +975,11 @@ function NewTaskForm() {
                       <div className="min-w-0 flex-1">
                         <div className="font-semibold truncate text-slate-900 leading-snug">{u.name}</div>
                         <div className="text-xs text-slate-400 truncate">{u.email}</div>
+                        {/* Display location details of the selected location type */}
+                        <div className="flex items-center gap-1 text-[11px] text-slate-500 mt-0.5 truncate">
+                          <MapPin size={11} className="text-indigo-500 shrink-0" weight="bold" />
+                          <span className="truncate">{getUserLocationText(u)}</span>
+                        </div>
                       </div>
                       <span className={cn(
                         'px-2.5 py-0.5 rounded-full text-[11px] font-semibold shrink-0 border capitalize',
