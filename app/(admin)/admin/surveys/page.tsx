@@ -113,8 +113,8 @@ export default function AdminSurveysPage() {
           <Link
             href="/admin/surveys/new"
             id="create-survey-btn"
-            style={{ backgroundColor: '#152033' }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white hover:bg-[#1f304e] shadow-sm hover:shadow-md active:scale-95 transition-all cursor-pointer btn-press"
+            style={{ backgroundColor: '#1e3a8a' }}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white bg-blue-900 hover:bg-blue-800 shadow-md shadow-blue-900/20 active:scale-95 transition-all cursor-pointer btn-press"
           >
             <Plus size={16} weight="bold" />
             <span>Create Survey</span>
@@ -241,8 +241,8 @@ export default function AdminSurveysPage() {
           <div className="pt-2">
             <Link
               href="/admin/surveys/new"
-              style={{ backgroundColor: '#152033' }}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold text-white hover:bg-[#1f304e] shadow-sm transition-all"
+              style={{ backgroundColor: '#1e3a8a' }}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold text-white bg-blue-900 hover:bg-blue-800 shadow-md shadow-blue-900/20 transition-all"
             >
               <Plus size={16} weight="bold" />
               <span>Create Survey Now</span>
