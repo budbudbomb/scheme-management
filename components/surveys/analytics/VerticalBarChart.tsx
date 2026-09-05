@@ -21,7 +21,7 @@ export default function VerticalBarChart({
   const chartHeight = 160; // max bar height in px
 
   return (
-    <div className="flex flex-col justify-between w-full h-full p-2">
+    <div className="flex flex-col justify-between w-full min-w-0 max-w-full h-full p-1 sm:p-2 overflow-hidden">
       {/* ── Score banner if available ── */}
       {likertScore !== undefined && (
         <div className="flex items-center justify-between pb-3 mb-2 border-b border-slate-100 text-xs">

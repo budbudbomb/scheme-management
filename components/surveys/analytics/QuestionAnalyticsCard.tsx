@@ -43,11 +43,11 @@ export default function QuestionAnalyticsCard({
   return (
     <div
       id={`question-card-${analytics.questionNumber}`}
-      className="card p-3 sm:p-5 border border-slate-200/90 shadow-2xs hover:shadow-sm transition-all bg-white rounded-2xl flex flex-col justify-between space-y-3 sm:space-y-4"
+      className="card p-3.5 sm:p-5 border border-slate-200/90 shadow-2xs hover:shadow-sm transition-all bg-white rounded-2xl flex flex-col justify-between space-y-3 sm:space-y-4 w-full min-w-0 max-w-full overflow-hidden"
     >
       {/* ── Question Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5 sm:gap-3">
-        <div className="space-y-1 flex-1">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5 sm:gap-3 w-full min-w-0">
+        <div className="space-y-1 flex-1 min-w-0 w-full">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-indigo-600 text-white font-extrabold text-[11px] sm:text-xs flex items-center justify-center shadow-xs shrink-0">
               Q{analytics.questionNumber}
@@ -60,14 +60,14 @@ export default function QuestionAnalyticsCard({
             </span>
           </div>
 
-          <h3 className="font-bold text-slate-900 text-xs sm:text-sm md:text-base leading-snug pt-0.5">
+          <h3 className="font-bold text-slate-900 text-xs sm:text-sm md:text-base leading-snug pt-0.5 break-words">
             {analytics.questionText}
           </h3>
         </div>
 
         {/* ── Chart Type Switcher Toolbar ── */}
         {analytics.questionType !== 'descriptive' && (
-          <div className="flex items-center gap-0.5 sm:gap-1 p-1 bg-slate-100/90 rounded-xl border border-slate-200/80 self-start sm:self-auto shrink-0">
+          <div className="flex items-center gap-0.5 sm:gap-1 p-1 bg-slate-100/90 rounded-xl border border-slate-200/80 self-start sm:self-auto shrink-0 max-w-full overflow-x-auto no-scrollbar">
             <button
               type="button"
               onClick={() => setActiveChart('bubble')}
@@ -147,7 +147,7 @@ export default function QuestionAnalyticsCard({
       </div>
 
       {/* ── Visual Display Area ── */}
-      <div className="min-h-[260px] flex items-center justify-center w-full py-2">
+      <div className="min-h-[240px] sm:min-h-[260px] flex items-center justify-center w-full min-w-0 max-w-full overflow-hidden py-2">
         {activeChart === 'bubble' && (
           <BubbleClusterChart
             distributions={analytics.distributions}
@@ -178,7 +178,7 @@ export default function QuestionAnalyticsCard({
         )}
 
         {activeChart === 'table' && (
-          <div className="w-full overflow-x-auto rounded-xl border border-slate-200">
+          <div className="w-full min-w-0 max-w-full overflow-x-auto rounded-xl border border-slate-200">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
@@ -191,8 +191,8 @@ export default function QuestionAnalyticsCard({
                 {analytics.distributions.map((dist, idx) => (
                   <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
                     <td className="p-3 font-medium text-slate-800 flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dist.color }} />
-                      <span>{dist.label}</span>
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: dist.color }} />
+                      <span className="break-words">{dist.label}</span>
                     </td>
                     <td className="p-3 text-right font-semibold text-slate-700">
                       {dist.count}
@@ -210,16 +210,16 @@ export default function QuestionAnalyticsCard({
 
       {/* ── Key Finding Footer ── */}
       {analytics.topAnswer && (
-        <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-          <span className="flex items-center gap-1.5 font-medium">
+        <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 w-full min-w-0">
+          <span className="flex items-center gap-1.5 font-medium flex-wrap">
             <Info size={14} className="text-indigo-600 shrink-0" />
             {analytics.questionType === 'descriptive' ? (
-              <span>Participant Submissions: <strong className="text-slate-900 font-bold">{analytics.participantResponses?.length || 0} Ground Entries (Voice, Video, Photo, Text)</strong></span>
+              <span className="break-words">Participant Submissions: <strong className="text-slate-900 font-bold">{analytics.participantResponses?.length || 0} Ground Entries (Voice, Video, Photo, Text)</strong></span>
             ) : (
-              <>
-                <span>Leading Response:</span>
+              <span className="break-words">
+                <span>Leading Response: </span>
                 <strong className="text-slate-900 font-bold">{analytics.topAnswer}</strong>
-              </>
+              </span>
             )}
           </span>
         </div>

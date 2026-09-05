@@ -157,7 +157,7 @@ export default function SurveyDashboardPage({ params }: SurveyDashboardPageProps
   const questionCount = analyticsData.questionsAnalytics.length;
 
   return (
-    <div className="space-y-6 pb-36 sm:pb-32 max-w-7xl mx-auto">
+    <div className="space-y-6 pb-36 sm:pb-32 max-w-7xl mx-auto w-full min-w-0 max-w-full">
       {/* ── Top Back Navigation & Header Bar ── */}
       <div className="flex items-center justify-between gap-4 flex-wrap pb-2">
         <div className="space-y-1">
@@ -392,7 +392,7 @@ export default function SurveyDashboardPage({ params }: SurveyDashboardPageProps
           </button>
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 w-full min-w-0 max-w-full">
           {filteredQuestions.map((qAnalytics, idx) => (
             <QuestionAnalyticsCard
               key={qAnalytics.questionId || idx}

@@ -52,10 +52,10 @@ export default function DonutMetricChart({
   });
 
   return (
-    <div className="flex flex-col items-center justify-between w-full h-full p-2">
+    <div className="flex flex-col items-center justify-between w-full min-w-0 max-w-full h-full p-1 sm:p-2 overflow-hidden">
       {/* ── Donut Chart Ring ── */}
-      <div className="relative w-full max-w-[230px] sm:max-w-[260px] aspect-square flex items-center justify-center">
-        <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-full overflow-visible">
+      <div className="relative w-full max-w-[210px] sm:max-w-[250px] aspect-square flex items-center justify-center">
+        <svg viewBox="-15 -15 290 290" className="w-full h-full">
           {/* Base Track */}
           <circle
             cx={center}
@@ -120,17 +120,17 @@ export default function DonutMetricChart({
       </div>
 
       {/* ── Legend matching Screenshot 2 ── */}
-      <div className="w-full pt-3 mt-1 border-t border-slate-100 flex flex-col gap-1.5 px-1 sm:px-2">
+      <div className="w-full min-w-0 max-w-full pt-3 mt-1 border-t border-slate-100 flex flex-col gap-1.5 px-0.5 sm:px-2">
         {sorted.map((item, idx) => (
-          <div key={idx} className="flex items-center justify-between text-xs group">
-            <div className="flex items-center gap-1.5 sm:gap-2">
+          <div key={idx} className="flex items-center justify-between text-xs group w-full min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 pr-2">
               <div
                 className="w-4 h-4 rounded-md flex items-center justify-center shrink-0"
                 style={{ backgroundColor: `${item.color}20`, color: item.color }}
               >
                 <SealCheck size={12} weight="bold" />
               </div>
-              <span className="font-medium text-slate-700 truncate max-w-[140px] sm:max-w-none text-[11px] sm:text-xs">
+              <span className="font-medium text-slate-700 truncate text-[11px] sm:text-xs">
                 {item.label}
               </span>
             </div>

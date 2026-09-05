@@ -61,12 +61,12 @@ export default function BubbleClusterChart({
   };
 
   return (
-    <div className="flex flex-col items-center justify-between w-full h-full p-2">
+    <div className="flex flex-col items-center justify-between w-full min-w-0 max-w-full h-full p-1 sm:p-2 overflow-hidden">
       {/* ── SVG Bubble Cluster ── */}
-      <div className="relative w-full max-w-[260px] sm:max-w-[320px] aspect-[4/3] flex items-center justify-center">
+      <div className="relative w-full max-w-[240px] sm:max-w-[300px] aspect-[4/3] flex items-center justify-center">
         <svg
-          viewBox={`0 0 ${width} ${height}`}
-          className="w-full h-full overflow-visible drop-shadow-xs"
+          viewBox="-10 -10 340 260"
+          className="w-full h-full drop-shadow-xs"
         >
           <defs>
             <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
@@ -115,17 +115,17 @@ export default function BubbleClusterChart({
       </div>
 
       {/* ── Star-bullet Legend matching Screenshot 1 ── */}
-      <div className="w-full pt-3 mt-1 border-t border-slate-100 flex flex-col gap-1.5 px-1 sm:px-2">
+      <div className="w-full min-w-0 max-w-full pt-3 mt-1 border-t border-slate-100 flex flex-col gap-1.5 px-0.5 sm:px-2">
         {sorted.map((item, idx) => (
-          <div key={idx} className="flex items-center justify-between text-xs group">
-            <div className="flex items-center gap-1.5 sm:gap-2">
+          <div key={idx} className="flex items-center justify-between text-xs group w-full min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 pr-2">
               <Star
                 size={13}
                 weight="fill"
                 style={{ color: item.color }}
                 className="shrink-0 transition-transform group-hover:scale-110"
               />
-              <span className="font-medium text-slate-700 truncate max-w-[140px] sm:max-w-none text-[11px] sm:text-xs">
+              <span className="font-medium text-slate-700 truncate text-[11px] sm:text-xs">
                 {item.label}
               </span>
             </div>

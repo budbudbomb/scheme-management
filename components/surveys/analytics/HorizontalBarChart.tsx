@@ -19,12 +19,12 @@ export default function HorizontalBarChart({
   const maxPct = Math.max(...sorted.map(d => d.percentage), 1);
 
   return (
-    <div className="w-full flex flex-col justify-center space-y-3 sm:space-y-2.5 p-1 sm:p-2">
+    <div className="w-full min-w-0 max-w-full flex flex-col justify-center space-y-3 sm:space-y-2.5 p-1 sm:p-2 overflow-hidden">
       {sorted.map((item, idx) => {
         const fillWidth = Math.max(4, Math.round((item.percentage / maxPct) * 100));
 
         return (
-          <div key={idx} className="flex flex-col sm:flex-row sm:items-center sm:gap-3 text-xs group space-y-1 sm:space-y-0">
+          <div key={idx} className="flex flex-col sm:flex-row sm:items-center sm:gap-3 text-xs group space-y-1 sm:space-y-0 w-full min-w-0">
             {/* Phone View: Top row with Label + Percentage */}
             <div className="flex items-center justify-between sm:hidden w-full">
               <span className="font-semibold text-slate-800 text-xs line-clamp-1 pr-2" title={item.label}>

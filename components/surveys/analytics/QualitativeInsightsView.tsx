@@ -84,10 +84,10 @@ export default function QualitativeInsightsView({
   };
 
   return (
-    <div className="w-full space-y-4 p-2">
+    <div className="w-full min-w-0 max-w-full space-y-4 p-1 sm:p-2 overflow-hidden">
       {/* ── Submissions & Filter Strip ── */}
-      <div className="flex items-center justify-between gap-3 flex-wrap border-b border-slate-100 pb-3">
-        <div>
+      <div className="flex items-center justify-between gap-3 flex-wrap border-b border-slate-100 pb-3 w-full min-w-0">
+        <div className="min-w-0 flex-1">
           <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
             Participant Responses ({responses.length})
           </span>
@@ -97,7 +97,7 @@ export default function QualitativeInsightsView({
         </div>
 
         {/* Media Filter Tabs */}
-        <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80">
+        <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 max-w-full overflow-x-auto no-scrollbar">
           {[
             { id: 'all', label: `All (${responses.length})` },
             { id: 'voice', label: `🎙️ Voice (${responses.filter(r => r.responseType === 'voice').length})` },
