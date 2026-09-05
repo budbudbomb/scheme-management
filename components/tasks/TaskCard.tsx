@@ -124,19 +124,8 @@ export default function TaskCard({
             )}
           </div>
 
-          {/* Action icons - Don't show Update Status button for survey tasks */}
+          {/* Action icons (Edit, Delete) - Update Status is now at bottom of card */}
           <div className="flex items-center gap-1 shrink-0 -mt-0.5">
-            {onStatusUpdate && !task.isSurveyTask && (
-              <button
-                type="button"
-                onClick={() => setIsStatusModalOpen(true)}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300 transition-colors cursor-pointer mr-0.5 shrink-0 shadow-2xs"
-                title="Update task status"
-              >
-                <ArrowsClockwise size={13} weight="bold" />
-                <span>Update Status</span>
-              </button>
-            )}
             {onEdit && (
               <button
                 type="button"
@@ -230,17 +219,30 @@ export default function TaskCard({
           )}
         </div>
 
-        {/* Survey action - Navy blue theme button that starts the survey */}
+        {/* Survey action - True Navy Blue theme button that starts the survey */}
         {task.isSurveyTask && !compact && (
           <Link
             href={surveyUrl}
-            className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-[#152033] hover:bg-[#1e2d47] active:bg-[#0f1726] text-white shadow-sm hover:shadow-md transition-all cursor-pointer"
+            className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-[#1e3a8a] hover:bg-[#172554] active:bg-[#1e40af] text-white shadow-sm hover:shadow-md transition-all cursor-pointer"
             title="Start Survey"
           >
             <ClipboardText size={14} weight="bold" />
             <span>Start Survey</span>
             <ArrowRight size={13} weight="bold" />
           </Link>
+        )}
+
+        {/* Non-survey action - Update Status button appears where Start Survey appears */}
+        {!task.isSurveyTask && onStatusUpdate && !compact && (
+          <button
+            type="button"
+            onClick={() => setIsStatusModalOpen(true)}
+            className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300 active:bg-indigo-200 shadow-2xs transition-all cursor-pointer"
+            title="Update Task Status"
+          >
+            <ArrowsClockwise size={14} weight="bold" />
+            <span>Update Status</span>
+          </button>
         )}
       </div>
 

@@ -20,10 +20,12 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type CalendarView = 'month' | 'week' | 'day';
+export type CalendarView = 'day' | 'week' | 'month';
 
-interface MobileCalendarProps {
+export interface MobileCalendarProps {
   tasks: Task[];
+  view?: CalendarView;
+  onViewChange?: (v: CalendarView) => void;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -120,9 +122,9 @@ function statusPill(status: Task['status']): string {
   }
 }
 
-// ─── ViewTabs ─────────────────────────────────────────────────────────────────
+// ─── ViewTabs (Day - Week - Month) ──────────────────────────────────────────
 
-function ViewTabs({
+export function ViewTabs({
   view,
   onChange,
 }: {
@@ -130,9 +132,9 @@ function ViewTabs({
   onChange: (v: CalendarView) => void;
 }) {
   const tabs: { key: CalendarView; label: string; Icon: React.ElementType }[] = [
-    { key: 'month', label: 'Month', Icon: GridFour },
-    { key: 'week',  label: 'Week',  Icon: CalendarDots },
     { key: 'day',   label: 'Day',   Icon: Rows },
+    { key: 'week',  label: 'Week',  Icon: CalendarDots },
+    { key: 'month', label: 'Month', Icon: GridFour },
   ];
 
   return (
@@ -328,7 +330,7 @@ function TaskSheet({ task, onClose }: { task: Task; onClose: () => void }) {
             <Link
               href={task.surveyId ? `/intern/surveys/${task.surveyId}` : '/intern/surveys/survey-01'}
               onClick={onClose}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[#152033] hover:bg-[#1e2d47] text-white transition-colors cursor-pointer"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[#1e3a8a] hover:bg-[#172554] active:bg-[#1e40af] text-white shadow-sm transition-colors cursor-pointer"
             >
               <ClipboardText size={14} weight="bold" />
               <span>Start Survey</span>
@@ -830,10 +832,13 @@ function DayView({
 
 // ─── Main MobileCalendar ──────────────────────────────────────────────────────
 
-export default function MobileCalendar({ tasks }: MobileCalendarProps) {
+export default function MobileCalendar({ tasks, view: externalView, onViewChange }: MobileCalendarProps) {
   const today = new Date();
 
-  const [view, setView] = useState<CalendarView>('month');
+  const [internalView, setInternalView] = useState<CalendarView>('day');
+  const view = externalView ?? internalView;
+  const setView = onViewChange ?? setInternalView;
+
   const [currentDate, setCurrentDate] = useState(today);
   const [selectedDay, setSelectedDay] = useState<Date | null>(today);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
@@ -874,11 +879,6 @@ export default function MobileCalendar({ tasks }: MobileCalendarProps) {
     }
   };
 
-  const goToday = () => {
-    setCurrentDate(today);
-    setSelectedDay(today);
-  };
-
   const monthTaskCount = useMemo(() => tasks.filter(t => {
     const start = isoToDate(t.startDate);
     const end = isoToDate(t.endDate);
@@ -904,8 +904,8 @@ export default function MobileCalendar({ tasks }: MobileCalendarProps) {
   return (
     <div className="relative">
       <div className="card overflow-hidden">
-        {/* Header */}
-        <div className="px-4 sm:px-6 pt-4 pb-3 border-b border-slate-100 space-y-3">
+        {/* Header with date on left and only < > buttons on right */}
+        <div className="px-4 sm:px-6 py-3.5 border-b border-slate-100">
           <div className="flex items-center justify-between gap-2">
             <div>
               <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">{headerTitle}</h2>
@@ -915,33 +915,25 @@ export default function MobileCalendar({ tasks }: MobileCalendarProps) {
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-1 shrink-0">
+            {/* Nav buttons: < > only without Today button */}
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
                 onClick={goPrev}
-                className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+                title="Previous"
               >
-                <CaretLeft size={14} weight="bold" className="text-slate-500" />
-              </button>
-              <button
-                type="button"
-                onClick={goToday}
-                className="px-2.5 h-8 rounded-xl bg-indigo-600 text-white text-[11px] font-bold hover:bg-indigo-700 transition-colors"
-              >
-                Today
+                <CaretLeft size={14} weight="bold" className="text-slate-600" />
               </button>
               <button
                 type="button"
                 onClick={goNext}
-                className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+                title="Next"
               >
-                <CaretRight size={14} weight="bold" className="text-slate-500" />
+                <CaretRight size={14} weight="bold" className="text-slate-600" />
               </button>
             </div>
-          </div>
-
-          <div className="sm:max-w-xs">
-            <ViewTabs view={view} onChange={setView} />
           </div>
         </div>
 

@@ -4,11 +4,23 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { tasksApi } from '@/lib/api/tasks';
 import type { Task } from '@/types/models';
 import TaskCard from '@/components/tasks/TaskCard';
-import MobileCalendar from '@/components/tasks/MobileCalendar';
+import MobileCalendar, { CalendarView } from '@/components/tasks/MobileCalendar';
 import { SkeletonCard } from '@/components/shared/SkeletonCard';
 import EmptyState from '@/components/shared/EmptyState';
 import ErrorState from '@/components/shared/ErrorState';
-import { CheckSquare, CalendarBlank, ListBullets } from '@phosphor-icons/react';
+import {
+  CheckSquare,
+  CalendarBlank,
+  ListBullets,
+  ClipboardText,
+  Hourglass,
+  Clock,
+  CheckCircle,
+  WarningCircle,
+  Rows,
+  CalendarDots,
+  GridFour,
+} from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils/formatters';
 
@@ -29,10 +41,12 @@ export default function InternTasksPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pageView, setPageView] = useState<PageView>('calendar');
+  const [calendarView, setCalendarView] = useState<CalendarView>('day');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
   const load = useCallback(async () => {
-    setLoading(true); setError(null);
+    setLoading(true);
+    setError(null);
     try {
       const res = await tasksApi.list({ page: 1, limit: 50 });
       setTasks(res.items);
@@ -43,7 +57,9 @@ export default function InternTasksPage() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const updateStatus = async (taskId: string, status: Task['status'], comment?: string) => {
     try {
@@ -58,112 +74,296 @@ export default function InternTasksPage() {
   const counts = useMemo(() => {
     return {
       all: tasks.length,
-      pending: tasks.filter(t => t.status === 'pending' && !isTaskOverdue(t)).length,
-      in_progress: tasks.filter(t => t.status === 'in_progress' && !isTaskOverdue(t)).length,
-      overdue: tasks.filter(t => isTaskOverdue(t)).length,
-      completed: tasks.filter(t => t.status === 'completed').length,
+      pending: tasks.filter((t) => t.status === 'pending' && !isTaskOverdue(t)).length,
+      in_progress: tasks.filter((t) => t.status === 'in_progress' && !isTaskOverdue(t)).length,
+      overdue: tasks.filter((t) => isTaskOverdue(t)).length,
+      completed: tasks.filter((t) => t.status === 'completed').length,
     };
   }, [tasks]);
 
   const filteredTasks = useMemo(() => {
     if (statusFilter === 'all') return tasks;
-    if (statusFilter === 'pending') return tasks.filter(t => t.status === 'pending' && !isTaskOverdue(t));
-    if (statusFilter === 'in_progress') return tasks.filter(t => t.status === 'in_progress' && !isTaskOverdue(t));
-    if (statusFilter === 'overdue') return tasks.filter(t => isTaskOverdue(t));
-    if (statusFilter === 'completed') return tasks.filter(t => t.status === 'completed');
+    if (statusFilter === 'pending') return tasks.filter((t) => t.status === 'pending' && !isTaskOverdue(t));
+    if (statusFilter === 'in_progress') return tasks.filter((t) => t.status === 'in_progress' && !isTaskOverdue(t));
+    if (statusFilter === 'overdue') return tasks.filter((t) => isTaskOverdue(t));
+    if (statusFilter === 'completed') return tasks.filter((t) => t.status === 'completed');
     return tasks;
   }, [tasks, statusFilter]);
 
+  // KPI Items matching Chief Program Manager / Senior Program Manager login format
+  const kpiItems = useMemo(
+    () => [
+      {
+        key: 'all' as const,
+        label: 'Total',
+        desktopLabel: 'All Tasks',
+        value: counts.all,
+        icon: ClipboardText,
+        color: 'text-indigo-600',
+        activeStyle: 'bg-indigo-600 text-white border-indigo-600 shadow-md ring-2 ring-indigo-300/60',
+        activeText: 'text-white',
+        activeSub: 'text-indigo-100',
+        activeIcon: 'text-white',
+        activeDesktopStyle: 'bg-indigo-50/90 border-indigo-300 text-indigo-950 shadow-xs ring-1 ring-indigo-400/30',
+        activeDesktopText: 'text-indigo-950',
+        activeDesktopIconBg: 'bg-indigo-600 text-white shadow-xs',
+      },
+      {
+        key: 'pending' as const,
+        label: 'To Do',
+        desktopLabel: 'To Do',
+        value: counts.pending,
+        icon: Hourglass,
+        color: 'text-amber-500',
+        activeStyle: 'bg-amber-500 text-white border-amber-500 shadow-md ring-2 ring-amber-300/60',
+        activeText: 'text-white',
+        activeSub: 'text-amber-100',
+        activeIcon: 'text-white',
+        activeDesktopStyle: 'bg-amber-50/90 border-amber-300 text-amber-950 shadow-xs ring-1 ring-amber-400/30',
+        activeDesktopText: 'text-amber-950',
+        activeDesktopIconBg: 'bg-amber-500 text-white shadow-xs',
+      },
+      {
+        key: 'in_progress' as const,
+        label: 'In Progress',
+        desktopLabel: 'In Progress',
+        value: counts.in_progress,
+        icon: Clock,
+        color: 'text-sky-500',
+        activeStyle: 'bg-sky-500 text-white border-sky-500 shadow-md ring-2 ring-sky-300/60',
+        activeText: 'text-white',
+        activeSub: 'text-sky-100',
+        activeIcon: 'text-white',
+        activeDesktopStyle: 'bg-sky-50/90 border-sky-300 text-sky-950 shadow-xs ring-1 ring-sky-400/30',
+        activeDesktopText: 'text-sky-950',
+        activeDesktopIconBg: 'bg-sky-500 text-white shadow-xs',
+      },
+      {
+        key: 'completed' as const,
+        label: 'Done',
+        desktopLabel: 'Done',
+        value: counts.completed,
+        icon: CheckCircle,
+        color: 'text-emerald-600',
+        activeStyle: 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-300/60',
+        activeText: 'text-white',
+        activeSub: 'text-emerald-100',
+        activeIcon: 'text-white',
+        activeDesktopStyle: 'bg-emerald-50/90 border-emerald-300 text-emerald-950 shadow-xs ring-1 ring-emerald-400/30',
+        activeDesktopText: 'text-emerald-950',
+        activeDesktopIconBg: 'bg-emerald-600 text-white shadow-xs',
+      },
+      {
+        key: 'overdue' as const,
+        label: 'Overdue',
+        desktopLabel: 'Overdue',
+        value: counts.overdue,
+        icon: WarningCircle,
+        color: 'text-rose-500',
+        activeStyle: 'bg-rose-500 text-white border-rose-500 shadow-md ring-2 ring-rose-300/60',
+        activeText: 'text-white',
+        activeSub: 'text-rose-100',
+        activeIcon: 'text-white',
+        activeDesktopStyle: 'bg-rose-50/90 border-rose-300 text-rose-950 shadow-xs ring-1 ring-rose-400/30',
+        activeDesktopText: 'text-rose-950',
+        activeDesktopIconBg: 'bg-rose-500 text-white shadow-xs',
+      },
+    ],
+    [counts]
+  );
+
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-slate-900">My Tasks</h1>
-        <p className="text-sm text-slate-500 mt-0.5">View and update the status of tasks assigned to you</p>
+    <div className="space-y-4">
+      {/* Top Header Row with Title on Left and Calendar-List switch on Right */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900">My Tasks</h1>
+          <p className="text-sm text-slate-500 mt-0.5">View and update the status of tasks assigned to you</p>
+        </div>
+
+        {/* Calendar / List toggle on the RIGHT side */}
+        <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 w-fit self-end sm:self-auto shrink-0 shadow-2xs border border-slate-200/50">
+          <button
+            type="button"
+            onClick={() => setPageView('calendar')}
+            className={cn(
+              'flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer',
+              pageView === 'calendar'
+                ? 'bg-white text-indigo-600 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            )}
+          >
+            <CalendarBlank size={14} weight={pageView === 'calendar' ? 'bold' : 'regular'} />
+            <span>Calendar</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setPageView('list')}
+            className={cn(
+              'flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer',
+              pageView === 'list'
+                ? 'bg-white text-indigo-600 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            )}
+          >
+            <ListBullets size={14} weight={pageView === 'list' ? 'bold' : 'regular'} />
+            <span>List</span>
+          </button>
+        </div>
       </div>
 
-      {/* Calendar / List toggle */}
-      <div className="flex gap-1 bg-slate-100 rounded-xl p-1 w-fit">
-        <button
-          type="button"
-          onClick={() => setPageView('calendar')}
-          className={cn(
-            'flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer',
-            pageView === 'calendar'
-              ? 'bg-white text-indigo-600 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700',
-          )}
-        >
-          <CalendarBlank size={14} weight={pageView === 'calendar' ? 'bold' : 'regular'} />
-          Calendar
-        </button>
-        <button
-          type="button"
-          onClick={() => setPageView('list')}
-          className={cn(
-            'flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer',
-            pageView === 'list'
-              ? 'bg-white text-indigo-600 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700',
-          )}
-        >
-          <ListBullets size={14} weight={pageView === 'list' ? 'bold' : 'regular'} />
-          List
-        </button>
-      </div>
+      {/* Row below Calendar - List switch: Day - Week - Month selector (Order: Day-Week-Month) */}
+      {pageView === 'calendar' && (
+        <div className="flex justify-end pt-1">
+          <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 w-fit shadow-2xs border border-slate-200/50">
+            {[
+              { key: 'day' as const, label: 'Day', Icon: Rows },
+              { key: 'week' as const, label: 'Week', Icon: CalendarDots },
+              { key: 'month' as const, label: 'Month', Icon: GridFour },
+            ].map(({ key, label, Icon }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setCalendarView(key)}
+                className={cn(
+                  'flex items-center gap-1.5 py-1.5 px-3.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer',
+                  calendarView === key
+                    ? 'bg-white text-indigo-600 shadow-sm shadow-slate-200'
+                    : 'text-slate-500 hover:text-slate-700'
+                )}
+              >
+                <Icon size={13} weight={calendarView === key ? 'bold' : 'regular'} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {loading ? (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {[1, 2, 3].map(i => <SkeletonCard key={i} />)}
+        <div className="grid gap-3 sm:grid-cols-2 pt-2">
+          {[1, 2, 3].map((i) => (
+            <SkeletonCard key={i} />
+          ))}
         </div>
       ) : error ? (
         <ErrorState message={error} onRetry={load} />
       ) : !tasks.length ? (
         <div className="card">
-          <EmptyState icon={CheckSquare} title="No tasks yet" description="Tasks assigned to you by your Fellow or Program Coordinator will appear here." />
+          <EmptyState
+            icon={CheckSquare}
+            title="No tasks yet"
+            description="Tasks assigned to you by your Fellow or Program Coordinator will appear here."
+          />
         </div>
       ) : (
         <>
           {/* Calendar view */}
           {pageView === 'calendar' && (
-            <MobileCalendar tasks={tasks} />
+            <MobileCalendar
+              tasks={tasks}
+              view={calendarView}
+              onViewChange={setCalendarView}
+            />
           )}
 
           {/* List view */}
           {pageView === 'list' && (
-            <div className="space-y-4">
-              {/* Status Selector: To do - In progress - Overdue - Done */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-                {[
-                  { id: 'all' as const, label: 'All Tasks', count: counts.all },
-                  { id: 'pending' as const, label: 'To do', count: counts.pending },
-                  { id: 'in_progress' as const, label: 'In progress', count: counts.in_progress },
-                  { id: 'overdue' as const, label: 'Overdue', count: counts.overdue },
-                  { id: 'completed' as const, label: 'Done', count: counts.completed },
-                ].map((f) => {
-                  const active = statusFilter === f.id;
+            <div className="space-y-4 pt-1">
+              {/* Circular KPIs: Phone View (Horizontally Scrollable Circular Cards like in CPM / SPM login) */}
+              <div className="flex sm:hidden items-center gap-2.5 overflow-x-auto no-scrollbar py-1 px-0.5 scroll-smooth snap-x">
+                {kpiItems.map((item) => {
+                  const Icon = item.icon;
+                  const isSelected = statusFilter === item.key;
                   return (
                     <button
-                      key={f.id}
+                      key={`phone-${item.label}`}
                       type="button"
-                      onClick={() => setStatusFilter(f.id)}
+                      onClick={() => setStatusFilter(item.key)}
+                      title={`Filter by ${item.label}`}
                       className={cn(
-                        'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border',
-                        active
-                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
-                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
+                        'group shrink-0 w-[74px] h-[74px] rounded-full aspect-square snap-start flex flex-col items-center justify-center p-1 border transition-all duration-200 cursor-pointer select-none text-center',
+                        isSelected
+                          ? item.activeStyle
+                          : 'bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/70 text-slate-700 shadow-2xs'
                       )}
                     >
-                      <span>{f.label}</span>
+                      <Icon
+                        size={13}
+                        weight={isSelected ? 'fill' : 'bold'}
+                        className={cn(
+                          'shrink-0 mb-0.5 transition-colors',
+                          isSelected ? item.activeIcon : item.color
+                        )}
+                      />
                       <span
                         className={cn(
-                          'px-1.5 py-0.2 rounded-full text-[10px] font-bold',
-                          active
-                            ? 'bg-white/20 text-white'
-                            : 'bg-slate-100 text-slate-600'
+                          'text-base font-black tracking-tight leading-none',
+                          isSelected ? item.activeText : 'text-slate-800'
                         )}
                       >
-                        {f.count}
+                        {item.value}
                       </span>
+                      <span
+                        className={cn(
+                          'text-[8.5px] font-semibold tracking-tight mt-0.5 max-w-[62px] truncate px-0.5 text-center leading-tight',
+                          isSelected ? item.activeSub : 'text-slate-500'
+                        )}
+                      >
+                        {item.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Desktop View: Full 5 Rounded KPI Cards in a Grid like in CPM / SPM login */}
+              <div className="hidden sm:grid sm:grid-cols-5 sm:gap-3">
+                {kpiItems.map((item) => {
+                  const Icon = item.icon;
+                  const isSelected = statusFilter === item.key;
+                  return (
+                    <button
+                      key={`desktop-${item.label}`}
+                      type="button"
+                      onClick={() => setStatusFilter(item.key)}
+                      className={cn(
+                        'p-3.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer flex items-center justify-between gap-3',
+                        isSelected
+                          ? item.activeDesktopStyle
+                          : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/70 shadow-2xs'
+                      )}
+                    >
+                      <div>
+                        <div
+                          className={cn(
+                            'text-xs font-semibold',
+                            isSelected ? item.activeDesktopText : 'text-slate-500'
+                          )}
+                        >
+                          {item.desktopLabel}
+                        </div>
+                        <div
+                          className={cn(
+                            'text-2xl font-black mt-0.5 tracking-tight',
+                            isSelected ? item.activeDesktopText : 'text-slate-800'
+                          )}
+                        >
+                          {item.value}
+                        </div>
+                      </div>
+                      <div
+                        className={cn(
+                          'w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors',
+                          isSelected ? item.activeDesktopIconBg : 'bg-slate-100 text-slate-600'
+                        )}
+                      >
+                        <Icon
+                          size={20}
+                          weight={isSelected ? 'fill' : 'bold'}
+                          className={isSelected ? 'text-white' : item.color}
+                        />
+                      </div>
                     </button>
                   );
                 })}
@@ -175,7 +375,7 @@ export default function InternTasksPage() {
                 </div>
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {filteredTasks.map(task => (
+                  {filteredTasks.map((task) => (
                     <TaskCard key={task.id} task={task} onStatusUpdate={updateStatus} />
                   ))}
                 </div>
