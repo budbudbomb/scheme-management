@@ -21,7 +21,7 @@ const schema = z.object({
   priority: z.enum(['high', 'medium', 'low'] as const),
   startDate: z.string().min(1, 'Start date required'),
   endDate: z.string().min(1, 'End date required'),
-  assignedToIds: z.array(z.string()).min(1, 'Assign to at least one user'),
+  assignedToIds: z.array(z.string()).default([]),
   isSurveyTask: z.boolean().optional(),
   surveyId: z.string().optional(),
 })
@@ -523,8 +523,37 @@ function NewTaskForm() {
 
   const onSubmit = async (data: FormData) => {
     try {
+      if (assignmentMode === 'role' && (!data.assignedToIds || data.assignedToIds.length === 0)) {
+        toast.error('Assign to at least one user');
+        return;
+      }
+      let areaTarget = stoppedLevelName;
+      if (assignmentMode === 'area') {
+        if (!areaTarget && checkedAreaItem) {
+          if (areaStep === 'division') {
+            const d = divisions.find(item => item.id === checkedAreaItem);
+            if (d) areaTarget = `Division: ${d.name}`;
+          } else if (areaStep === 'district') {
+            const dst = currentDivisionDistricts.find(item => item.id === checkedAreaItem);
+            if (dst) areaTarget = `District: ${dst.name}`;
+          } else if (areaStep === 'block') {
+            const blk = currentDistrictBlocks.find(item => item.id === checkedAreaItem);
+            if (blk) areaTarget = `Block: ${blk.name}`;
+          } else if (areaStep === 'gp') {
+            const gp = currentBlockGPs.find(item => item.id === checkedAreaItem);
+            if (gp) areaTarget = `Gram Panchayat: ${gp.name}`;
+          } else if (areaStep === 'village') {
+            const v = currentGPVillages.find(item => item.id === checkedAreaItem);
+            if (v) areaTarget = `Village: ${v.name}`;
+          }
+        }
+      }
       await tasksApi.create(data);
-      toast.success('Task created and assigned successfully');
+      toast.success(
+        assignmentMode === 'area'
+          ? `Task allocated to ${areaTarget || 'selected area'} successfully`
+          : 'Task created and assigned successfully'
+      );
       router.push('/admin/tasks');
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to create task');
@@ -1036,7 +1065,7 @@ function NewTaskForm() {
                     <span>Fellows</span>
                   </button>
 
-                  {/* PCs Button */}
+                  {/* Program Coordinators Button */}
                   <button
                     type="button"
                     onClick={() => setRoleGroup(prev => prev === 'pc' ? null : 'pc')}
@@ -1048,7 +1077,7 @@ function NewTaskForm() {
                     )}
                   >
                     <Checks size={14} className={roleGroup === 'pc' ? 'text-white' : 'text-amber-600'} weight="bold" />
-                    <span>PCs</span>
+                    <span>Program Coordinators</span>
                   </button>
 
                   {/* Clear Selection Button */}
@@ -1117,7 +1146,7 @@ function NewTaskForm() {
                       <option value="all">All Roles ({users.length})</option>
                       <option value="intern">Interns ({internCount})</option>
                       <option value="fellow">Fellows ({fellowCount})</option>
-                      <option value="pc">PCs ({pcCount})</option>
+                      <option value="pc">Program Coordinators ({pcCount})</option>
                     </select>
                   </div>
                 </div>
@@ -1140,7 +1169,7 @@ function NewTaskForm() {
                     >
                       {isAllCurrentGroupSelected
                         ? `Deselect (${filteredUsers.length})`
-                        : `+ Assign ${roleGroup === 'intern' ? 'Interns' : roleGroup === 'fellow' ? 'Fellows' : roleGroup === 'pc' ? 'PCs' : 'All'} (${filteredUsers.length})`}
+                        : `+ Assign ${roleGroup === 'intern' ? 'Interns' : roleGroup === 'fellow' ? 'Fellows' : roleGroup === 'pc' ? 'Program Coordinators' : 'All'} (${filteredUsers.length})`}
                     </button>
                   )}
                 </div>
@@ -1208,10 +1237,10 @@ function NewTaskForm() {
                 {/* If still exploring hierarchy */}
                 {areaStep !== 'completed' && (
                   <div className="border border-emerald-200 rounded-xl bg-white shadow-2xs overflow-hidden">
-                    {/* Navigation, Breadcrumb & Action Buttons Header */}
-                    <div className="p-3 sm:p-3.5 bg-gradient-to-r from-emerald-50/90 to-teal-50/60 border-b border-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    {/* Navigation, Breadcrumb & Action Buttons Header - SLIM SINGLE ROW */}
+                    <div className="py-2 px-2.5 sm:py-2.5 sm:px-3.5 bg-gradient-to-r from-emerald-50/90 to-teal-50/60 border-b border-emerald-100 flex items-center justify-between gap-1.5 flex-wrap">
                       {/* Left: Back button & Breadcrumb Info */}
-                      <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
                         {areaStep !== 'division' && (
                           <button
                             type="button"
@@ -1234,59 +1263,26 @@ function NewTaskForm() {
                                 setSelectedVillage('');
                               }
                             }}
-                            className="p-1.5 rounded-lg bg-white/80 hover:bg-white text-slate-700 hover:text-slate-900 border border-emerald-200/70 transition-colors cursor-pointer flex items-center gap-1 text-xs font-semibold shrink-0"
+                            className="p-1 rounded-md bg-white hover:bg-slate-50 text-slate-700 border border-emerald-200/70 transition-colors cursor-pointer flex items-center shrink-0"
+                            aria-label="Back"
                           >
                             <ArrowLeft size={13} weight="bold" />
-                            <span className="hidden sm:inline">Back</span>
                           </button>
                         )}
                         <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 text-xs text-emerald-800 font-semibold truncate">
-                            <span>Area</span>
-                            {selectedDivision && (
-                              <>
-                                <CaretRight size={11} className="text-slate-400 shrink-0" weight="bold" />
-                                <span className="text-slate-700 truncate">{divisions.find(d => d.id === selectedDivision)?.name.replace(/\s+Division$/i, '')}</span>
-                              </>
-                            )}
-                            {selectedDistrict && (
-                              <>
-                                <CaretRight size={11} className="text-slate-400 shrink-0" weight="bold" />
-                                <span className="text-slate-700 truncate">{districts.find(d => d.id === selectedDistrict)?.name}</span>
-                              </>
-                            )}
-                            {selectedBlock && (
-                              <>
-                                <CaretRight size={11} className="text-slate-400 shrink-0" weight="bold" />
-                                <span className="text-slate-700 truncate">{blocks.find(b => b.id === selectedBlock)?.name}</span>
-                              </>
-                            )}
-                            {selectedGP && (
-                              <>
-                                <CaretRight size={11} className="text-slate-400 shrink-0" weight="bold" />
-                                <span className="text-slate-700 truncate">{gramPanchayats.find(g => g.id === selectedGP)?.name}</span>
-                              </>
-                            )}
-                            {selectedVillage && (
-                              <>
-                                <CaretRight size={11} className="text-slate-400 shrink-0" weight="bold" />
-                                <span className="text-slate-700 truncate">{villages.find(v => v.id === selectedVillage)?.name}</span>
-                              </>
-                            )}
-                          </div>
-                          <h3 className="text-xs sm:text-sm font-bold text-slate-900 mt-0.5 truncate">
+                          <h3 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
                             {areaStep === 'division' && 'Select Division'}
-                            {areaStep === 'district' && `Select District in ${divisions.find(d => d.id === selectedDivision)?.name}`}
-                            {areaStep === 'block' && `Select Block in ${districts.find(d => d.id === selectedDistrict)?.name}`}
-                            {areaStep === 'gp' && `Select Gram Panchayat in ${blocks.find(b => b.id === selectedBlock)?.name}`}
-                            {areaStep === 'village' && `Select Village in ${gramPanchayats.find(g => g.id === selectedGP)?.name}`}
-                            {areaStep === 'person' && `Select Person in ${villages.find(v => v.id === selectedVillage)?.name}`}
+                            {areaStep === 'district' && `District in ${divisions.find(d => d.id === selectedDivision)?.name.replace(/\s+Division$/i, '')}`}
+                            {areaStep === 'block' && `Block in ${districts.find(d => d.id === selectedDistrict)?.name}`}
+                            {areaStep === 'gp' && `GP in ${blocks.find(b => b.id === selectedBlock)?.name}`}
+                            {areaStep === 'village' && `Village in ${gramPanchayats.find(g => g.id === selectedGP)?.name}`}
+                            {areaStep === 'person' && `Person in ${villages.find(v => v.id === selectedVillage)?.name}`}
                           </h3>
                         </div>
                       </div>
 
                       {/* Right: Action Buttons in the Header (enabled when an item checkbox is checked) */}
-                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                      <div className="flex items-center gap-1.5 shrink-0">
                         {areaStep === 'division' && (
                           <>
                             <button
@@ -1297,7 +1293,7 @@ function NewTaskForm() {
                                 if (d) handleSelectEntireDivision(d);
                               }}
                               className={cn(
-                                'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs',
+                                'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer shadow-2xs',
                                 checkedAreaItem
                                   ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
                                   : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
@@ -1313,7 +1309,7 @@ function NewTaskForm() {
                                 if (d) handleDrillDownDivision(d);
                               }}
                               className={cn(
-                                'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
+                                'px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
                                 checkedAreaItem
                                   ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
                                   : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
@@ -1335,7 +1331,7 @@ function NewTaskForm() {
                                 if (dst) handleSelectEntireDistrict(dst);
                               }}
                               className={cn(
-                                'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs',
+                                'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer shadow-2xs',
                                 checkedAreaItem
                                   ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
                                   : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
@@ -1351,7 +1347,7 @@ function NewTaskForm() {
                                 if (dst) handleDrillDownDistrict(dst);
                               }}
                               className={cn(
-                                'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
+                                'px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
                                 checkedAreaItem
                                   ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
                                   : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
@@ -1373,7 +1369,7 @@ function NewTaskForm() {
                                 if (blk) handleSelectEntireBlock(blk);
                               }}
                               className={cn(
-                                'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs',
+                                'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer shadow-2xs',
                                 checkedAreaItem
                                   ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
                                   : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
@@ -1389,7 +1385,7 @@ function NewTaskForm() {
                                 if (blk) handleDrillDownBlock(blk);
                               }}
                               className={cn(
-                                'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
+                                'px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
                                 checkedAreaItem
                                   ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
                                   : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
@@ -1411,7 +1407,7 @@ function NewTaskForm() {
                                 if (gp) handleSelectEntireGP(gp);
                               }}
                               className={cn(
-                                'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs',
+                                'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer shadow-2xs',
                                 checkedAreaItem
                                   ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
                                   : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
@@ -1427,7 +1423,7 @@ function NewTaskForm() {
                                 if (gp) handleDrillDownGP(gp);
                               }}
                               className={cn(
-                                'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
+                                'px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
                                 checkedAreaItem
                                   ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
                                   : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
@@ -1449,7 +1445,7 @@ function NewTaskForm() {
                                 if (v) handleSelectEntireVillage(v);
                               }}
                               className={cn(
-                                'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs',
+                                'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer shadow-2xs',
                                 checkedAreaItem
                                   ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
                                   : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
@@ -1465,7 +1461,7 @@ function NewTaskForm() {
                                 if (v) handleDrillDownVillage(v);
                               }}
                               className={cn(
-                                'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
+                                'px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
                                 checkedAreaItem
                                   ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
                                   : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
@@ -1841,7 +1837,7 @@ function NewTaskForm() {
               </div>
             )}
 
-            {errors.assignedToIds && (
+            {assignmentMode === 'role' && errors.assignedToIds && (
               <p className="text-xs text-rose-600 font-medium flex items-center gap-1">
                 <Warning size={13} weight="bold" /> {errors.assignedToIds.message}
               </p>
