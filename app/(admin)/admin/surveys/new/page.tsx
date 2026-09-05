@@ -386,7 +386,7 @@ export default function AdminNewSurveyPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6 pb-36 sm:pb-24 px-1.5 sm:px-0">
+    <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6 pb-24 sm:pb-20 px-1.5 sm:px-0">
       {/* ── Top Breadcrumb & Page Header ── */}
       {/* Desktop Header */}
       <div className="hidden sm:flex items-center justify-between gap-4 flex-wrap">
@@ -1369,28 +1369,28 @@ export default function AdminNewSurveyPage() {
         </div>
       )}
 
-      {/* ── Mobile Frozen Bottom Action Bar (Portalled directly to document.body, sitting safely above BottomNav, hidden when keyboard open) ── */}
+      {/* ── Mobile Frozen Floating Bottom Actions (Lifting above BottomNav with NO background card) ── */}
       {mounted && !isKeyboardOpen && createPortal(
-        <div className="sm:hidden fixed bottom-[calc(52px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-3 py-2.5 shadow-lg">
+        <div className="sm:hidden fixed bottom-[calc(86px+env(safe-area-inset-bottom,0px))] left-4 right-4 max-w-lg mx-auto z-50 pointer-events-none">
           {currentStep === 1 ? (
-            <div className="flex items-center gap-2 max-w-lg mx-auto">
+            <div className="flex items-center gap-2.5 pointer-events-auto">
               <Link
                 href="/admin/surveys"
-                className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50 shrink-0 text-center"
+                className="h-11 px-5 rounded-full border border-slate-200/90 bg-white/95 backdrop-blur-md text-slate-700 text-xs font-bold shadow-lg shadow-slate-900/10 hover:bg-slate-50 shrink-0 flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
               >
                 Cancel
               </Link>
               <button
                 type="button"
                 onClick={handleNextToStep2}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-indigo-600 text-white text-xs font-bold shadow-md hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                className="flex-1 h-11 px-5 rounded-full bg-indigo-600 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>Next: Add Questions</span>
                 <ArrowRight size={14} weight="bold" />
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2 max-w-lg mx-auto">
+            <div className="flex items-center gap-2 pointer-events-auto">
               {/* Back button */}
               <button
                 type="button"
@@ -1398,7 +1398,7 @@ export default function AdminNewSurveyPage() {
                   setCurrentStep(1);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="w-10 h-10 rounded-xl border border-slate-200 bg-white text-slate-700 flex items-center justify-center shrink-0 shadow-2xs hover:bg-slate-50 active:scale-95 cursor-pointer"
+                className="w-11 h-11 rounded-full border border-slate-200/90 bg-white/95 backdrop-blur-md text-slate-700 flex items-center justify-center shrink-0 shadow-lg shadow-slate-900/10 hover:bg-slate-50 active:scale-95 cursor-pointer transition-transform"
                 aria-label="Back to general details"
               >
                 <ArrowLeft size={16} weight="bold" />
@@ -1409,7 +1409,7 @@ export default function AdminNewSurveyPage() {
                 type="button"
                 disabled={isSubmitting}
                 onClick={() => handleSave(false)}
-                className="flex-1 h-10 px-3 rounded-xl bg-indigo-600 text-white text-xs font-bold shadow-md hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+                className="flex-1 h-11 px-4 rounded-full bg-indigo-600 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
               >
                 {isSubmitting ? (
                   <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1424,7 +1424,7 @@ export default function AdminNewSurveyPage() {
                 type="button"
                 disabled={isSubmitting}
                 onClick={() => handleSave(true)}
-                className="h-10 px-3 rounded-xl bg-purple-600 text-white text-xs font-bold shadow-md hover:bg-purple-700 active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-60 shrink-0"
+                className="h-11 px-4 rounded-full bg-purple-600 text-white text-xs font-bold shadow-lg shadow-purple-600/30 hover:bg-purple-700 active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-60 shrink-0"
                 title="Save and assign as task"
               >
                 <span>Allocate</span>
