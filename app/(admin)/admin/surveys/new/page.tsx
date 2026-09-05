@@ -43,6 +43,7 @@ import type { QuestionType, SurveyQuestion, LikertConfig, SurveyDocument } from 
 import { toast } from 'sonner';
 import { useVirtualKeyboard } from '@/lib/hooks/useVirtualKeyboard';
 import DatePicker from '@/components/shared/DatePicker';
+import CustomSelect, { type SelectOption } from '@/components/shared/CustomSelect';
 
 // ── Question Types Metadata ──────────────────────────────────────────────────
 interface QuestionTypeDef {
@@ -1006,6 +1007,7 @@ export default function AdminNewSurveyPage() {
                   )}
 
                   {/* 3. LIKERT SCALE */}
+                  {/* 3. LIKERT SCALE (1 to 5) */}
                   {q.type === 'likert_scale' && (() => {
                     const currentLabels = q.likertConfig?.labels || [
                       q.likertConfig?.lowLabel || 'Very Dissatisfied',
@@ -1015,42 +1017,69 @@ export default function AdminNewSurveyPage() {
                       q.likertConfig?.highLabel || 'Very Satisfied',
                     ];
 
+                    const matchingPresetIdx = LIKERT_PRESETS.findIndex(
+                      p => p.labels.every((l, i) => l === currentLabels[i])
+                    );
+                    const currentPresetVal = matchingPresetIdx >= 0 ? String(matchingPresetIdx) : 'custom';
+
+                    const likertOptions: SelectOption[] = [
+                      ...LIKERT_PRESETS.map((p, pIdx) => ({
+                        value: String(pIdx),
+                        label: p.label,
+                        subtext: p.labels.join(' · '),
+                        badge: '5 pts',
+                        badgeColor: 'bg-purple-100 text-purple-700',
+                      })),
+                      ...(currentPresetVal === 'custom'
+                        ? [{
+                            value: 'custom',
+                            label: 'Custom Labels (User Defined)',
+                            subtext: currentLabels.join(' · '),
+                            badge: 'Custom',
+                            badgeColor: 'bg-amber-100 text-amber-700',
+                          }]
+                        : []),
+                    ];
+
                     return (
-                      <div className="p-4 sm:p-5 rounded-2xl bg-purple-50/40 border border-purple-100 space-y-3.5">
-                        {/* Preset selector */}
-                        <div className="flex items-center justify-between flex-wrap gap-2">
-                          <div>
-                            <span className="text-xs font-bold text-purple-900 uppercase tracking-wider block">
-                              Likert Scale Configuration (5 Points)
-                            </span>
-                            <span className="text-[11px] text-purple-600/80">
-                              Edit option names directly inside any of the 5 boxes below
-                            </span>
+                      <div className="p-4 sm:p-5 rounded-2xl bg-purple-50/40 border border-purple-100 space-y-3.5 overflow-hidden">
+                        {/* Preset selector with CustomSelect */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between flex-wrap gap-1.5">
+                            <div>
+                              <span className="text-xs font-bold text-purple-900 uppercase tracking-wider block">
+                                Likert Scale Configuration (5 Points)
+                              </span>
+                              <span className="text-[11px] text-purple-600/80">
+                                Edit option names directly inside any of the 5 boxes below
+                              </span>
+                            </div>
                           </div>
-                          <select
-                            onChange={e => {
-                              const preset = LIKERT_PRESETS[parseInt(e.target.value)];
-                              if (preset) {
-                                updateQuestion(qIndex, {
-                                  ...q,
-                                  likertConfig: {
-                                    points: 5,
-                                    labels: [...preset.labels],
-                                    lowLabel: preset.labels[0],
-                                    midLabel: preset.labels[2],
-                                    highLabel: preset.labels[4],
-                                  },
-                                });
-                              }
-                            }}
-                            className="text-xs py-1.5 px-3 rounded-xl border border-purple-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs font-medium cursor-pointer"
-                          >
-                            {LIKERT_PRESETS.map((p, pIdx) => (
-                              <option key={p.label} value={pIdx}>
-                                Preset: {p.label}
-                              </option>
-                            ))}
-                          </select>
+
+                          <div className="w-full max-w-full">
+                            <CustomSelect
+                              label="Scale Preset Template"
+                              placeholder="Select a 5-point preset…"
+                              value={currentPresetVal}
+                              options={likertOptions}
+                              onChange={val => {
+                                const pIdx = parseInt(val);
+                                const preset = LIKERT_PRESETS[pIdx];
+                                if (preset) {
+                                  updateQuestion(qIndex, {
+                                    ...q,
+                                    likertConfig: {
+                                      points: 5,
+                                      labels: [...preset.labels],
+                                      lowLabel: preset.labels[0],
+                                      midLabel: preset.labels[2],
+                                      highLabel: preset.labels[4],
+                                    },
+                                  });
+                                }
+                              }}
+                            />
+                          </div>
                         </div>
 
                         {/* Directly Editable 5 Boxes */}
