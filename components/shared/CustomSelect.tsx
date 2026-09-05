@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   CaretDown,
   Check,
@@ -48,11 +49,23 @@ export default function CustomSelect({
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [mounted, setMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-enable search if there are more than 6 options unless explicitly specified
-  const isSearchEnabled = searchable ?? options.length > 6;
+  useEffect(() => {
+    setMounted(true);
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Auto-enable search if there are more than 4 options unless explicitly specified
+  const isSearchEnabled = searchable ?? options.length > 4;
 
   // Selected option
   const selectedOption = useMemo(
@@ -71,8 +84,9 @@ export default function CustomSelect({
     );
   }, [options, search]);
 
-  // Click outside to close
+  // Click outside to close (desktop anchored view)
   useEffect(() => {
+    if (isMobile) return;
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
@@ -85,7 +99,7 @@ export default function CustomSelect({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen]);
+  }, [isOpen, isMobile]);
 
   // Reset search when opening/closing
   useEffect(() => {
@@ -101,6 +115,90 @@ export default function CustomSelect({
   };
 
   const SelectedIcon = selectedOption?.icon;
+
+  // Render options list with smooth scrollbar
+  const renderOptionsList = (maxHeightClass = 'max-h-64') => (
+    <div
+      className={cn(
+        'overflow-y-auto space-y-1 p-1.5',
+        'scrollbar-thin [scrollbar-color:hsl(var(--color-border))_transparent]',
+        '[&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-slate-100/70 [&::-webkit-scrollbar-thumb]:bg-slate-300 hover:[&::-webkit-scrollbar-thumb]:bg-slate-400 [&::-webkit-scrollbar-thumb]:rounded-full',
+        maxHeightClass
+      )}
+    >
+      {filteredOptions.length === 0 ? (
+        <div className="py-8 text-center text-xs text-slate-400">
+          No matching options found
+        </div>
+      ) : (
+        filteredOptions.map((option) => {
+          const isSelected = value === option.value;
+          const OptionIcon = option.icon;
+
+          return (
+            <button
+              key={option.value}
+              type="button"
+              disabled={option.disabled}
+              onClick={() => handleSelect(option.value)}
+              className={cn(
+                'w-full px-3.5 py-2.5 rounded-xl text-left transition-all duration-150',
+                'flex items-center justify-between gap-3 cursor-pointer',
+                isSelected
+                  ? 'bg-indigo-50/90 text-indigo-950 font-semibold border border-indigo-200/80 shadow-2xs'
+                  : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900 border border-transparent',
+                option.disabled && 'opacity-40 cursor-not-allowed pointer-events-none'
+              )}
+            >
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                {OptionIcon && (
+                  <div
+                    className={cn(
+                      'w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors',
+                      isSelected
+                        ? 'bg-indigo-600 text-white shadow-2xs'
+                        : 'bg-slate-100 text-slate-500'
+                    )}
+                  >
+                    <OptionIcon size={15} weight={isSelected ? 'bold' : 'regular'} />
+                  </div>
+                )}
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm font-semibold truncate text-slate-900">
+                      {option.label}
+                    </span>
+                    {option.badge && (
+                      <span
+                        className={cn(
+                          'text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0',
+                          option.badgeColor || 'bg-slate-100 text-slate-600'
+                        )}
+                      >
+                        {option.badge}
+                      </span>
+                    )}
+                  </div>
+                  {option.subtext && (
+                    <p className="text-[11px] text-slate-500 truncate mt-0.5 leading-tight">
+                      {option.subtext}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {isSelected && (
+                <div className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                  <Check size={12} weight="bold" />
+                </div>
+              )}
+            </button>
+          );
+        })
+      )}
+    </div>
+  );
 
   return (
     <div
@@ -148,7 +246,7 @@ export default function CustomSelect({
                 {selectedOption.badge && (
                   <span
                     className={cn(
-                      'text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider',
+                      'text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0',
                       selectedOption.badgeColor || 'bg-slate-100 text-slate-600'
                     )}
                   >
@@ -175,19 +273,108 @@ export default function CustomSelect({
         <p className="mt-1 text-[11px] text-rose-600 font-medium">{errorMessage}</p>
       )}
 
-      {/* Dropdown Menu Card */}
-      {isOpen && (
+      {/* ── MOBILE VIEW: POPUP MODAL WITH BACKDROP & SCROLLBAR (Above bottom buttons) ── */}
+      {isOpen && isMobile && mounted && createPortal(
+        <div
+          data-no-keyboard="true"
+          data-dropdown="true"
+          className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200"
+        >
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity"
+            onClick={() => setIsOpen(false)}
+          />
+
+          {/* Modal Pop Up Dialog */}
+          <div
+            className={cn(
+              'relative z-[75] w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200/90 overflow-hidden flex flex-col',
+              'max-h-[80vh] mb-2 sm:mb-0',
+              'animate-in fade-in zoom-in-95 slide-in-from-bottom-5 duration-200'
+            )}
+          >
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="font-bold text-slate-900 text-sm truncate">
+                  {label || 'Select an Option'}
+                </span>
+                <span className="text-[10px] font-bold text-slate-500 bg-slate-200/70 px-2 py-0.5 rounded-full">
+                  {options.length}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer"
+              >
+                <X size={15} weight="bold" />
+              </button>
+            </div>
+
+            {/* Search Input inside Pop Up */}
+            {isSearchEnabled && (
+              <div className="p-2.5 border-b border-slate-100 bg-white">
+                <div className="relative flex items-center">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <MagnifyingGlass size={14} weight="bold" />
+                  </div>
+                  <input
+                    type="text"
+                    data-no-keyboard="true"
+                    placeholder="Search options…"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 hover:bg-slate-100/80 focus:bg-white rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-all placeholder:text-slate-400"
+                  />
+                  {search && (
+                    <button
+                      type="button"
+                      onClick={() => setSearch('')}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      <X size={13} weight="bold" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Scrollable Options List */}
+            {renderOptionsList('max-h-[50vh]')}
+
+            {/* Pop Up Footer */}
+            <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
+              <span className="text-[11px] text-slate-400 font-medium">
+                {filteredOptions.length} available
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200/70 cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── DESKTOP VIEW: ANCHORED DROPDOWN CARD WITH SMOOTH SCROLLBAR ── */}
+      {isOpen && !isMobile && (
         <div
           data-no-keyboard="true"
           className={cn(
-            'absolute z-50 mt-1.5 w-full bg-white rounded-2xl border border-slate-200/90 shadow-[0_12px_36px_-6px_rgba(0,0,0,0.18),0_4px_12px_rgba(0,0,0,0.06)] p-1.5',
+            'absolute z-50 mt-1.5 w-full bg-white rounded-2xl border border-slate-200/90 shadow-[0_12px_36px_-6px_rgba(0,0,0,0.18),0_4px_12px_rgba(0,0,0,0.06)] overflow-hidden',
             'animate-in fade-in zoom-in-95 duration-150',
             'left-0 right-0'
           )}
         >
-          {/* Optional Search Filter inside Dropdown */}
+          {/* Search Filter */}
           {isSearchEnabled && (
-            <div className="p-1.5 border-b border-slate-100 mb-1">
+            <div className="p-2 border-b border-slate-100 bg-slate-50/50">
               <div className="relative flex items-center">
                 <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
                   <MagnifyingGlass size={14} weight="bold" />
@@ -196,10 +383,10 @@ export default function CustomSelect({
                   ref={searchInputRef}
                   type="text"
                   data-no-keyboard="true"
-                  placeholder="Filter options…"
+                  placeholder="Search options…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-8 pr-7 py-1.5 text-xs bg-slate-50 hover:bg-slate-100/80 focus:bg-white rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-all placeholder:text-slate-400"
+                  className="w-full pl-8 pr-7 py-1.5 text-xs bg-white hover:bg-slate-100/50 focus:bg-white rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-all placeholder:text-slate-400"
                 />
                 {search && (
                   <button
@@ -214,80 +401,8 @@ export default function CustomSelect({
             </div>
           )}
 
-          {/* Options List */}
-          <div className="max-h-60 overflow-y-auto space-y-0.5 px-0.5 py-0.5">
-            {filteredOptions.length === 0 ? (
-              <div className="py-6 text-center text-xs text-slate-400">
-                No matching options
-              </div>
-            ) : (
-              filteredOptions.map((option) => {
-                const isSelected = value === option.value;
-                const OptionIcon = option.icon;
-
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    disabled={option.disabled}
-                    onClick={() => handleSelect(option.value)}
-                    className={cn(
-                      'w-full px-3 py-2.5 rounded-xl text-left transition-all duration-150',
-                      'flex items-center justify-between gap-2.5 cursor-pointer',
-                      isSelected
-                        ? 'bg-indigo-50/90 text-indigo-950 font-semibold'
-                        : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900',
-                      option.disabled && 'opacity-40 cursor-not-allowed pointer-events-none'
-                    )}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      {OptionIcon && (
-                        <div
-                          className={cn(
-                            'w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-colors',
-                            isSelected
-                              ? 'bg-indigo-600 text-white shadow-2xs'
-                              : 'bg-slate-100 text-slate-500'
-                          )}
-                        >
-                          <OptionIcon size={14} weight={isSelected ? 'bold' : 'regular'} />
-                        </div>
-                      )}
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs sm:text-sm font-medium truncate">
-                            {option.label}
-                          </span>
-                          {option.badge && (
-                            <span
-                              className={cn(
-                                'text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider',
-                                option.badgeColor || 'bg-slate-100 text-slate-600'
-                              )}
-                            >
-                              {option.badge}
-                            </span>
-                          )}
-                        </div>
-                        {option.subtext && (
-                          <p className="text-[11px] text-slate-400 truncate mt-0.5">
-                            {option.subtext}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {isSelected && (
-                      <div className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-                        <Check size={12} weight="bold" />
-                      </div>
-                    )}
-                  </button>
-                );
-              })
-            )}
-          </div>
+          {/* Options List with visible scrollbar */}
+          {renderOptionsList('max-h-64')}
         </div>
       )}
     </div>
