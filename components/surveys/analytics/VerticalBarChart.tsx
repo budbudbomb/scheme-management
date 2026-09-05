@@ -33,10 +33,10 @@ export default function VerticalBarChart({
       )}
 
       {/* ── Columns & Top Percentages ── */}
-      <div className="w-full pt-6 pb-2">
-        <div className="flex items-end justify-around gap-2 sm:gap-3 h-[180px] w-full px-1">
+      <div className="w-full pt-4 sm:pt-6 pb-2">
+        <div className="flex items-end justify-around gap-1 sm:gap-3 h-[150px] sm:h-[180px] w-full px-0.5 sm:px-1">
           {distributions.map((item, idx) => {
-            const barHeight = Math.max(12, Math.round((item.percentage / maxPct) * chartHeight));
+            const barHeight = Math.max(10, Math.round((item.percentage / maxPct) * chartHeight));
 
             return (
               <div
@@ -44,13 +44,13 @@ export default function VerticalBarChart({
                 className="flex-1 flex flex-col items-center justify-end h-full group cursor-pointer"
               >
                 {/* Floating percentage label on top of bar */}
-                <span className="text-xs sm:text-sm font-black text-slate-800 mb-1.5 transition-transform group-hover:-translate-y-1">
+                <span className="text-[10px] sm:text-sm font-black text-slate-800 mb-1 sm:mb-1.5 transition-transform group-hover:-translate-y-1">
                   {item.percentage}%
                 </span>
 
                 {/* Vertical Bar */}
                 <div
-                  className="w-full max-w-[48px] rounded-t-lg transition-all duration-500 group-hover:brightness-110 shadow-xs relative overflow-hidden"
+                  className="w-full max-w-[32px] sm:max-w-[48px] rounded-t-md sm:rounded-t-lg transition-all duration-500 group-hover:brightness-110 shadow-xs relative overflow-hidden"
                   style={{
                     height: `${barHeight}px`,
                     backgroundColor: item.color,
@@ -68,16 +68,16 @@ export default function VerticalBarChart({
         <div className="w-full h-0.5 bg-slate-300 rounded-full my-1" />
 
         {/* Labels under baseline */}
-        <div className="flex items-start justify-around gap-2 sm:gap-3 w-full px-1 pt-1.5">
+        <div className="flex items-start justify-around gap-1 sm:gap-3 w-full px-0.5 sm:px-1 pt-1.5">
           {distributions.map((item, idx) => (
             <div
               key={idx}
               className="flex-1 text-center"
             >
-              <p className="text-[11px] font-bold text-slate-700 leading-tight break-words">
+              <p className="text-[9px] sm:text-[11px] font-bold text-slate-700 leading-tight break-words line-clamp-2 sm:line-clamp-none">
                 {item.label}
               </p>
-              <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+              <p className="text-[9px] sm:text-[10px] text-slate-400 font-medium mt-0.5">
                 {item.count} ans
               </p>
             </div>

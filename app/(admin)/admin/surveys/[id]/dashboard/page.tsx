@@ -26,6 +26,8 @@ import {
   type SurveyAnalyticsData,
 } from '@/lib/utils/surveyAnalytics';
 import QuestionAnalyticsCard from '@/components/surveys/analytics/QuestionAnalyticsCard';
+import LocationHierarchyFilter from '@/components/surveys/analytics/LocationHierarchyFilter';
+import type { LocationFilterState } from '@/lib/utils/locationData';
 import { SkeletonCard } from '@/components/shared/SkeletonCard';
 import { cn, formatDate } from '@/lib/utils/formatters';
 
@@ -45,6 +47,7 @@ export default function SurveyDashboardPage({ params }: SurveyDashboardPageProps
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>('all');
   const [expandTo30, setExpandTo30] = useState<boolean>(true); // Default to enabled so CPM/SPM can immediately see 30-question performance
+  const [locationFilter, setLocationFilter] = useState<LocationFilterState>({});
 
   useEffect(() => {
     async function loadSurvey() {
@@ -76,8 +79,8 @@ export default function SurveyDashboardPage({ params }: SurveyDashboardPageProps
       questions: questionsToUse,
     };
 
-    return getSurveyAnalytics(effectiveSurvey);
-  }, [survey, expandTo30]);
+    return getSurveyAnalytics(effectiveSurvey, locationFilter);
+  }, [survey, expandTo30, locationFilter]);
 
   // Filter questions based on search & type filter
   const filteredQuestions = useMemo(() => {
@@ -154,7 +157,7 @@ export default function SurveyDashboardPage({ params }: SurveyDashboardPageProps
   const questionCount = analyticsData.questionsAnalytics.length;
 
   return (
-    <div className="space-y-6 pb-24 max-w-7xl mx-auto">
+    <div className="space-y-6 pb-36 sm:pb-32 max-w-7xl mx-auto">
       {/* ── Top Back Navigation & Header Bar ── */}
       <div className="flex items-center justify-between gap-4 flex-wrap pb-2">
         <div className="space-y-1">
@@ -193,6 +196,14 @@ export default function SurveyDashboardPage({ params }: SurveyDashboardPageProps
           </button>
         </div>
       </div>
+
+      {/* ── Administrative 5-Level Cascading Drilldown Location Filter ── */}
+      <LocationHierarchyFilter
+        value={locationFilter}
+        onChange={setLocationFilter}
+        filteredCount={analyticsData.totalInterviewed}
+        totalCount={survey.responsesCount || 112}
+      />
 
       {/* ── Executive Metric KPI Strip ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -292,7 +303,7 @@ export default function SurveyDashboardPage({ params }: SurveyDashboardPageProps
 
       {/* ── Sticky Question Navigator Strip (handles up to 30 questions) ── */}
       <div className="sticky top-16 z-30 bg-white/95 backdrop-blur-md p-3 rounded-2xl border border-slate-200/90 shadow-sm space-y-2.5">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
               Jump to Question ({filteredQuestions.length}):
@@ -300,7 +311,7 @@ export default function SurveyDashboardPage({ params }: SurveyDashboardPageProps
           </div>
 
           {/* Search bar inside navigator */}
-          <div className="relative flex-1 sm:max-w-xs">
+          <div className="relative w-full sm:max-w-xs">
             <MagnifyingGlass size={15} className="absolute left-3 top-2.5 text-slate-400 pointer-events-none" />
             <input
               type="search"

@@ -1,4 +1,5 @@
 import type { Survey, SurveyQuestion } from '@/types/models';
+import type { LocationFilterState } from './locationData';
 
 export interface OptionDistribution {
   label: string;
@@ -12,9 +13,11 @@ export interface ParticipantDescriptiveResponse {
   participantNumber: number;
   participantName: string;
   initials: string;
-  village: string;
-  block: string;
+  division: string;
   district: string;
+  block: string;
+  gramPanchayat: string;
+  village: string;
   interviewDate: string;
   interviewerName: string;
   interviewerRole: 'intern' | 'fellow' | 'pc';
@@ -80,18 +83,42 @@ function seededRandom(seed: string) {
 }
 
 /**
- * Generates analytics for a survey and its questions.
+ * Generates analytics for a survey and its questions with optional 5-level location hierarchy filtering.
  */
-export function getSurveyAnalytics(survey: Survey): SurveyAnalyticsData {
-  const totalInterviewed = survey.responsesCount || 112;
+export function getSurveyAnalytics(
+  survey: Survey,
+  locationFilter?: LocationFilterState
+): SurveyAnalyticsData {
+  const baseTotal = survey.responsesCount || 112;
   const quotaRequired = survey.participantsRequired || 150;
+
+  // Scale total responses realistically if a geographic filter is active
+  let totalInterviewed = baseTotal;
+  let locSeed = '';
+  if (locationFilter?.village) {
+    totalInterviewed = Math.max(4, Math.round(baseTotal * 0.06));
+    locSeed = `v-${locationFilter.village}`;
+  } else if (locationFilter?.gramPanchayat) {
+    totalInterviewed = Math.max(8, Math.round(baseTotal * 0.12));
+    locSeed = `gp-${locationFilter.gramPanchayat}`;
+  } else if (locationFilter?.block) {
+    totalInterviewed = Math.max(16, Math.round(baseTotal * 0.25));
+    locSeed = `b-${locationFilter.block}`;
+  } else if (locationFilter?.district) {
+    totalInterviewed = Math.max(28, Math.round(baseTotal * 0.45));
+    locSeed = `d-${locationFilter.district}`;
+  } else if (locationFilter?.division) {
+    totalInterviewed = Math.max(54, Math.round(baseTotal * 0.72));
+    locSeed = `div-${locationFilter.division}`;
+  }
+
   const completionRate = Math.min(100, Math.round((totalInterviewed / quotaRequired) * 100));
 
   const questions = survey.questions || [];
 
   const questionsAnalytics: QuestionAnalytics[] = questions.map((q, idx) => {
     const qNum = idx + 1;
-    const seedBase = `${survey.id}-${q.id || idx}`;
+    const seedBase = `${survey.id}-${q.id || idx}-${locSeed}`;
 
     if (q.type === 'likert_scale') {
       const labels = q.likertConfig?.labels || [
@@ -102,10 +129,19 @@ export function getSurveyAnalytics(survey: Survey): SurveyAnalyticsData {
         q.likertConfig?.lowLabel || 'Very Dissatisfied',
       ];
 
-      // Realistic bell / satisfaction distribution
-      const weights = [38, 32, 18, 8, 4];
+      // Realistic bell / satisfaction distribution with deterministic local variance
+      const shift = Math.floor(seededRandom(seedBase) * 8) - 4;
+      const weights = [
+        Math.max(18, 38 + shift),
+        Math.max(14, 32 - shift),
+        18,
+        8,
+        4,
+      ];
+      const sumW = weights.reduce((a, b) => a + b, 0);
+
       const distributions: OptionDistribution[] = labels.map((label, lIdx) => {
-        const pct = weights[lIdx] ?? 10;
+        const pct = Math.round((weights[lIdx] / sumW) * 100);
         const count = Math.round((pct / 100) * totalInterviewed);
         return {
           label,
@@ -122,7 +158,7 @@ export function getSurveyAnalytics(survey: Survey): SurveyAnalyticsData {
           distributions[2].count * 3 +
           distributions[3].count * 2 +
           distributions[4].count * 1) /
-        totalInterviewed
+        (totalInterviewed || 1)
       ).toFixed(1);
 
       return {
@@ -139,7 +175,7 @@ export function getSurveyAnalytics(survey: Survey): SurveyAnalyticsData {
 
     if (q.type === 'dichotomous') {
       const labels = q.dichotomousLabels || ['Yes', 'No'];
-      const r = Math.round(55 + seededRandom(seedBase) * 25); // 55% - 80%
+      const r = Math.round(52 + seededRandom(seedBase) * 32); // 52% - 84%
       const yesPct = r;
       const noPct = 100 - yesPct;
       const distributions: OptionDistribution[] = [
@@ -206,12 +242,15 @@ export function getSurveyAnalytics(survey: Survey): SurveyAnalyticsData {
     }
 
     // Descriptive responses (Circle for each participant: voice, video, image, text)
+    // 20 participants covering Division -> District -> Block -> Gram Panchayat -> Village
     const participantTemplates: Array<{
       name: string;
       initials: string;
-      village: string;
-      block: string;
+      division: string;
       district: string;
+      block: string;
+      gramPanchayat: string;
+      village: string;
       responseType: 'voice' | 'video' | 'image' | 'text';
       textResponse: string;
       voiceDuration?: string;
@@ -222,22 +261,38 @@ export function getSurveyAnalytics(survey: Survey): SurveyAnalyticsData {
       avatarColor: string;
     }> = [
       {
-        name: 'Rameshwar Dhakad',
-        initials: 'RD',
-        village: 'Bharkhedi Kalan',
-        block: 'Ujjain Urban',
-        district: 'Ujjain',
+        name: 'Kamla Bai',
+        initials: 'KB',
+        division: 'Bhopal Division',
+        district: 'Sehore',
+        block: 'Ashta',
+        gramPanchayat: 'Kothri',
+        village: 'Kothri Kalan',
         responseType: 'voice',
-        textResponse: 'Voice Recording Transcript: "While Ladli Behna installments are disbursed on time each month, the youth in our village urgently require local skill coaching so they do not have to migrate to Indore or Kota for technical jobs."',
-        voiceDuration: '01:42',
-        avatarColor: '#6366f1',
+        textResponse: 'Voice Recording Transcript: "Elderly pension is credited directly to post office accounts on the 5th of every month without deductions. Extremely satisfied with DBT transfer."',
+        voiceDuration: '00:54',
+        avatarColor: '#059669',
+      },
+      {
+        name: 'Mohanlal Lodhi',
+        initials: 'ML',
+        division: 'Bhopal Division',
+        district: 'Sehore',
+        block: 'Ashta',
+        gramPanchayat: 'Kothri',
+        village: 'Kothri Khurd',
+        responseType: 'text',
+        textResponse: 'The newly constructed check dam under Jal Ganga Samvardhan Abhiyan has raised the water table in our borewells significantly before the Kharif sowing cycle.',
+        avatarColor: '#2563eb',
       },
       {
         name: 'Sunita Meena',
         initials: 'SM',
-        village: 'Kolar Ward 3',
-        block: 'Bhopal Rural',
+        division: 'Bhopal Division',
         district: 'Bhopal',
+        block: 'Bhopal Rural',
+        gramPanchayat: 'Kolar Ward 3',
+        village: 'Kolar Kalan',
         responseType: 'video',
         textResponse: 'Field Video Recording: Community meeting with women SHG members demonstrating their dairy cooperative ledger and requesting government linkage for refrigerated transport milk vans.',
         videoDuration: '02:18',
@@ -245,44 +300,143 @@ export function getSurveyAnalytics(survey: Survey): SurveyAnalyticsData {
         avatarColor: '#ec4899',
       },
       {
-        name: 'Gopal Yadav',
-        initials: 'GY',
-        village: 'Bhitarwar Khurd',
-        block: 'Gwalior Block A',
-        district: 'Gwalior',
+        name: 'Arvind Vishwakarma',
+        initials: 'AV',
+        division: 'Bhopal Division',
+        district: 'Bhopal',
+        block: 'Bhopal Rural',
+        gramPanchayat: 'Fanda Kalan',
+        village: 'Fanda Kalan',
         responseType: 'image',
-        textResponse: 'Photo Documentation: Captured field evidence of recently repaired bridge connecting the primary agricultural storage center to the state highway. Farmers can now transport produce even during rains.',
-        imageUrl: '/bridge_inspection.jpg',
-        imageCaption: 'Connecting bridge repaired under Gram Sadak Yojana',
-        avatarColor: '#14b8a6',
+        textResponse: 'Photo Documentation: Smart classroom equipment installed at the Government Higher Secondary School. Tablets and digital projector are actively utilized.',
+        imageUrl: '/smart_classroom.jpg',
+        imageCaption: 'Smart classroom setup in Fanda Kalan School',
+        avatarColor: '#d97706',
       },
       {
-        name: 'Manish Chouhan',
-        initials: 'MC',
-        village: 'Pithampur Sector 2',
-        block: 'Dhar Rural',
-        district: 'Dhar',
+        name: 'Virendra Singh',
+        initials: 'VS',
+        division: 'Bhopal Division',
+        district: 'Bhopal',
+        block: 'Berasia',
+        gramPanchayat: 'Berasia Dehat',
+        village: 'Berasia Gaon',
         responseType: 'text',
-        textResponse: 'Our village water pipeline reaches 70% of households, but during summer peak hours the pressure drops severely. A secondary booster pump near the community tank would solve the issue completely.',
-        avatarColor: '#0ea5e9',
+        textResponse: 'Mobile internet connectivity is weak in the outer settlements of our village. During online school tests, students have to walk 1 km towards the highway to get 4G coverage.',
+        avatarColor: '#4b5563',
+      },
+      {
+        name: 'Babulal Verma',
+        initials: 'BV',
+        division: 'Bhopal Division',
+        district: 'Sehore',
+        block: 'Budhni',
+        gramPanchayat: 'Shahganj',
+        village: 'Shahganj Village',
+        responseType: 'voice',
+        textResponse: 'Voice Recording Transcript: "Paddy procurement center operates smoothly with electronic weighing. The SMS token system has eliminated long queues at the Mandi."',
+        voiceDuration: '02:05',
+        avatarColor: '#0284c7',
+      },
+      {
+        name: 'Radhika Kushwaha',
+        initials: 'RK',
+        division: 'Bhopal Division',
+        district: 'Sehore',
+        block: 'Budhni',
+        gramPanchayat: 'Bakhtra',
+        village: 'Bakhtra',
+        responseType: 'text',
+        textResponse: 'The nutrition kit distribution at Anganwadi center is punctual. Pre-school children are provided hot cooked meals twice daily.',
+        avatarColor: '#db2777',
+      },
+      {
+        name: 'Devendra Baghel',
+        initials: 'DB',
+        division: 'Bhopal Division',
+        district: 'Sehore',
+        block: 'Sehore Rural',
+        gramPanchayat: 'Bilkisganj',
+        village: 'Bilkisganj',
+        responseType: 'image',
+        textResponse: 'Photo Record: Community bio-gas plant (GOBAR-dhan scheme) operational and generating cooking gas for 18 households in the settlement.',
+        imageUrl: '/biogas_plant.jpg',
+        imageCaption: 'GOBAR-dhan community bio-gas plant',
+        avatarColor: '#059669',
+      },
+      {
+        name: 'Anita Lodhi',
+        initials: 'AL',
+        division: 'Bhopal Division',
+        district: 'Raisen',
+        block: 'Sanchi',
+        gramPanchayat: 'Sanchi Dehat',
+        village: 'Sanchi Gaon',
+        responseType: 'image',
+        textResponse: 'Photo Record: Demonstration of new digital banking kiosk (Bank Mitra) installed inside the Panchayat Bhawan, serving 4 nearby villages with pension withdrawals.',
+        imageUrl: '/bank_mitra_kiosk.jpg',
+        imageCaption: 'Bank Mitra banking kiosk in Sanchi',
+        avatarColor: '#f59e0b',
+      },
+      {
+        name: 'Rameshwar Dhakad',
+        initials: 'RD',
+        division: 'Ujjain Division',
+        district: 'Ujjain',
+        block: 'Ujjain Urban',
+        gramPanchayat: 'Bharkhedi',
+        village: 'Bharkhedi Kalan',
+        responseType: 'voice',
+        textResponse: 'Voice Recording Transcript: "While Ladli Behna installments are disbursed on time each month, the youth in our village urgently require local skill coaching so they do not have to migrate to Indore or Kota for technical jobs."',
+        voiceDuration: '01:42',
+        avatarColor: '#6366f1',
+      },
+      {
+        name: 'Suman Malviya',
+        initials: 'SM',
+        division: 'Ujjain Division',
+        district: 'Ujjain',
+        block: 'Ujjain Urban',
+        gramPanchayat: 'Tajpur',
+        village: 'Tajpur',
+        responseType: 'voice',
+        textResponse: 'Voice Recording Transcript: "The Sub-health center was renovated last month. 24x7 institutional delivery facility is now available within 3 km."',
+        voiceDuration: '01:10',
+        avatarColor: '#8b5cf6',
       },
       {
         name: 'Pooja Tiwari',
         initials: 'PT',
-        village: 'Sanwer Kalan',
-        block: 'Sanwer',
+        division: 'Indore Division',
         district: 'Indore',
+        block: 'Sanwer',
+        gramPanchayat: 'Sanwer Kalan',
+        village: 'Sanwer Kalan',
         responseType: 'voice',
         textResponse: 'Voice Recording Transcript: "The primary health sub-center doctor visits twice a week. The ANM worker is doing excellent work with maternal vaccination, but generic anti-diabetes medicines are frequently stock-out."',
         voiceDuration: '01:15',
         avatarColor: '#f59e0b',
       },
       {
+        name: 'Jitendra Sen',
+        initials: 'JS',
+        division: 'Indore Division',
+        district: 'Indore',
+        block: 'Sanwer',
+        gramPanchayat: 'Chandrawatiganj',
+        village: 'Chandrawatiganj',
+        responseType: 'text',
+        textResponse: 'The Gram Panchayat e-governance kiosk has simplified caste and domicile certificate issuance. We no longer need to travel to Tehsil office.',
+        avatarColor: '#0284c7',
+      },
+      {
         name: 'Kailash Patidar',
         initials: 'KP',
-        village: 'Depalpur Ward 5',
-        block: 'Depalpur',
+        division: 'Indore Division',
         district: 'Indore',
+        block: 'Depalpur',
+        gramPanchayat: 'Depalpur Ward 5',
+        village: 'Depalpur Ward 5',
         responseType: 'image',
         textResponse: 'Field Photograph: Solar pump installation under PM Kusum scheme operational at cooperative farm field. Farmer reports 40% savings in diesel costs.',
         imageUrl: '/solar_pump_field.jpg',
@@ -290,81 +444,106 @@ export function getSurveyAnalytics(survey: Survey): SurveyAnalyticsData {
         avatarColor: '#10b981',
       },
       {
+        name: 'Manish Chouhan',
+        initials: 'MC',
+        division: 'Indore Division',
+        district: 'Dhar',
+        block: 'Dhar Rural',
+        gramPanchayat: 'Pithampur Sector 2',
+        village: 'Pithampur Sector 2',
+        responseType: 'text',
+        textResponse: 'Our village water pipeline reaches 70% of households, but during summer peak hours the pressure drops severely. A secondary booster pump near the community tank would solve the issue completely.',
+        avatarColor: '#0ea5e9',
+      },
+      {
+        name: 'Gopal Yadav',
+        initials: 'GY',
+        division: 'Gwalior Division',
+        district: 'Gwalior',
+        block: 'Gwalior Block A',
+        gramPanchayat: 'Bhitarwar Khurd',
+        village: 'Bhitarwar Khurd',
+        responseType: 'image',
+        textResponse: 'Photo Documentation: Captured field evidence of recently repaired bridge connecting the primary agricultural storage center to the state highway. Farmers can now transport produce even during rains.',
+        imageUrl: '/bridge_inspection.jpg',
+        imageCaption: 'Connecting bridge repaired under Gram Sadak Yojana',
+        avatarColor: '#14b8a6',
+      },
+      {
+        name: 'Meena Bai Tomar',
+        initials: 'MT',
+        division: 'Gwalior Division',
+        district: 'Gwalior',
+        block: 'Gwalior Block A',
+        gramPanchayat: 'Dabra Dehat',
+        village: 'Dabra Gaon',
+        responseType: 'video',
+        textResponse: 'Video Interview: Women craft group producing handloom bedsheets and sarees under One District One Product (ODOP) initiative with direct marketing linkages.',
+        videoDuration: '02:04',
+        videoThumbnail: 'ODOP Handloom Craft Group',
+        avatarColor: '#a855f7',
+      },
+      {
+        name: 'Rekha Ahirwar',
+        initials: 'RA',
+        division: 'Jabalpur Division',
+        district: 'Jabalpur',
+        block: 'Sihora',
+        gramPanchayat: 'Sihora Khurd',
+        village: 'Sihora Khurd',
+        responseType: 'text',
+        textResponse: 'Self-help group tailoring center established in January is running well with 22 women members. We received orders from the local block office for stitching school uniforms.',
+        avatarColor: '#f43f5e',
+      },
+      {
+        name: 'Santosh Kevat',
+        initials: 'SK',
+        division: 'Jabalpur Division',
+        district: 'Jabalpur',
+        block: 'Sihora',
+        gramPanchayat: 'Sihora Khurd',
+        village: 'Majholi',
+        responseType: 'voice',
+        textResponse: 'Voice Recording Transcript: "Fisheries cooperative society received subsidized fingerlings and net kits from District Fisheries office. Yield is up by 30% this year."',
+        voiceDuration: '01:28',
+        avatarColor: '#0284c7',
+      },
+      {
         name: 'Deepak Sharma',
         initials: 'DS',
-        village: 'Narsinghpur Basti',
-        block: 'Gadarwara',
+        division: 'Jabalpur Division',
         district: 'Narsinghpur',
+        block: 'Gadarwara',
+        gramPanchayat: 'Narsinghpur Basti',
+        village: 'Narsinghpur Basti',
         responseType: 'video',
         textResponse: 'Video Interview: Village Sarpanch and ward members discussing need for solar streetlights near the primary government school crossing to prevent accidents during foggy winter evenings.',
         videoDuration: '01:54',
         videoThumbnail: 'Interview with Village Sarpanch',
         avatarColor: '#8b5cf6',
       },
-      {
-        name: 'Rekha Ahirwar',
-        initials: 'RA',
-        village: 'Sihora Khurd',
-        block: 'Sihora',
-        district: 'Jabalpur',
-        responseType: 'text',
-        textResponse: 'Self-help group tailoring center established in January is running well with 22 women members. We received orders from the local block office for stitching school uniforms.',
-        avatarColor: '#f43f5e',
-      },
-      {
-        name: 'Babulal Verma',
-        initials: 'BV',
-        village: 'Hoshangabad Rural',
-        block: 'Babai',
-        district: 'Narmadapuram',
-        responseType: 'voice',
-        textResponse: 'Voice Recording Transcript: "Paddy procurement center operates smoothly with electronic weighing. The SMS token system has eliminated long queues at the Mandi."',
-        voiceDuration: '02:05',
-        avatarColor: '#0284c7',
-      },
-      {
-        name: 'Anita Lodhi',
-        initials: 'AL',
-        village: 'Damoh Dehat',
-        block: 'Jabera',
-        district: 'Damoh',
-        responseType: 'image',
-        textResponse: 'Photo Record: Demonstration of new digital banking kiosk (Bank Mitra) installed inside the Panchayat Bhawan, serving 4 nearby villages with pension withdrawals.',
-        imageUrl: '/bank_mitra_kiosk.jpg',
-        imageCaption: 'Bank Mitra banking kiosk in Damoh',
-        avatarColor: '#d97706',
-      },
-      {
-        name: 'Virendra Singh',
-        initials: 'VS',
-        village: 'Bina Block C',
-        block: 'Bina',
-        district: 'Sagar',
-        responseType: 'text',
-        textResponse: 'Mobile internet connectivity is weak in the outer settlements of our village. During online school tests, students have to walk 1 km towards the highway to get 4G coverage.',
-        avatarColor: '#4b5563',
-      },
-      {
-        name: 'Kamla Bai',
-        initials: 'KB',
-        village: 'Sehore Ward 8',
-        block: 'Ashta',
-        district: 'Sehore',
-        responseType: 'voice',
-        textResponse: 'Voice Recording Transcript: "Elderly pension is credited directly to post office accounts on the 5th of every month without deductions. Extremely satisfied with DBT transfer."',
-        voiceDuration: '00:54',
-        avatarColor: '#059669',
-      },
     ];
 
-    const participantResponses: ParticipantDescriptiveResponse[] = participantTemplates.map((p, pIdx) => ({
+    // Filter participant templates based on active location filter
+    const filteredTemplates = participantTemplates.filter(p => {
+      if (locationFilter?.division && p.division !== locationFilter.division) return false;
+      if (locationFilter?.district && p.district !== locationFilter.district) return false;
+      if (locationFilter?.block && p.block !== locationFilter.block) return false;
+      if (locationFilter?.gramPanchayat && p.gramPanchayat !== locationFilter.gramPanchayat) return false;
+      if (locationFilter?.village && p.village !== locationFilter.village) return false;
+      return true;
+    });
+
+    const participantResponses: ParticipantDescriptiveResponse[] = filteredTemplates.map((p, pIdx) => ({
       id: `part-resp-${pIdx + 1}`,
       participantNumber: pIdx + 1,
       participantName: p.name,
       initials: p.initials,
-      village: p.village,
-      block: p.block,
+      division: p.division,
       district: p.district,
+      block: p.block,
+      gramPanchayat: p.gramPanchayat,
+      village: p.village,
       interviewDate: '2026-08-28',
       interviewerName: pIdx % 2 === 0 ? 'Priya Patel' : 'Rohit Yadav',
       interviewerRole: 'intern' as const,

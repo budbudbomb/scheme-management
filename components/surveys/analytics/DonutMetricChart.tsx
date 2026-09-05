@@ -54,7 +54,7 @@ export default function DonutMetricChart({
   return (
     <div className="flex flex-col items-center justify-between w-full h-full p-2">
       {/* ── Donut Chart Ring ── */}
-      <div className="relative w-full max-w-[260px] aspect-square flex items-center justify-center">
+      <div className="relative w-full max-w-[230px] sm:max-w-[260px] aspect-square flex items-center justify-center">
         <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-full overflow-visible">
           {/* Base Track */}
           <circle
@@ -109,34 +109,34 @@ export default function DonutMetricChart({
 
         {/* Center Graphic matching Screenshot 2 */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <div className="w-12 h-12 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center text-indigo-600 shadow-inner">
-            <Gear size={24} weight="duotone" className="animate-spin-slow" />
+          <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center text-indigo-600 shadow-inner">
+            <Gear size={22} weight="duotone" className="animate-spin-slow" />
           </div>
-          <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">
+          <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 mt-0.5 sm:mt-1 uppercase tracking-wider">
             Total
           </span>
-          <span className="text-xs font-black text-slate-800">{totalAnswers}</span>
+          <span className="text-xs sm:text-sm font-black text-slate-800">{totalAnswers}</span>
         </div>
       </div>
 
       {/* ── Legend matching Screenshot 2 ── */}
-      <div className="w-full pt-4 mt-2 border-t border-slate-100 flex flex-col gap-2 px-2">
+      <div className="w-full pt-3 mt-1 border-t border-slate-100 flex flex-col gap-1.5 px-1 sm:px-2">
         {sorted.map((item, idx) => (
           <div key={idx} className="flex items-center justify-between text-xs group">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <div
                 className="w-4 h-4 rounded-md flex items-center justify-center shrink-0"
                 style={{ backgroundColor: `${item.color}20`, color: item.color }}
               >
                 <SealCheck size={12} weight="bold" />
               </div>
-              <span className="font-medium text-slate-700 truncate max-w-[200px] sm:max-w-none">
+              <span className="font-medium text-slate-700 truncate max-w-[140px] sm:max-w-none text-[11px] sm:text-xs">
                 {item.label}
               </span>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="text-slate-400 text-[11px]">({item.count})</span>
-              <span className="font-bold text-slate-900 w-9 text-right">{item.percentage}%</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-slate-400 text-[10px] sm:text-[11px]">({item.count})</span>
+              <span className="font-bold text-slate-900 w-8 sm:w-9 text-right text-xs sm:text-sm">{item.percentage}%</span>
             </div>
           </div>
         ))}

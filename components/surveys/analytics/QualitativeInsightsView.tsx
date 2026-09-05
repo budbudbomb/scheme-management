@@ -123,42 +123,62 @@ export default function QualitativeInsightsView({
       </div>
 
       {/* ── Grid of Participant Circles ── */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 py-2">
-        {filteredResponses.map((item, idx) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => {
-              setSelectedResponse(item);
-              setIsPlayingAudio(false);
-            }}
-            className="group flex flex-col items-center p-2 rounded-2xl hover:bg-slate-50 transition-all cursor-pointer text-center focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-          >
-            {/* Circle Avatar */}
-            <div className="relative">
-              <div
-                className="w-14 h-14 rounded-full flex items-center justify-center text-white font-extrabold text-sm shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:shadow-md border-2 border-white ring-2 ring-slate-100"
-                style={{ backgroundColor: item.avatarColor }}
-              >
-                {item.initials}
+      {filteredResponses.length === 0 ? (
+        <div className="py-8 px-4 text-center rounded-2xl bg-slate-50 border border-dashed border-slate-200 my-2 space-y-2">
+          <p className="text-xs font-bold text-slate-700">No participant responses match the current filter</p>
+          <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
+            {responses.length === 0
+              ? 'No qualitative submissions were recorded for this selected location. Try expanding the administrative location filter above.'
+              : `No responses found for the "${mediaFilter.toUpperCase()}" media filter in this location.`}
+          </p>
+          {mediaFilter !== 'all' && (
+            <button
+              type="button"
+              onClick={() => setMediaFilter('all')}
+              className="mt-1 px-3 py-1 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-indigo-600 hover:bg-slate-100 transition-colors cursor-pointer"
+            >
+              Reset to All Media Types
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 py-2">
+          {filteredResponses.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => {
+                setSelectedResponse(item);
+                setIsPlayingAudio(false);
+              }}
+              className="group flex flex-col items-center p-2 rounded-2xl hover:bg-slate-50 transition-all cursor-pointer text-center focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+            >
+              {/* Circle Avatar */}
+              <div className="relative">
+                <div
+                  className="w-14 h-14 rounded-full flex items-center justify-center text-white font-extrabold text-sm shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:shadow-md border-2 border-white ring-2 ring-slate-100"
+                  style={{ backgroundColor: item.avatarColor }}
+                >
+                  {item.initials}
+                </div>
+
+                {/* Media Type Corner Badge */}
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white shadow-xs border border-slate-200 flex items-center justify-center">
+                  {getMediaTypeIcon(item.responseType, 11)}
+                </div>
               </div>
 
-              {/* Media Type Corner Badge */}
-              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white shadow-xs border border-slate-200 flex items-center justify-center">
-                {getMediaTypeIcon(item.responseType, 11)}
-              </div>
-            </div>
-
-            {/* Participant Name & Village */}
-            <span className="text-xs font-bold text-slate-800 mt-2 truncate w-full group-hover:text-indigo-600 transition-colors">
-              {item.participantName}
-            </span>
-            <span className="text-[10px] text-slate-400 truncate w-full">
-              {item.village}
-            </span>
-          </button>
-        ))}
-      </div>
+              {/* Participant Name & Village */}
+              <span className="text-xs font-bold text-slate-800 mt-2 truncate w-full group-hover:text-indigo-600 transition-colors">
+                {item.participantName}
+              </span>
+              <span className="text-[10px] text-slate-400 truncate w-full">
+                {item.village}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* ── Response Modal Popup ── */}
       {selectedResponse && (

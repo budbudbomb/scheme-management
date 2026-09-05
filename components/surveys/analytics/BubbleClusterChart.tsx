@@ -63,7 +63,7 @@ export default function BubbleClusterChart({
   return (
     <div className="flex flex-col items-center justify-between w-full h-full p-2">
       {/* ── SVG Bubble Cluster ── */}
-      <div className="relative w-full max-w-[320px] aspect-[4/3] flex items-center justify-center">
+      <div className="relative w-full max-w-[260px] sm:max-w-[320px] aspect-[4/3] flex items-center justify-center">
         <svg
           viewBox={`0 0 ${width} ${height}`}
           className="w-full h-full overflow-visible drop-shadow-xs"
@@ -115,23 +115,23 @@ export default function BubbleClusterChart({
       </div>
 
       {/* ── Star-bullet Legend matching Screenshot 1 ── */}
-      <div className="w-full pt-4 mt-2 border-t border-slate-100 flex flex-col gap-1.5 px-2">
+      <div className="w-full pt-3 mt-1 border-t border-slate-100 flex flex-col gap-1.5 px-1 sm:px-2">
         {sorted.map((item, idx) => (
           <div key={idx} className="flex items-center justify-between text-xs group">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <Star
-                size={14}
+                size={13}
                 weight="fill"
                 style={{ color: item.color }}
                 className="shrink-0 transition-transform group-hover:scale-110"
               />
-              <span className="font-medium text-slate-700 truncate max-w-[200px] sm:max-w-none">
+              <span className="font-medium text-slate-700 truncate max-w-[140px] sm:max-w-none text-[11px] sm:text-xs">
                 {item.label}
               </span>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="text-slate-400 text-[11px]">({item.count})</span>
-              <span className="font-bold text-slate-900 w-9 text-right">{item.percentage}%</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-slate-400 text-[10px] sm:text-[11px]">({item.count})</span>
+              <span className="font-bold text-slate-900 w-8 sm:w-9 text-right text-xs sm:text-sm">{item.percentage}%</span>
             </div>
           </div>
         ))}

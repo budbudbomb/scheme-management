@@ -43,16 +43,16 @@ export default function QuestionAnalyticsCard({
   return (
     <div
       id={`question-card-${analytics.questionNumber}`}
-      className="card p-4 sm:p-6 border border-slate-200/90 shadow-2xs hover:shadow-sm transition-all bg-white rounded-2xl flex flex-col justify-between space-y-4"
+      className="card p-3 sm:p-5 border border-slate-200/90 shadow-2xs hover:shadow-sm transition-all bg-white rounded-2xl flex flex-col justify-between space-y-3 sm:space-y-4"
     >
       {/* ── Question Header ── */}
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div className="space-y-1 flex-1 min-w-[240px]">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5 sm:gap-3">
+        <div className="space-y-1 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white font-extrabold text-xs flex items-center justify-center shadow-xs shrink-0">
+            <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-indigo-600 text-white font-extrabold text-[11px] sm:text-xs flex items-center justify-center shadow-xs shrink-0">
               Q{analytics.questionNumber}
             </span>
-            <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
               {analytics.questionType.replace('_', ' ')}
             </span>
             <span className="text-xs text-slate-400 font-medium">
@@ -60,14 +60,14 @@ export default function QuestionAnalyticsCard({
             </span>
           </div>
 
-          <h3 className="font-bold text-slate-900 text-sm sm:text-base leading-snug pt-1">
+          <h3 className="font-bold text-slate-900 text-xs sm:text-sm md:text-base leading-snug pt-0.5">
             {analytics.questionText}
           </h3>
         </div>
 
         {/* ── Chart Type Switcher Toolbar ── */}
         {analytics.questionType !== 'descriptive' && (
-          <div className="flex items-center gap-1 p-1 bg-slate-100/90 rounded-xl border border-slate-200/80 shrink-0">
+          <div className="flex items-center gap-0.5 sm:gap-1 p-1 bg-slate-100/90 rounded-xl border border-slate-200/80 self-start sm:self-auto shrink-0">
             <button
               type="button"
               onClick={() => setActiveChart('bubble')}
