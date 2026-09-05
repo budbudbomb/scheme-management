@@ -454,6 +454,16 @@ function NewTaskForm() {
 
   const hasActiveLocation = !!(selectedDivisions.length > 0 || selectedDistricts.length > 0 || selectedBlocks.length > 0 || selectedGPs.length > 0 || selectedVillages.length > 0);
 
+  const currentAreaItemIds =
+    areaStep === 'division' ? divisions.map(d => d.id) :
+    areaStep === 'district' ? currentDivisionDistricts.map(d => d.id) :
+    areaStep === 'block' ? currentDistrictBlocks.map(b => b.id) :
+    areaStep === 'gp' ? currentBlockGPs.map(g => g.id) :
+    areaStep === 'village' ? currentGPVillages.map(v => v.id) :
+    areaStep === 'person' ? filteredUsers.map(u => u.id) : [];
+
+  const isAllCurrentAreaChecked = currentAreaItemIds.length > 0 && currentAreaItemIds.every(id => checkedAreaItems.includes(id));
+
   const selectAllCurrentGroup = () => {
     const existingIds = new Set(selectedUsers.map(u => u.id));
     const newUsers = filteredUsers.filter(u => !existingIds.has(u.id));
@@ -1301,19 +1311,8 @@ function NewTaskForm() {
             {assignmentMode === 'area' && (
               <div className="space-y-3 pt-0.5 animate-in fade-in duration-200">
                 {/* If still exploring hierarchy */}
-                {areaStep !== 'completed' && (() => {
-                  const currentItemIds =
-                    areaStep === 'division' ? divisions.map(d => d.id) :
-                    areaStep === 'district' ? currentDivisionDistricts.map(d => d.id) :
-                    areaStep === 'block' ? currentDistrictBlocks.map(b => b.id) :
-                    areaStep === 'gp' ? currentBlockGPs.map(g => g.id) :
-                    areaStep === 'village' ? currentGPVillages.map(v => v.id) :
-                    areaStep === 'person' ? filteredUsers.map(u => u.id) : [];
-
-                  const isAllCurrentChecked = currentItemIds.length > 0 && currentItemIds.every(id => checkedAreaItems.includes(id));
-
-                  return (
-                    <div className="border border-emerald-200 rounded-xl bg-white shadow-2xs overflow-hidden">
+                {areaStep !== 'completed' && (
+                  <div className="border border-emerald-200 rounded-xl bg-white shadow-2xs overflow-hidden">
                       {/* Navigation, Breadcrumb & Action Buttons Header - SLIM SINGLE ROW */}
                       <div className="py-2 px-2.5 sm:py-2.5 sm:px-3.5 bg-gradient-to-r from-emerald-50/90 to-teal-50/60 border-b border-emerald-100 flex items-center justify-between gap-1.5 flex-wrap">
                         {/* Left: Back button & Breadcrumb Info */}
@@ -1380,13 +1379,13 @@ function NewTaskForm() {
                               )}
                             </h3>
 
-                            {currentItemIds.length > 1 && (
+                            {currentAreaItemIds.length > 1 && (
                               <button
                                 type="button"
-                                onClick={() => toggleSelectAllCurrent(currentItemIds)}
+                                onClick={() => toggleSelectAllCurrent(currentAreaItemIds)}
                                 className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-100/70 hover:bg-emerald-100 px-2 py-0.5 rounded-md transition-colors cursor-pointer shrink-0"
                               >
-                                {isAllCurrentChecked ? 'Deselect All' : `Select All (${currentItemIds.length})`}
+                                {isAllCurrentAreaChecked ? 'Deselect All' : `Select All (${currentAreaItemIds.length})`}
                               </button>
                             )}
                           </div>
@@ -1822,8 +1821,7 @@ function NewTaskForm() {
                         )}
                       </div>
                     </div>
-                  );
-                })()}
+                  )}
 
                 {/* Completed Area Display (When scope is finalized at ANY level: Division, District, Block, GP, Village, or Person) */}
                 {areaStep === 'completed' && (
