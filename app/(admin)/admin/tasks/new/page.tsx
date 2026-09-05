@@ -59,16 +59,30 @@ function NewTaskForm() {
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [gramPanchayats, setGramPanchayats] = useState<GramPanchayat[]>([]);
   const [villages, setVillages] = useState<Village[]>([]);
-  const [selectedDivision, setSelectedDivision] = useState<string>('');
-  const [selectedDistrict, setSelectedDistrict] = useState<string>('');
-  const [selectedBlock, setSelectedBlock] = useState<string>('');
-  const [selectedGP, setSelectedGP] = useState<string>('');
-  const [selectedVillage, setSelectedVillage] = useState<string>('');
+  const [selectedDivisions, setSelectedDivisions] = useState<string[]>([]);
+  const [selectedDistricts, setSelectedDistricts] = useState<string[]>([]);
+  const [selectedBlocks, setSelectedBlocks] = useState<string[]>([]);
+  const [selectedGPs, setSelectedGPs] = useState<string[]>([]);
+  const [selectedVillages, setSelectedVillages] = useState<string[]>([]);
   const [assignmentMode, setAssignmentMode] = useState<'role' | 'area'>('role');
   const [roleGroup, setRoleGroup] = useState<'intern' | 'fellow' | 'pc' | null>('intern');
   const [areaStep, setAreaStep] = useState<'division' | 'district' | 'block' | 'gp' | 'village' | 'person' | 'completed'>('division');
   const [stoppedLevelName, setStoppedLevelName] = useState<string>('');
-  const [checkedAreaItem, setCheckedAreaItem] = useState<string | null>(null);
+  const [checkedAreaItems, setCheckedAreaItems] = useState<string[]>([]);
+
+  const toggleCheckedAreaItem = (id: string) => {
+    setCheckedAreaItems(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAllCurrent = (allIds: string[]) => {
+    if (allIds.length > 0 && allIds.every(id => checkedAreaItems.includes(id))) {
+      setCheckedAreaItems([]);
+    } else {
+      setCheckedAreaItems(allIds);
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -135,37 +149,44 @@ function NewTaskForm() {
   }, [querySurveyId, querySurveyName, setValue]);
 
   // Cascading location options for Area drill-down
-  const currentDivisionDistricts = selectedDivision
-    ? districts.filter(d => d.divisionId === selectedDivision)
+  const currentDivisionDistricts = selectedDivisions.length > 0
+    ? districts.filter(d => selectedDivisions.includes(d.divisionId))
     : [];
 
-  const currentDistrictBlocks = selectedDistrict
-    ? blocks.filter(b => b.districtId === selectedDistrict)
+  const currentDistrictBlocks = selectedDistricts.length > 0
+    ? blocks.filter(b => selectedDistricts.includes(b.districtId))
     : [];
 
-  const currentBlockGPs = selectedBlock
-    ? gramPanchayats.filter(gp => gp.blockId === selectedBlock)
+  const currentBlockGPs = selectedBlocks.length > 0
+    ? gramPanchayats.filter(gp => selectedBlocks.includes(gp.blockId))
     : [];
 
-  const currentGPVillages = selectedGP
-    ? villages.filter(v => v.gramPanchayatId === selectedGP)
+  const currentGPVillages = selectedVillages.length > 0
+    ? villages.filter(v => selectedVillages.includes(v.gramPanchayatId))
     : [];
 
   // Stop at Division Level
-  const handleSelectEntireDivision = (d: Division) => {
-    setSelectedDivision(d.id);
-    setSelectedDistrict('');
-    setSelectedBlock('');
-    setSelectedGP('');
-    setSelectedVillage('');
-    setStoppedLevelName(`Division: ${d.name}`);
-    setCheckedAreaItem(null);
+  const handleSelectEntireDivisions = (divIds: string[]) => {
+    if (divIds.length === 0) return;
+    setSelectedDivisions(divIds);
+    setSelectedDistricts([]);
+    setSelectedBlocks([]);
+    setSelectedGPs([]);
+    setSelectedVillages([]);
+    setCheckedAreaItems([]);
 
-    const divDistrictIds = new Set(districts.filter(dist => dist.divisionId === d.id).map(dist => dist.id));
+    const selDivs = divisions.filter(d => divIds.includes(d.id));
+    setStoppedLevelName(
+      selDivs.length === 1
+        ? `Division: ${selDivs[0].name}`
+        : `${selDivs.length} Divisions: ${selDivs.map(d => d.name.replace(/\s+Division$/i, '')).join(', ')}`
+    );
+
+    const divDistrictIds = new Set(districts.filter(dist => divIds.includes(dist.divisionId)).map(dist => dist.id));
     const matched = users.filter(u =>
-      u.division?.id === d.id ||
+      (u.division && divIds.includes(u.division.id)) ||
       (u.district && divDistrictIds.has(u.district.id)) ||
-      (u.block && districts.some(dist => dist.id === u.block?.districtId && dist.divisionId === d.id))
+      (u.block && districts.some(dist => dist.id === u.block?.districtId && divIds.includes(dist.divisionId)))
     );
     if (matched.length > 0) {
       setSelectedUsers(matched);
@@ -174,28 +195,36 @@ function NewTaskForm() {
     setAreaStep('completed');
   };
 
-  const handleDrillDownDivision = (d: Division) => {
-    setSelectedDivision(d.id);
-    setSelectedDistrict('');
-    setSelectedBlock('');
-    setSelectedGP('');
-    setSelectedVillage('');
-    setCheckedAreaItem(null);
+  const handleDrillDownDivisions = (divIds: string[]) => {
+    if (divIds.length === 0) return;
+    setSelectedDivisions(divIds);
+    setSelectedDistricts([]);
+    setSelectedBlocks([]);
+    setSelectedGPs([]);
+    setSelectedVillages([]);
+    setCheckedAreaItems([]);
     setAreaStep('district');
   };
 
   // Stop at District Level
-  const handleSelectEntireDistrict = (dst: District) => {
-    setSelectedDistrict(dst.id);
-    setSelectedBlock('');
-    setSelectedGP('');
-    setSelectedVillage('');
-    setStoppedLevelName(`District: ${dst.name}`);
-    setCheckedAreaItem(null);
+  const handleSelectEntireDistricts = (dstIds: string[]) => {
+    if (dstIds.length === 0) return;
+    setSelectedDistricts(dstIds);
+    setSelectedBlocks([]);
+    setSelectedGPs([]);
+    setSelectedVillages([]);
+    setCheckedAreaItems([]);
+
+    const selDsts = districts.filter(d => dstIds.includes(d.id));
+    setStoppedLevelName(
+      selDsts.length === 1
+        ? `District: ${selDsts[0].name}`
+        : `${selDsts.length} Districts: ${selDsts.map(d => d.name).join(', ')}`
+    );
 
     const matched = users.filter(u =>
-      u.district?.id === dst.id ||
-      u.block?.districtId === dst.id
+      (u.district && dstIds.includes(u.district.id)) ||
+      (u.block?.districtId && dstIds.includes(u.block.districtId))
     );
     if (matched.length > 0) {
       setSelectedUsers(matched);
@@ -204,27 +233,35 @@ function NewTaskForm() {
     setAreaStep('completed');
   };
 
-  const handleDrillDownDistrict = (dst: District) => {
-    setSelectedDistrict(dst.id);
-    setSelectedBlock('');
-    setSelectedGP('');
-    setSelectedVillage('');
-    setCheckedAreaItem(null);
+  const handleDrillDownDistricts = (dstIds: string[]) => {
+    if (dstIds.length === 0) return;
+    setSelectedDistricts(dstIds);
+    setSelectedBlocks([]);
+    setSelectedGPs([]);
+    setSelectedVillages([]);
+    setCheckedAreaItems([]);
     setAreaStep('block');
   };
 
   // Stop at Block Level
-  const handleSelectEntireBlock = (blk: Block) => {
-    setSelectedBlock(blk.id);
-    setSelectedGP('');
-    setSelectedVillage('');
-    setStoppedLevelName(`Block: ${blk.name}`);
-    setCheckedAreaItem(null);
+  const handleSelectEntireBlocks = (blkIds: string[]) => {
+    if (blkIds.length === 0) return;
+    setSelectedBlocks(blkIds);
+    setSelectedGPs([]);
+    setSelectedVillages([]);
+    setCheckedAreaItems([]);
+
+    const selBlks = blocks.filter(b => blkIds.includes(b.id));
+    setStoppedLevelName(
+      selBlks.length === 1
+        ? `Block: ${selBlks[0].name}`
+        : `${selBlks.length} Blocks: ${selBlks.map(b => b.name).join(', ')}`
+    );
 
     const matched = users.filter(u =>
-      u.block?.id === blk.id ||
-      u.gramPanchayat?.blockId === blk.id ||
-      u.village?.blockId === blk.id
+      (u.block && blkIds.includes(u.block.id)) ||
+      (u.gramPanchayat?.blockId && blkIds.includes(u.gramPanchayat.blockId)) ||
+      (u.village?.blockId && blkIds.includes(u.village.blockId))
     );
     if (matched.length > 0) {
       setSelectedUsers(matched);
@@ -233,24 +270,32 @@ function NewTaskForm() {
     setAreaStep('completed');
   };
 
-  const handleDrillDownBlock = (blk: Block) => {
-    setSelectedBlock(blk.id);
-    setSelectedGP('');
-    setSelectedVillage('');
-    setCheckedAreaItem(null);
+  const handleDrillDownBlocks = (blkIds: string[]) => {
+    if (blkIds.length === 0) return;
+    setSelectedBlocks(blkIds);
+    setSelectedGPs([]);
+    setSelectedVillages([]);
+    setCheckedAreaItems([]);
     setAreaStep('gp');
   };
 
   // Stop at Gram Panchayat Level
-  const handleSelectEntireGP = (gp: GramPanchayat) => {
-    setSelectedGP(gp.id);
-    setSelectedVillage('');
-    setStoppedLevelName(`Gram Panchayat: ${gp.name}`);
-    setCheckedAreaItem(null);
+  const handleSelectEntireGPs = (gpIds: string[]) => {
+    if (gpIds.length === 0) return;
+    setSelectedGPs(gpIds);
+    setSelectedVillages([]);
+    setCheckedAreaItems([]);
+
+    const selGPs = gramPanchayats.filter(g => gpIds.includes(g.id));
+    setStoppedLevelName(
+      selGPs.length === 1
+        ? `Gram Panchayat: ${selGPs[0].name}`
+        : `${selGPs.length} Gram Panchayats: ${selGPs.map(g => g.name).join(', ')}`
+    );
 
     const matched = users.filter(u =>
-      u.gramPanchayat?.id === gp.id ||
-      u.village?.gramPanchayatId === gp.id
+      (u.gramPanchayat && gpIds.includes(u.gramPanchayat.id)) ||
+      (u.village?.gramPanchayatId && gpIds.includes(u.village.gramPanchayatId))
     );
     if (matched.length > 0) {
       setSelectedUsers(matched);
@@ -259,20 +304,28 @@ function NewTaskForm() {
     setAreaStep('completed');
   };
 
-  const handleDrillDownGP = (gp: GramPanchayat) => {
-    setSelectedGP(gp.id);
-    setSelectedVillage('');
-    setCheckedAreaItem(null);
+  const handleDrillDownGPs = (gpIds: string[]) => {
+    if (gpIds.length === 0) return;
+    setSelectedGPs(gpIds);
+    setSelectedVillages([]);
+    setCheckedAreaItems([]);
     setAreaStep('village');
   };
 
   // Stop at Village Level
-  const handleSelectEntireVillage = (v: Village) => {
-    setSelectedVillage(v.id);
-    setStoppedLevelName(`Village: ${v.name}`);
-    setCheckedAreaItem(null);
+  const handleSelectEntireVillages = (vIds: string[]) => {
+    if (vIds.length === 0) return;
+    setSelectedVillages(vIds);
+    setCheckedAreaItems([]);
 
-    const matched = users.filter(u => u.village?.id === v.id);
+    const selVils = villages.filter(v => vIds.includes(v.id));
+    setStoppedLevelName(
+      selVils.length === 1
+        ? `Village: ${selVils[0].name}`
+        : `${selVils.length} Villages: ${selVils.map(v => v.name).join(', ')}`
+    );
+
+    const matched = users.filter(u => u.village && vIds.includes(u.village.id));
     if (matched.length > 0) {
       setSelectedUsers(matched);
       setValue('assignedToIds', matched.map(m => m.id), { shouldValidate: true });
@@ -280,92 +333,97 @@ function NewTaskForm() {
     setAreaStep('completed');
   };
 
-  const handleDrillDownVillage = (v: Village) => {
-    setSelectedVillage(v.id);
-    setStoppedLevelName(`Person in ${v.name}`);
-    setCheckedAreaItem(null);
+  const handleDrillDownVillages = (vIds: string[]) => {
+    if (vIds.length === 0) return;
+    setSelectedVillages(vIds);
+    setCheckedAreaItems([]);
     setAreaStep('person');
   };
 
-  const handleSelectPerson = (person: User) => {
-    setCheckedAreaItem(null);
-    setStoppedLevelName(`Person: ${person.name}`);
-    const exists = selectedUsers.some(u => u.id === person.id);
-    if (!exists) {
-      const updated = [...selectedUsers, person];
-      setSelectedUsers(updated);
-      setValue('assignedToIds', updated.map(u => u.id), { shouldValidate: true });
-    }
+  const handleSelectPersons = (personIds: string[]) => {
+    if (personIds.length === 0) return;
+    setCheckedAreaItems([]);
+    const persons = users.filter(u => personIds.includes(u.id));
+    setStoppedLevelName(
+      persons.length === 1
+        ? `Person: ${persons[0].name}`
+        : `${persons.length} Persons: ${persons.map(p => p.name).join(', ')}`
+    );
+    const existingIds = new Set(selectedUsers.map(u => u.id));
+    const toAdd = persons.filter(p => !existingIds.has(p.id));
+    const updated = [...selectedUsers, ...toAdd];
+    setSelectedUsers(updated);
+    setValue('assignedToIds', updated.map(m => m.id), { shouldValidate: true });
     setAreaStep('completed');
   };
 
   const resetAreaSelection = () => {
-    setSelectedDivision('');
-    setSelectedDistrict('');
-    setSelectedBlock('');
-    setSelectedGP('');
-    setSelectedVillage('');
+    setSelectedDivisions([]);
+    setSelectedDistricts([]);
+    setSelectedBlocks([]);
+    setSelectedGPs([]);
+    setSelectedVillages([]);
     setStoppedLevelName('');
-    setCheckedAreaItem(null);
+    setCheckedAreaItems([]);
     setAreaStep('division');
   };
 
   const getHierarchyBreadcrumb = (): string => {
     const parts: string[] = [];
-    if (selectedDivision) {
-      const d = divisions.find(item => item.id === selectedDivision);
-      if (d) parts.push(d.name.replace(/\s+Division$/i, ''));
+    if (selectedDivisions.length > 0) {
+      const names = divisions.filter(d => selectedDivisions.includes(d.id)).map(d => d.name.replace(/\s+Division$/i, ''));
+      parts.push(names.length <= 2 ? names.join(', ') : `${names.length} Divisions`);
     }
-    if (selectedDistrict) {
-      const dst = districts.find(item => item.id === selectedDistrict);
-      if (dst) parts.push(dst.name);
+    if (selectedDistricts.length > 0) {
+      const names = districts.filter(d => selectedDistricts.includes(d.id)).map(d => d.name);
+      parts.push(names.length <= 2 ? names.join(', ') : `${names.length} Districts`);
     }
-    if (selectedBlock) {
-      const b = blocks.find(item => item.id === selectedBlock);
-      if (b) parts.push(b.name);
+    if (selectedBlocks.length > 0) {
+      const names = blocks.filter(b => selectedBlocks.includes(b.id)).map(b => b.name);
+      parts.push(names.length <= 2 ? names.join(', ') : `${names.length} Blocks`);
     }
-    if (selectedGP) {
-      const gp = gramPanchayats.find(item => item.id === selectedGP);
-      if (gp) parts.push(gp.name);
+    if (selectedGPs.length > 0) {
+      const names = gramPanchayats.filter(g => selectedGPs.includes(g.id)).map(g => g.name);
+      parts.push(names.length <= 2 ? names.join(', ') : `${names.length} GPs`);
     }
-    if (selectedVillage) {
-      const v = villages.find(item => item.id === selectedVillage);
-      if (v) parts.push(v.name);
+    if (selectedVillages.length > 0) {
+      const names = villages.filter(v => selectedVillages.includes(v.id)).map(v => v.name);
+      parts.push(names.length <= 2 ? names.join(', ') : `${names.length} Villages`);
     }
     return parts.join(' > ');
   };
 
   const userMatchesLocation = (u: User) => {
-    if (!selectedDivision && !selectedDistrict && !selectedBlock && !selectedGP && !selectedVillage) {
-      return true;
+    if (selectedVillages.length > 0) {
+      return !!u.village && selectedVillages.includes(u.village.id);
     }
-    if (selectedVillage) {
-      return u.village?.id === selectedVillage;
-    }
-    if (selectedGP) {
-      return u.gramPanchayat?.id === selectedGP || u.village?.gramPanchayatId === selectedGP;
-    }
-    if (selectedBlock) {
+    if (selectedGPs.length > 0) {
       return (
-        u.block?.id === selectedBlock ||
-        u.gramPanchayat?.blockId === selectedBlock ||
-        u.village?.blockId === selectedBlock
+        (!!u.gramPanchayat && selectedGPs.includes(u.gramPanchayat.id)) ||
+        (!!u.village?.gramPanchayatId && selectedGPs.includes(u.village.gramPanchayatId))
       );
     }
-    if (selectedDistrict) {
+    if (selectedBlocks.length > 0) {
       return (
-        u.district?.id === selectedDistrict ||
-        u.block?.districtId === selectedDistrict ||
-        (u.division && districts.some(d => d.id === selectedDistrict && d.divisionId === u.division?.id))
+        (!!u.block && selectedBlocks.includes(u.block.id)) ||
+        (!!u.gramPanchayat?.blockId && selectedBlocks.includes(u.gramPanchayat.blockId)) ||
+        (!!u.village?.blockId && selectedBlocks.includes(u.village.blockId))
       );
     }
-    if (selectedDivision) {
-      const divDistrictIds = new Set(districts.filter(d => d.divisionId === selectedDivision).map(d => d.id));
+    if (selectedDistricts.length > 0) {
       return (
-        u.division?.id === selectedDivision ||
-        (u.district?.divisionId && u.district.divisionId === selectedDivision) ||
-        (u.district?.id && divDistrictIds.has(u.district.id)) ||
-        (u.block?.districtId && divDistrictIds.has(u.block.districtId))
+        (!!u.district && selectedDistricts.includes(u.district.id)) ||
+        (!!u.block?.districtId && selectedDistricts.includes(u.block.districtId)) ||
+        (!!u.division && districts.some(d => selectedDistricts.includes(d.id) && d.divisionId === u.division?.id))
+      );
+    }
+    if (selectedDivisions.length > 0) {
+      const divDistrictIds = new Set(districts.filter(d => selectedDivisions.includes(d.divisionId)).map(d => d.id));
+      return (
+        (!!u.division && selectedDivisions.includes(u.division.id)) ||
+        (!!u.district?.divisionId && selectedDivisions.includes(u.district.divisionId)) ||
+        (!!u.district?.id && divDistrictIds.has(u.district.id)) ||
+        (!!u.block?.districtId && divDistrictIds.has(u.block.districtId))
       );
     }
     return true;
@@ -394,7 +452,7 @@ function NewTaskForm() {
     return matchesSearch && matchesRole && matchesLocation;
   });
 
-  const hasActiveLocation = !!(selectedDivision || selectedDistrict || selectedBlock || selectedGP);
+  const hasActiveLocation = !!(selectedDivisions.length > 0 || selectedDistricts.length > 0 || selectedBlocks.length > 0 || selectedGPs.length > 0 || selectedVillages.length > 0);
 
   const selectAllCurrentGroup = () => {
     const existingIds = new Set(selectedUsers.map(u => u.id));
@@ -529,22 +587,32 @@ function NewTaskForm() {
       }
       let areaTarget = stoppedLevelName;
       if (assignmentMode === 'area') {
-        if (!areaTarget && checkedAreaItem) {
+        if (!areaTarget && checkedAreaItems.length > 0) {
           if (areaStep === 'division') {
-            const d = divisions.find(item => item.id === checkedAreaItem);
-            if (d) areaTarget = `Division: ${d.name}`;
+            const divs = divisions.filter(item => checkedAreaItems.includes(item.id));
+            areaTarget = divs.length === 1
+              ? `Division: ${divs[0].name}`
+              : `${divs.length} Divisions: ${divs.map(d => d.name.replace(/\s+Division$/i, '')).join(', ')}`;
           } else if (areaStep === 'district') {
-            const dst = currentDivisionDistricts.find(item => item.id === checkedAreaItem);
-            if (dst) areaTarget = `District: ${dst.name}`;
+            const dsts = currentDivisionDistricts.filter(item => checkedAreaItems.includes(item.id));
+            areaTarget = dsts.length === 1
+              ? `District: ${dsts[0].name}`
+              : `${dsts.length} Districts: ${dsts.map(d => d.name).join(', ')}`;
           } else if (areaStep === 'block') {
-            const blk = currentDistrictBlocks.find(item => item.id === checkedAreaItem);
-            if (blk) areaTarget = `Block: ${blk.name}`;
+            const blks = currentDistrictBlocks.filter(item => checkedAreaItems.includes(item.id));
+            areaTarget = blks.length === 1
+              ? `Block: ${blks[0].name}`
+              : `${blks.length} Blocks: ${blks.map(b => b.name).join(', ')}`;
           } else if (areaStep === 'gp') {
-            const gp = currentBlockGPs.find(item => item.id === checkedAreaItem);
-            if (gp) areaTarget = `Gram Panchayat: ${gp.name}`;
+            const gps = currentBlockGPs.filter(item => checkedAreaItems.includes(item.id));
+            areaTarget = gps.length === 1
+              ? `Gram Panchayat: ${gps[0].name}`
+              : `${gps.length} GPs: ${gps.map(g => g.name).join(', ')}`;
           } else if (areaStep === 'village') {
-            const v = currentGPVillages.find(item => item.id === checkedAreaItem);
-            if (v) areaTarget = `Village: ${v.name}`;
+            const vils = currentGPVillages.filter(item => checkedAreaItems.includes(item.id));
+            areaTarget = vils.length === 1
+              ? `Village: ${vils[0].name}`
+              : `${vils.length} Villages: ${vils.map(v => v.name).join(', ')}`;
           }
         }
       }
@@ -1011,9 +1079,9 @@ function NewTaskForm() {
                   type="button"
                   onClick={() => {
                     setAssignmentMode('area');
-                    if (areaStep !== 'completed' && !selectedDivision) {
+                    if (areaStep !== 'completed' && selectedDivisions.length === 0) {
                       setAreaStep('division');
-                      setCheckedAreaItem(null);
+                      setCheckedAreaItems([]);
                     }
                   }}
                   className={cn(
@@ -1233,508 +1301,529 @@ function NewTaskForm() {
             {assignmentMode === 'area' && (
               <div className="space-y-3 pt-0.5 animate-in fade-in duration-200">
                 {/* If still exploring hierarchy */}
-                {areaStep !== 'completed' && (
-                  <div className="border border-emerald-200 rounded-xl bg-white shadow-2xs overflow-hidden">
-                    {/* Navigation, Breadcrumb & Action Buttons Header - SLIM SINGLE ROW */}
-                    <div className="py-2 px-2.5 sm:py-2.5 sm:px-3.5 bg-gradient-to-r from-emerald-50/90 to-teal-50/60 border-b border-emerald-100 flex items-center justify-between gap-1.5 flex-wrap">
-                      {/* Left: Back button & Breadcrumb Info */}
-                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                        {areaStep !== 'division' && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCheckedAreaItem(null);
-                              if (areaStep === 'district') {
-                                setAreaStep('division');
-                                setSelectedDivision('');
-                              } else if (areaStep === 'block') {
-                                setAreaStep('district');
-                                setSelectedDistrict('');
-                              } else if (areaStep === 'gp') {
-                                setAreaStep('block');
-                                setSelectedBlock('');
-                              } else if (areaStep === 'village') {
-                                setAreaStep('gp');
-                                setSelectedGP('');
-                              } else if (areaStep === 'person') {
-                                setAreaStep('village');
-                                setSelectedVillage('');
-                              }
-                            }}
-                            className="p-1 rounded-md bg-white hover:bg-slate-50 text-slate-700 border border-emerald-200/70 transition-colors cursor-pointer flex items-center shrink-0"
-                            aria-label="Back"
-                          >
-                            <ArrowLeft size={13} weight="bold" />
-                          </button>
-                        )}
-                        <div className="min-w-0">
-                          <h3 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
-                            {areaStep === 'division' && 'Select Division'}
-                            {areaStep === 'district' && `District in ${divisions.find(d => d.id === selectedDivision)?.name.replace(/\s+Division$/i, '')}`}
-                            {areaStep === 'block' && `Block in ${districts.find(d => d.id === selectedDistrict)?.name}`}
-                            {areaStep === 'gp' && `GP in ${blocks.find(b => b.id === selectedBlock)?.name}`}
-                            {areaStep === 'village' && `Village in ${gramPanchayats.find(g => g.id === selectedGP)?.name}`}
-                            {areaStep === 'person' && `Person in ${villages.find(v => v.id === selectedVillage)?.name}`}
-                          </h3>
+                {areaStep !== 'completed' && (() => {
+                  const currentItemIds =
+                    areaStep === 'division' ? divisions.map(d => d.id) :
+                    areaStep === 'district' ? currentDivisionDistricts.map(d => d.id) :
+                    areaStep === 'block' ? currentDistrictBlocks.map(b => b.id) :
+                    areaStep === 'gp' ? currentBlockGPs.map(g => g.id) :
+                    areaStep === 'village' ? currentGPVillages.map(v => v.id) :
+                    areaStep === 'person' ? filteredUsers.map(u => u.id) : [];
+
+                  const isAllCurrentChecked = currentItemIds.length > 0 && currentItemIds.every(id => checkedAreaItems.includes(id));
+
+                  return (
+                    <div className="border border-emerald-200 rounded-xl bg-white shadow-2xs overflow-hidden">
+                      {/* Navigation, Breadcrumb & Action Buttons Header - SLIM SINGLE ROW */}
+                      <div className="py-2 px-2.5 sm:py-2.5 sm:px-3.5 bg-gradient-to-r from-emerald-50/90 to-teal-50/60 border-b border-emerald-100 flex items-center justify-between gap-1.5 flex-wrap">
+                        {/* Left: Back button & Breadcrumb Info */}
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                          {areaStep !== 'division' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (areaStep === 'district') {
+                                  setAreaStep('division');
+                                  setCheckedAreaItems(selectedDivisions);
+                                  setSelectedDivisions([]);
+                                } else if (areaStep === 'block') {
+                                  setAreaStep('district');
+                                  setCheckedAreaItems(selectedDistricts);
+                                  setSelectedDistricts([]);
+                                } else if (areaStep === 'gp') {
+                                  setAreaStep('block');
+                                  setCheckedAreaItems(selectedBlocks);
+                                  setSelectedBlocks([]);
+                                } else if (areaStep === 'village') {
+                                  setAreaStep('gp');
+                                  setCheckedAreaItems(selectedGPs);
+                                  setSelectedGPs([]);
+                                } else if (areaStep === 'person') {
+                                  setAreaStep('village');
+                                  setCheckedAreaItems(selectedVillages);
+                                  setSelectedVillages([]);
+                                }
+                              }}
+                              className="p-1 rounded-md bg-white hover:bg-slate-50 text-slate-700 border border-emerald-200/70 transition-colors cursor-pointer flex items-center shrink-0"
+                              aria-label="Back"
+                            >
+                              <ArrowLeft size={13} weight="bold" />
+                            </button>
+                          )}
+                          <div className="min-w-0 flex items-center gap-2">
+                            <h3 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
+                              {areaStep === 'division' && (checkedAreaItems.length > 0 ? `Select Division (${checkedAreaItems.length})` : 'Select Division')}
+                              {areaStep === 'district' && (
+                                selectedDivisions.length === 1
+                                  ? `District in ${divisions.find(d => d.id === selectedDivisions[0])?.name.replace(/\s+Division$/i, '')}`
+                                  : `Districts in ${selectedDivisions.length} Divisions`
+                              )}
+                              {areaStep === 'block' && (
+                                selectedDistricts.length === 1
+                                  ? `Block in ${districts.find(d => d.id === selectedDistricts[0])?.name}`
+                                  : `Blocks in ${selectedDistricts.length} Districts`
+                              )}
+                              {areaStep === 'gp' && (
+                                selectedBlocks.length === 1
+                                  ? `GP in ${blocks.find(b => b.id === selectedBlocks[0])?.name}`
+                                  : `GPs in ${selectedBlocks.length} Blocks`
+                              )}
+                              {areaStep === 'village' && (
+                                selectedGPs.length === 1
+                                  ? `Village in ${gramPanchayats.find(g => g.id === selectedGPs[0])?.name}`
+                                  : `Villages in ${selectedGPs.length} GPs`
+                              )}
+                              {areaStep === 'person' && (
+                                selectedVillages.length === 1
+                                  ? `Person in ${villages.find(v => v.id === selectedVillages[0])?.name}`
+                                  : `Persons in ${selectedVillages.length} Villages`
+                              )}
+                            </h3>
+
+                            {currentItemIds.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => toggleSelectAllCurrent(currentItemIds)}
+                                className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-100/70 hover:bg-emerald-100 px-2 py-0.5 rounded-md transition-colors cursor-pointer shrink-0"
+                              >
+                                {isAllCurrentChecked ? 'Deselect All' : `Select All (${currentItemIds.length})`}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Right: Action Buttons in the Header (enabled when an item checkbox is checked) */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {areaStep === 'division' && (
+                            <>
+                              <button
+                                type="button"
+                                disabled={checkedAreaItems.length === 0}
+                                onClick={() => handleSelectEntireDivisions(checkedAreaItems)}
+                                className={cn(
+                                  'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer shadow-2xs',
+                                  checkedAreaItems.length > 0
+                                    ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
+                                    : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                                )}
+                              >
+                                {checkedAreaItems.length <= 1 ? 'Entire Division' : `Entire (${checkedAreaItems.length}) Divisions`}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={checkedAreaItems.length === 0}
+                                onClick={() => handleDrillDownDivisions(checkedAreaItems)}
+                                className={cn(
+                                  'px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
+                                  checkedAreaItems.length > 0
+                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
+                                    : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
+                                )}
+                              >
+                                <span>{checkedAreaItems.length <= 1 ? 'Select District' : `Select Districts (${checkedAreaItems.length})`}</span>
+                                <CaretRight size={12} weight="bold" />
+                              </button>
+                            </>
+                          )}
+
+                          {areaStep === 'district' && (
+                            <>
+                              <button
+                                type="button"
+                                disabled={checkedAreaItems.length === 0}
+                                onClick={() => handleSelectEntireDistricts(checkedAreaItems)}
+                                className={cn(
+                                  'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer shadow-2xs',
+                                  checkedAreaItems.length > 0
+                                    ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
+                                    : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                                )}
+                              >
+                                {checkedAreaItems.length <= 1 ? 'Entire District' : `Entire (${checkedAreaItems.length}) Districts`}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={checkedAreaItems.length === 0}
+                                onClick={() => handleDrillDownDistricts(checkedAreaItems)}
+                                className={cn(
+                                  'px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
+                                  checkedAreaItems.length > 0
+                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
+                                    : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
+                                )}
+                              >
+                                <span>{checkedAreaItems.length <= 1 ? 'Select Block' : `Select Blocks (${checkedAreaItems.length})`}</span>
+                                <CaretRight size={12} weight="bold" />
+                              </button>
+                            </>
+                          )}
+
+                          {areaStep === 'block' && (
+                            <>
+                              <button
+                                type="button"
+                                disabled={checkedAreaItems.length === 0}
+                                onClick={() => handleSelectEntireBlocks(checkedAreaItems)}
+                                className={cn(
+                                  'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer shadow-2xs',
+                                  checkedAreaItems.length > 0
+                                    ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
+                                    : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                                )}
+                              >
+                                {checkedAreaItems.length <= 1 ? 'Entire Block' : `Entire (${checkedAreaItems.length}) Blocks`}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={checkedAreaItems.length === 0}
+                                onClick={() => handleDrillDownBlocks(checkedAreaItems)}
+                                className={cn(
+                                  'px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
+                                  checkedAreaItems.length > 0
+                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
+                                    : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
+                                )}
+                              >
+                                <span>{checkedAreaItems.length <= 1 ? 'Select GP' : `Select GPs (${checkedAreaItems.length})`}</span>
+                                <CaretRight size={12} weight="bold" />
+                              </button>
+                            </>
+                          )}
+
+                          {areaStep === 'gp' && (
+                            <>
+                              <button
+                                type="button"
+                                disabled={checkedAreaItems.length === 0}
+                                onClick={() => handleSelectEntireGPs(checkedAreaItems)}
+                                className={cn(
+                                  'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer shadow-2xs',
+                                  checkedAreaItems.length > 0
+                                    ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
+                                    : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                                )}
+                              >
+                                {checkedAreaItems.length <= 1 ? 'Entire GP' : `Entire (${checkedAreaItems.length}) GPs`}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={checkedAreaItems.length === 0}
+                                onClick={() => handleDrillDownGPs(checkedAreaItems)}
+                                className={cn(
+                                  'px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
+                                  checkedAreaItems.length > 0
+                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
+                                    : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
+                                )}
+                              >
+                                <span>{checkedAreaItems.length <= 1 ? 'Select Village' : `Select Villages (${checkedAreaItems.length})`}</span>
+                                <CaretRight size={12} weight="bold" />
+                              </button>
+                            </>
+                          )}
+
+                          {areaStep === 'village' && (
+                            <>
+                              <button
+                                type="button"
+                                disabled={checkedAreaItems.length === 0}
+                                onClick={() => handleSelectEntireVillages(checkedAreaItems)}
+                                className={cn(
+                                  'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer shadow-2xs',
+                                  checkedAreaItems.length > 0
+                                    ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
+                                    : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                                )}
+                              >
+                                {checkedAreaItems.length <= 1 ? 'Entire Village' : `Entire (${checkedAreaItems.length}) Villages`}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={checkedAreaItems.length === 0}
+                                onClick={() => handleDrillDownVillages(checkedAreaItems)}
+                                className={cn(
+                                  'px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
+                                  checkedAreaItems.length > 0
+                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
+                                    : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
+                                )}
+                              >
+                                <span>{checkedAreaItems.length <= 1 ? 'Select Person' : `Select Persons (${checkedAreaItems.length})`}</span>
+                                <CaretRight size={12} weight="bold" />
+                              </button>
+                            </>
+                          )}
+
+                          {areaStep === 'person' && (
+                            <button
+                              type="button"
+                              disabled={checkedAreaItems.length === 0}
+                              onClick={() => handleSelectPersons(checkedAreaItems)}
+                              className={cn(
+                                'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs flex items-center gap-1',
+                                checkedAreaItems.length > 0
+                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
+                                  : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
+                              )}
+                            >
+                              <UserCheck size={14} weight="bold" />
+                              <span>{checkedAreaItems.length <= 1 ? 'Assign Person' : `Assign (${checkedAreaItems.length}) Persons`}</span>
+                            </button>
+                          )}
                         </div>
                       </div>
 
-                      {/* Right: Action Buttons in the Header (enabled when an item checkbox is checked) */}
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {areaStep === 'division' && (
-                          <>
-                            <button
-                              type="button"
-                              disabled={!checkedAreaItem}
-                              onClick={() => {
-                                const d = divisions.find(item => item.id === checkedAreaItem);
-                                if (d) handleSelectEntireDivision(d);
-                              }}
+                      {/* Hierarchy List Body: Clean rows with checkboxes ONLY */}
+                      <div className="max-h-[min(55vh,440px)] sm:max-h-[340px] overflow-y-auto divide-y divide-slate-100">
+                        {/* Level 1: Divisions */}
+                        {areaStep === 'division' && divisions.map(d => {
+                          const isChecked = checkedAreaItems.includes(d.id);
+                          return (
+                            <div
+                              key={d.id}
+                              onClick={() => toggleCheckedAreaItem(d.id)}
                               className={cn(
-                                'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer shadow-2xs',
-                                checkedAreaItem
-                                  ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
-                                  : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                                'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
+                                isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
                               )}
                             >
-                              Entire Division
-                            </button>
-                            <button
-                              type="button"
-                              disabled={!checkedAreaItem}
-                              onClick={() => {
-                                const d = divisions.find(item => item.id === checkedAreaItem);
-                                if (d) handleDrillDownDivision(d);
-                              }}
-                              className={cn(
-                                'px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
-                                checkedAreaItem
-                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
-                                  : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
-                              )}
-                            >
-                              <span>Select District</span>
-                              <CaretRight size={12} weight="bold" />
-                            </button>
-                          </>
-                        )}
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {}}
+                                className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
+                              />
+                              <div className={cn(
+                                'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
+                                isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                              )}>
+                                {d.code || d.name.slice(0, 2).toUpperCase()}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{d.name}</div>
+                                <div className="text-[11px] text-slate-400">Division Level</div>
+                              </div>
+                            </div>
+                          );
+                        })}
 
+                        {/* Level 2: Districts */}
                         {areaStep === 'district' && (
-                          <>
-                            <button
-                              type="button"
-                              disabled={!checkedAreaItem}
-                              onClick={() => {
-                                const dst = currentDivisionDistricts.find(item => item.id === checkedAreaItem);
-                                if (dst) handleSelectEntireDistrict(dst);
-                              }}
-                              className={cn(
-                                'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer shadow-2xs',
-                                checkedAreaItem
-                                  ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
-                                  : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
-                              )}
-                            >
-                              Entire District
-                            </button>
-                            <button
-                              type="button"
-                              disabled={!checkedAreaItem}
-                              onClick={() => {
-                                const dst = currentDivisionDistricts.find(item => item.id === checkedAreaItem);
-                                if (dst) handleDrillDownDistrict(dst);
-                              }}
-                              className={cn(
-                                'px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
-                                checkedAreaItem
-                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
-                                  : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
-                              )}
-                            >
-                              <span>Select Block</span>
-                              <CaretRight size={12} weight="bold" />
-                            </button>
-                          </>
+                          currentDivisionDistricts.length === 0 ? (
+                            <div className="p-8 text-center text-slate-400 text-xs">
+                              No districts configured for the selected division(s).
+                            </div>
+                          ) : (
+                            currentDivisionDistricts.map(dst => {
+                              const isChecked = checkedAreaItems.includes(dst.id);
+                              return (
+                                <div
+                                  key={dst.id}
+                                  onClick={() => toggleCheckedAreaItem(dst.id)}
+                                  className={cn(
+                                    'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
+                                    isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                                  )}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() => {}}
+                                    className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
+                                  />
+                                  <div className={cn(
+                                    'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
+                                    isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-teal-50 text-teal-700 border-teal-100'
+                                  )}>
+                                    DST
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{dst.name}</div>
+                                    <div className="text-[11px] text-slate-400">
+                                      {dst.divisionName ? `${dst.divisionName} · District` : 'District'}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )
                         )}
 
+                        {/* Level 3: Blocks */}
                         {areaStep === 'block' && (
-                          <>
-                            <button
-                              type="button"
-                              disabled={!checkedAreaItem}
-                              onClick={() => {
-                                const blk = currentDistrictBlocks.find(item => item.id === checkedAreaItem);
-                                if (blk) handleSelectEntireBlock(blk);
-                              }}
-                              className={cn(
-                                'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer shadow-2xs',
-                                checkedAreaItem
-                                  ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
-                                  : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
-                              )}
-                            >
-                              Entire Block
-                            </button>
-                            <button
-                              type="button"
-                              disabled={!checkedAreaItem}
-                              onClick={() => {
-                                const blk = currentDistrictBlocks.find(item => item.id === checkedAreaItem);
-                                if (blk) handleDrillDownBlock(blk);
-                              }}
-                              className={cn(
-                                'px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
-                                checkedAreaItem
-                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
-                                  : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
-                              )}
-                            >
-                              <span>Select GP</span>
-                              <CaretRight size={12} weight="bold" />
-                            </button>
-                          </>
+                          currentDistrictBlocks.length === 0 ? (
+                            <div className="p-8 text-center text-slate-400 text-xs">
+                              No blocks configured for the selected district(s).
+                            </div>
+                          ) : (
+                            currentDistrictBlocks.map(blk => {
+                              const isChecked = checkedAreaItems.includes(blk.id);
+                              return (
+                                <div
+                                  key={blk.id}
+                                  onClick={() => toggleCheckedAreaItem(blk.id)}
+                                  className={cn(
+                                    'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
+                                    isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                                  )}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() => {}}
+                                    className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
+                                  />
+                                  <div className={cn(
+                                    'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
+                                    isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-indigo-50 text-indigo-700 border-indigo-100'
+                                  )}>
+                                    BLK
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{blk.name}</div>
+                                    <div className="text-[11px] text-slate-400">
+                                      {blk.districtName ? `${blk.districtName} · Block` : 'Block'}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )
                         )}
 
+                        {/* Level 4: Gram Panchayats */}
                         {areaStep === 'gp' && (
-                          <>
-                            <button
-                              type="button"
-                              disabled={!checkedAreaItem}
-                              onClick={() => {
-                                const gp = currentBlockGPs.find(item => item.id === checkedAreaItem);
-                                if (gp) handleSelectEntireGP(gp);
-                              }}
-                              className={cn(
-                                'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer shadow-2xs',
-                                checkedAreaItem
-                                  ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
-                                  : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
-                              )}
-                            >
-                              Entire GP
-                            </button>
-                            <button
-                              type="button"
-                              disabled={!checkedAreaItem}
-                              onClick={() => {
-                                const gp = currentBlockGPs.find(item => item.id === checkedAreaItem);
-                                if (gp) handleDrillDownGP(gp);
-                              }}
-                              className={cn(
-                                'px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
-                                checkedAreaItem
-                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
-                                  : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
-                              )}
-                            >
-                              <span>Select Village</span>
-                              <CaretRight size={12} weight="bold" />
-                            </button>
-                          </>
+                          currentBlockGPs.length === 0 ? (
+                            <div className="p-8 text-center text-slate-400 text-xs">
+                              No Gram Panchayats configured for the selected block(s).
+                            </div>
+                          ) : (
+                            currentBlockGPs.map(gp => {
+                              const isChecked = checkedAreaItems.includes(gp.id);
+                              return (
+                                <div
+                                  key={gp.id}
+                                  onClick={() => toggleCheckedAreaItem(gp.id)}
+                                  className={cn(
+                                    'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
+                                    isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                                  )}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() => {}}
+                                    className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
+                                  />
+                                  <div className={cn(
+                                    'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
+                                    isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-violet-50 text-violet-700 border-violet-100'
+                                  )}>
+                                    GP
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{gp.name}</div>
+                                    <div className="text-[11px] text-slate-400">
+                                      {gp.blockName ? `${gp.blockName} · Gram Panchayat` : 'Gram Panchayat'}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )
                         )}
 
+                        {/* Level 5: Villages */}
                         {areaStep === 'village' && (
-                          <>
-                            <button
-                              type="button"
-                              disabled={!checkedAreaItem}
-                              onClick={() => {
-                                const v = currentGPVillages.find(item => item.id === checkedAreaItem);
-                                if (v) handleSelectEntireVillage(v);
-                              }}
-                              className={cn(
-                                'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer shadow-2xs',
-                                checkedAreaItem
-                                  ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
-                                  : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
-                              )}
-                            >
-                              Entire Village
-                            </button>
-                            <button
-                              type="button"
-                              disabled={!checkedAreaItem}
-                              onClick={() => {
-                                const v = currentGPVillages.find(item => item.id === checkedAreaItem);
-                                if (v) handleDrillDownVillage(v);
-                              }}
-                              className={cn(
-                                'px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
-                                checkedAreaItem
-                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
-                                  : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
-                              )}
-                            >
-                              <span>Select Person</span>
-                              <CaretRight size={12} weight="bold" />
-                            </button>
-                          </>
+                          currentGPVillages.length === 0 ? (
+                            <div className="p-8 text-center text-slate-400 text-xs">
+                              No villages configured for the selected Gram Panchayat(s).
+                            </div>
+                          ) : (
+                            currentGPVillages.map(v => {
+                              const isChecked = checkedAreaItems.includes(v.id);
+                              return (
+                                <div
+                                  key={v.id}
+                                  onClick={() => toggleCheckedAreaItem(v.id)}
+                                  className={cn(
+                                    'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
+                                    isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                                  )}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() => {}}
+                                    className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
+                                  />
+                                  <div className={cn(
+                                    'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
+                                    isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                  )}>
+                                    VLG
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{v.name}</div>
+                                    <div className="text-[11px] text-slate-400">
+                                      {v.gramPanchayatName ? `${v.gramPanchayatName} · Village` : 'Village'}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )
                         )}
 
+                        {/* Level 6: Person in Village */}
                         {areaStep === 'person' && (
-                          <button
-                            type="button"
-                            disabled={!checkedAreaItem}
-                            onClick={() => {
-                              const p = users.find(item => item.id === checkedAreaItem);
-                              if (p) handleSelectPerson(p);
-                            }}
-                            className={cn(
-                              'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs flex items-center gap-1',
-                              checkedAreaItem
-                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
-                                : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
-                            )}
-                          >
-                            <UserCheck size={14} weight="bold" />
-                            <span>Assign Person</span>
-                          </button>
+                          filteredUsers.length === 0 ? (
+                            <div className="p-8 text-center text-slate-400 text-xs">
+                              No field personnel currently assigned directly to the selected village(s).
+                            </div>
+                          ) : (
+                            filteredUsers.map(u => {
+                              const isChecked = checkedAreaItems.includes(u.id);
+                              return (
+                                <div
+                                  key={u.id}
+                                  onClick={() => toggleCheckedAreaItem(u.id)}
+                                  className={cn(
+                                    'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
+                                    isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                                  )}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() => {}}
+                                    className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
+                                  />
+                                  <div className={cn(
+                                    'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0',
+                                    isChecked ? 'bg-emerald-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-600'
+                                  )}>
+                                    {u.name.slice(0, 1).toUpperCase()}
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{u.name}</div>
+                                    <div className="text-[11px] text-slate-400 truncate">{u.email}</div>
+                                  </div>
+                                  <span className={cn(
+                                    'px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 border capitalize',
+                                    u.role === 'intern' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-purple-50 text-purple-700 border-purple-200'
+                                  )}>
+                                    {roleLabel(u.role)}
+                                  </span>
+                                </div>
+                              );
+                            })
+                          )
                         )}
                       </div>
                     </div>
-
-                    {/* Hierarchy List Body: Clean rows with checkboxes ONLY */}
-                    <div className="max-h-[min(55vh,440px)] sm:max-h-[340px] overflow-y-auto divide-y divide-slate-100">
-                      {/* Level 1: Divisions */}
-                      {areaStep === 'division' && divisions.map(d => {
-                        const isChecked = checkedAreaItem === d.id;
-                        return (
-                          <div
-                            key={d.id}
-                            onClick={() => setCheckedAreaItem(prev => prev === d.id ? null : d.id)}
-                            className={cn(
-                              'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
-                              isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
-                            )}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => {}}
-                              className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
-                            />
-                            <div className={cn(
-                              'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
-                              isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                            )}>
-                              {d.code || d.name.slice(0, 2).toUpperCase()}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{d.name}</div>
-                              <div className="text-[11px] text-slate-400">Division Level</div>
-                            </div>
-                          </div>
-                        );
-                      })}
-
-                      {/* Level 2: Districts */}
-                      {areaStep === 'district' && (
-                        currentDivisionDistricts.length === 0 ? (
-                          <div className="p-8 text-center text-slate-400 text-xs">
-                            No districts configured for this division.
-                          </div>
-                        ) : (
-                          currentDivisionDistricts.map(dst => {
-                            const isChecked = checkedAreaItem === dst.id;
-                            return (
-                              <div
-                                key={dst.id}
-                                onClick={() => setCheckedAreaItem(prev => prev === dst.id ? null : dst.id)}
-                                className={cn(
-                                  'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
-                                  isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
-                                )}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isChecked}
-                                  onChange={() => {}}
-                                  className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
-                                />
-                                <div className={cn(
-                                  'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
-                                  isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-teal-50 text-teal-700 border-teal-100'
-                                )}>
-                                  DST
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{dst.name}</div>
-                                  <div className="text-[11px] text-slate-400">District</div>
-                                </div>
-                              </div>
-                            );
-                          })
-                        )
-                      )}
-
-                      {/* Level 3: Blocks */}
-                      {areaStep === 'block' && (
-                        currentDistrictBlocks.length === 0 ? (
-                          <div className="p-8 text-center text-slate-400 text-xs">
-                            No blocks configured for this district.
-                          </div>
-                        ) : (
-                          currentDistrictBlocks.map(blk => {
-                            const isChecked = checkedAreaItem === blk.id;
-                            return (
-                              <div
-                                key={blk.id}
-                                onClick={() => setCheckedAreaItem(prev => prev === blk.id ? null : blk.id)}
-                                className={cn(
-                                  'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
-                                  isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
-                                )}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isChecked}
-                                  onChange={() => {}}
-                                  className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
-                                />
-                                <div className={cn(
-                                  'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
-                                  isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-indigo-50 text-indigo-700 border-indigo-100'
-                                )}>
-                                  BLK
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{blk.name}</div>
-                                  <div className="text-[11px] text-slate-400">Block</div>
-                                </div>
-                              </div>
-                            );
-                          })
-                        )
-                      )}
-
-                      {/* Level 4: Gram Panchayats */}
-                      {areaStep === 'gp' && (
-                        currentBlockGPs.length === 0 ? (
-                          <div className="p-8 text-center text-slate-400 text-xs">
-                            No Gram Panchayats configured for this block.
-                          </div>
-                        ) : (
-                          currentBlockGPs.map(gp => {
-                            const isChecked = checkedAreaItem === gp.id;
-                            return (
-                              <div
-                                key={gp.id}
-                                onClick={() => setCheckedAreaItem(prev => prev === gp.id ? null : gp.id)}
-                                className={cn(
-                                  'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
-                                  isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
-                                )}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isChecked}
-                                  onChange={() => {}}
-                                  className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
-                                />
-                                <div className={cn(
-                                  'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
-                                  isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-violet-50 text-violet-700 border-violet-100'
-                                )}>
-                                  GP
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{gp.name}</div>
-                                  <div className="text-[11px] text-slate-400">Gram Panchayat</div>
-                                </div>
-                              </div>
-                            );
-                          })
-                        )
-                      )}
-
-                      {/* Level 5: Villages */}
-                      {areaStep === 'village' && (
-                        currentGPVillages.length === 0 ? (
-                          <div className="p-8 text-center text-slate-400 text-xs">
-                            No villages configured for this Gram Panchayat.
-                          </div>
-                        ) : (
-                          currentGPVillages.map(v => {
-                            const isChecked = checkedAreaItem === v.id;
-                            return (
-                              <div
-                                key={v.id}
-                                onClick={() => setCheckedAreaItem(prev => prev === v.id ? null : v.id)}
-                                className={cn(
-                                  'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
-                                  isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
-                                )}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isChecked}
-                                  onChange={() => {}}
-                                  className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
-                                />
-                                <div className={cn(
-                                  'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
-                                  isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                                )}>
-                                  VLG
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{v.name}</div>
-                                  <div className="text-[11px] text-slate-400">Village</div>
-                                </div>
-                              </div>
-                            );
-                          })
-                        )
-                      )}
-
-                      {/* Level 6: Person in Village */}
-                      {areaStep === 'person' && (
-                        filteredUsers.length === 0 ? (
-                          <div className="p-8 text-center text-slate-400 text-xs">
-                            No field personnel currently assigned directly to this village.
-                          </div>
-                        ) : (
-                          filteredUsers.map(u => {
-                            const isChecked = checkedAreaItem === u.id;
-                            return (
-                              <div
-                                key={u.id}
-                                onClick={() => setCheckedAreaItem(prev => prev === u.id ? null : u.id)}
-                                className={cn(
-                                  'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
-                                  isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
-                                )}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isChecked}
-                                  onChange={() => {}}
-                                  className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
-                                />
-                                <div className={cn(
-                                  'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0',
-                                  isChecked ? 'bg-emerald-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-600'
-                                )}>
-                                  {u.name.slice(0, 1).toUpperCase()}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{u.name}</div>
-                                  <div className="text-[11px] text-slate-400 truncate">{u.email}</div>
-                                </div>
-                                <span className={cn(
-                                  'px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 border capitalize',
-                                  u.role === 'intern' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-purple-50 text-purple-700 border-purple-200'
-                                )}>
-                                  {roleLabel(u.role)}
-                                </span>
-                              </div>
-                            );
-                          })
-                        )
-                      )}
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Completed Area Display (When scope is finalized at ANY level: Division, District, Block, GP, Village, or Person) */}
                 {areaStep === 'completed' && (
