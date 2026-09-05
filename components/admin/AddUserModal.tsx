@@ -13,6 +13,7 @@ import { usersApi } from '@/lib/api/users';
 import type { Division, District, Block, GramPanchayat, Village, User } from '@/types/models';
 import { cn } from '@/lib/utils/formatters';
 import { toast } from 'sonner';
+import CustomSelect from '@/components/shared/CustomSelect';
 import {
   BULK_COLUMNS,
   BULK_ROLE_LABEL,
@@ -588,20 +589,27 @@ export default function AddUserModal({ open, user, onClose, onCreated, onUpdated
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Gender <span className="text-rose-500">*</span></label>
-                        <select {...register('gender')} className={inputCls(!!errs.gender)}>
-                          <option value="">Select gender…</option>
-                          {GENDER_OPTIONS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
-                        </select>
-                        <FieldError msg={errs.gender?.message} />
+                        <CustomSelect
+                          label="Gender"
+                          required
+                          options={GENDER_OPTIONS}
+                          value={watch('gender')}
+                          onChange={(val) => setValue('gender', val as any, { shouldValidate: true })}
+                          hasError={!!errs.gender}
+                          errorMessage={errs.gender?.message}
+                          placeholder="Select gender…"
+                        />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Category</label>
-                        <select {...register('category')} className={inputCls(!!errs.category)}>
-                          <option value="">Select category…</option>
-                          {CATEGORY_OPTIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                        </select>
-                        <FieldError msg={errs.category?.message} />
+                        <CustomSelect
+                          label="Category"
+                          options={CATEGORY_OPTIONS}
+                          value={watch('category') || ''}
+                          onChange={(val) => setValue('category', val as any, { shouldValidate: true })}
+                          hasError={!!errs.category}
+                          errorMessage={errs.category?.message}
+                          placeholder="Select category…"
+                        />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1.5">Father&apos;s Name <span className="text-rose-500">*</span></label>
@@ -626,12 +634,16 @@ export default function AddUserModal({ open, user, onClose, onCreated, onUpdated
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Qualification <span className="text-rose-500">*</span></label>
-                        <select {...register('qualification')} className={inputCls(!!errs.qualification)}>
-                          <option value="">Select qualification…</option>
-                          {QUALIFICATION_OPTIONS.map((q) => <option key={q.value} value={q.value}>{q.label}</option>)}
-                        </select>
-                        <FieldError msg={errs.qualification?.message} />
+                        <CustomSelect
+                          label="Qualification"
+                          required
+                          options={QUALIFICATION_OPTIONS}
+                          value={watch('qualification')}
+                          onChange={(val) => setValue('qualification', val as any, { shouldValidate: true })}
+                          hasError={!!errs.qualification}
+                          errorMessage={errs.qualification?.message}
+                          placeholder="Select qualification…"
+                        />
                       </div>
                       <div className="sm:col-span-2">
                         <label className="block text-sm font-medium text-slate-700 mb-1.5">Address <span className="text-rose-500">*</span></label>
@@ -650,59 +662,98 @@ export default function AddUserModal({ open, user, onClose, onCreated, onUpdated
                     <div className={cn('grid grid-cols-1 sm:grid-cols-2 gap-4', role === 'intern' && 'lg:grid-cols-4')}>
                       {role === 'pc' && (
                         <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1.5">Division <span className="text-rose-500">*</span></label>
-                          <select {...register('divisionId')} className={inputCls(!!errs.divisionId)}>
-                            <option value="">Select division…</option>
-                            {locations.divisions.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                          </select>
-                          <FieldError msg={errs.divisionId?.message} />
+                          <CustomSelect
+                            label="Division"
+                            required
+                            options={locations.divisions.map((d) => ({ value: d.id, label: d.name }))}
+                            value={watch('divisionId')}
+                            onChange={(val) => setValue('divisionId', val, { shouldValidate: true })}
+                            hasError={!!errs.divisionId}
+                            errorMessage={errs.divisionId?.message}
+                            placeholder="Select division…"
+                          />
                         </div>
                       )}
 
                       {role === 'fellow' && (
                         <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1.5">District <span className="text-rose-500">*</span></label>
-                          <select {...register('districtId')} className={inputCls(!!errs.districtId)}>
-                            <option value="">Select district…</option>
-                            {locations.districts.map((d) => <option key={d.id} value={d.id}>{d.name} ({d.divisionName})</option>)}
-                          </select>
-                          <FieldError msg={errs.districtId?.message} />
+                          <CustomSelect
+                            label="District"
+                            required
+                            options={locations.districts.map((d) => ({ value: d.id, label: `${d.name} (${d.divisionName})` }))}
+                            value={watch('districtId')}
+                            onChange={(val) => setValue('districtId', val, { shouldValidate: true })}
+                            hasError={!!errs.districtId}
+                            errorMessage={errs.districtId?.message}
+                            placeholder="Select district…"
+                          />
                         </div>
                       )}
 
                       {role === 'intern' && (
                         <>
                           <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1.5">District <span className="text-rose-500">*</span></label>
-                            <select {...register('districtId')} className={inputCls(!!errs.districtId)}>
-                              <option value="">Select district…</option>
-                              {locations.districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                            </select>
-                            <FieldError msg={errs.districtId?.message} />
+                            <CustomSelect
+                              label="District"
+                              required
+                              options={locations.districts.map((d) => ({ value: d.id, label: d.name }))}
+                              value={watch('districtId')}
+                              onChange={(val) => {
+                                setValue('districtId', val, { shouldValidate: true });
+                                setValue('blockId', '');
+                                setValue('gramPanchayatId', '');
+                                setValue('villageId', '');
+                              }}
+                              hasError={!!errs.districtId}
+                              errorMessage={errs.districtId?.message}
+                              placeholder="Select district…"
+                            />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Block <span className="text-rose-500">*</span></label>
-                            <select {...register('blockId')} className={inputCls(!!errs.blockId)} disabled={!districtId}>
-                              <option value="">Select block…</option>
-                              {filteredBlocks.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-                            </select>
-                            <FieldError msg={errs.blockId?.message} />
+                            <CustomSelect
+                              label="Block"
+                              required
+                              disabled={!districtId}
+                              options={filteredBlocks.map((b) => ({ value: b.id, label: b.name }))}
+                              value={watch('blockId')}
+                              onChange={(val) => {
+                                setValue('blockId', val, { shouldValidate: true });
+                                setValue('gramPanchayatId', '');
+                                setValue('villageId', '');
+                              }}
+                              hasError={!!errs.blockId}
+                              errorMessage={errs.blockId?.message}
+                              placeholder={!districtId ? 'Select district first…' : 'Select block…'}
+                            />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Gram Panchayat <span className="text-rose-500">*</span></label>
-                            <select {...register('gramPanchayatId')} className={inputCls(!!errs.gramPanchayatId)} disabled={!blockId}>
-                              <option value="">Select gram panchayat…</option>
-                              {filteredGramPanchayats.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-                            </select>
-                            <FieldError msg={errs.gramPanchayatId?.message} />
+                            <CustomSelect
+                              label="Gram Panchayat"
+                              required
+                              disabled={!blockId}
+                              options={filteredGramPanchayats.map((g) => ({ value: g.id, label: g.name }))}
+                              value={watch('gramPanchayatId')}
+                              onChange={(val) => {
+                                setValue('gramPanchayatId', val, { shouldValidate: true });
+                                setValue('villageId', '');
+                              }}
+                              hasError={!!errs.gramPanchayatId}
+                              errorMessage={errs.gramPanchayatId?.message}
+                              placeholder={!blockId ? 'Select block first…' : 'Select gram panchayat…'}
+                            />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Village <span className="text-rose-500">*</span></label>
-                            <select {...register('villageId')} className={inputCls(!!errs.villageId)} disabled={!gramPanchayatId}>
-                              <option value="">Select village…</option>
-                              {filteredVillages.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
-                            </select>
-                            <FieldError msg={errs.villageId?.message} />
+                            <CustomSelect
+                              label="Village"
+                              required
+                              disabled={!gramPanchayatId}
+                              options={filteredVillages.map((v) => ({ value: v.id, label: v.name }))}
+                              value={watch('villageId')}
+                              onChange={(val) => setValue('villageId', val, { shouldValidate: true })}
+                              hasError={!!errs.villageId}
+                              errorMessage={errs.villageId?.message}
+                              placeholder={!gramPanchayatId ? 'Select GP first…' : 'Select village…'}
+                            />
                           </div>
                         </>
                       )}
