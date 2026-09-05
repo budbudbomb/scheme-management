@@ -122,7 +122,7 @@ export default function QualitativeInsightsView({
         </div>
       </div>
 
-      {/* ── Grid of Participant Circles ── */}
+      {/* ── Grid of Participant Circles (Bounded to 3 rows with visible scrollbar) ── */}
       {filteredResponses.length === 0 ? (
         <div className="py-8 px-4 text-center rounded-2xl bg-slate-50 border border-dashed border-slate-200 my-2 space-y-2">
           <p className="text-xs font-bold text-slate-700">No participant responses match the current filter</p>
@@ -142,41 +142,43 @@ export default function QualitativeInsightsView({
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 py-2">
-          {filteredResponses.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => {
-                setSelectedResponse(item);
-                setIsPlayingAudio(false);
-              }}
-              className="group flex flex-col items-center p-2 rounded-2xl hover:bg-slate-50 transition-all cursor-pointer text-center focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-            >
-              {/* Circle Avatar */}
-              <div className="relative">
-                <div
-                  className="w-14 h-14 rounded-full flex items-center justify-center text-white font-extrabold text-sm shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:shadow-md border-2 border-white ring-2 ring-slate-100"
-                  style={{ backgroundColor: item.avatarColor }}
-                >
-                  {item.initials}
+        <div className="custom-scrollbar max-h-[305px] sm:max-h-[320px] pr-1.5 py-1 -mr-1">
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 sm:gap-3">
+            {filteredResponses.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  setSelectedResponse(item);
+                  setIsPlayingAudio(false);
+                }}
+                className="group flex flex-col items-center p-1.5 sm:p-2 rounded-2xl hover:bg-slate-50 transition-all cursor-pointer text-center focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+              >
+                {/* Circle Avatar */}
+                <div className="relative">
+                  <div
+                    className="w-13 h-13 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-white font-extrabold text-sm shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:shadow-md border-2 border-white ring-2 ring-slate-100"
+                    style={{ backgroundColor: item.avatarColor }}
+                  >
+                    {item.initials}
+                  </div>
+
+                  {/* Media Type Corner Badge */}
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white shadow-xs border border-slate-200 flex items-center justify-center">
+                    {getMediaTypeIcon(item.responseType, 11)}
+                  </div>
                 </div>
 
-                {/* Media Type Corner Badge */}
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white shadow-xs border border-slate-200 flex items-center justify-center">
-                  {getMediaTypeIcon(item.responseType, 11)}
-                </div>
-              </div>
-
-              {/* Participant Name & Village */}
-              <span className="text-xs font-bold text-slate-800 mt-2 truncate w-full group-hover:text-indigo-600 transition-colors">
-                {item.participantName}
-              </span>
-              <span className="text-[10px] text-slate-400 truncate w-full">
-                {item.village}
-              </span>
-            </button>
-          ))}
+                {/* Participant Name & Village */}
+                <span className="text-xs font-bold text-slate-800 mt-1.5 truncate w-full group-hover:text-indigo-600 transition-colors">
+                  {item.participantName}
+                </span>
+                <span className="text-[10px] text-slate-400 truncate w-full">
+                  {item.village}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

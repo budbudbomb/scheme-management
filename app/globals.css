@@ -310,6 +310,29 @@
   scrollbar-width: none;
 }
 
+/* Visible custom scrollbar for scrollable panels */
+.custom-scrollbar {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f1f5f9;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+  display: block !important;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
 /* Hide mobile navigation and floating step buttons when typing on mobile */
 html.keyboard-open nav[aria-label="Mobile navigation"],
 html.keyboard-open .mobile-floating-nav,
@@ -317,3 +340,4 @@ html.keyboard-open #mobile-create-task-submit {
   display: none !important;
   pointer-events: none !important;
 }
+
