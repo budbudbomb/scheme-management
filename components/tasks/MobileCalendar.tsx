@@ -1,21 +1,16 @@
 'use client';
 
-import { useState, useMemo, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import Link from 'next/link';
+import { useState, useMemo } from 'react';
 import { cn, taskPriorityLabel, taskStatusLabel } from '@/lib/utils/formatters';
 import type { Task } from '@/types/models';
+import TaskCard from './TaskCard';
 import {
   CaretLeft,
   CaretRight,
   CalendarBlank,
-  X,
-  User,
   Rows,
   GridFour,
   CalendarDots,
-  ClipboardText,
-  ArrowRight,
 } from '@phosphor-icons/react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -26,6 +21,7 @@ export interface MobileCalendarProps {
   tasks: Task[];
   view?: CalendarView;
   onViewChange?: (v: CalendarView) => void;
+  onStatusUpdate?: (taskId: string, status: Task['status'], comment?: string) => Promise<void> | void;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -37,9 +33,6 @@ const MONTH_NAMES = [
 const SHORT_MONTH = MONTH_NAMES.map(m => m.slice(0, 3));
 const DAY_NAMES_SHORT = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const DAY_NAMES_MED = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const DAY_NAMES_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -61,9 +54,10 @@ function taskActiveOnDay(task: Task, day: Date) {
   return day >= start && day <= end;
 }
 
-function formatShortDate(str: string) {
-  const d = isoToDate(str);
-  return `${d.getDate()} ${SHORT_MONTH[d.getMonth()]} ${d.getFullYear()}`;
+function addDays(date: Date, n: number): Date {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
 }
 
 function getWeekDates(referenceDate: Date): Date[] {
@@ -76,50 +70,6 @@ function getWeekDates(referenceDate: Date): Date[] {
     date.setDate(startOfWeek.getDate() + i);
     return date;
   });
-}
-
-function addDays(date: Date, n: number) {
-  const d = new Date(date);
-  d.setDate(d.getDate() + n);
-  return d;
-}
-
-// ─── Color Helpers ────────────────────────────────────────────────────────────
-
-function priorityColor(priority: Task['priority']): string {
-  switch (priority) {
-    case 'high':   return '#f43f5e';
-    case 'medium': return '#f59e0b';
-    case 'low':    return '#10b981';
-    default:       return '#94a3b8';
-  }
-}
-
-function priorityBg(priority: Task['priority']): string {
-  switch (priority) {
-    case 'high':   return 'bg-rose-500';
-    case 'medium': return 'bg-amber-400';
-    case 'low':    return 'bg-emerald-500';
-    default:       return 'bg-slate-400';
-  }
-}
-
-function priorityLight(priority: Task['priority']): string {
-  switch (priority) {
-    case 'high':   return 'bg-rose-50 border-rose-200 text-rose-700';
-    case 'medium': return 'bg-amber-50 border-amber-200 text-amber-700';
-    case 'low':    return 'bg-emerald-50 border-emerald-200 text-emerald-700';
-    default:       return 'bg-slate-50 border-slate-200 text-slate-600';
-  }
-}
-
-function statusPill(status: Task['status']): string {
-  switch (status) {
-    case 'completed':   return 'bg-emerald-100 text-emerald-700';
-    case 'in_progress': return 'bg-indigo-100 text-indigo-700';
-    case 'overdue':     return 'bg-rose-100 text-rose-700';
-    default:            return 'bg-slate-100 text-slate-600';
-  }
 }
 
 // ─── ViewTabs (Day - Week - Month) ──────────────────────────────────────────
@@ -138,216 +88,24 @@ export function ViewTabs({
   ];
 
   return (
-    <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1">
+    <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 shadow-2xs border border-slate-200/50">
       {tabs.map(({ key, label, Icon }) => (
         <button
           key={key}
           type="button"
           onClick={() => onChange(key)}
           className={cn(
-            'flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all duration-200',
+            'flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer',
             view === key
               ? 'bg-white text-indigo-600 shadow-sm shadow-slate-200'
               : 'text-slate-500 hover:text-slate-700',
           )}
         >
           <Icon size={13} weight={view === key ? 'bold' : 'regular'} />
-          {label}
+          <span>{label}</span>
         </button>
       ))}
     </div>
-  );
-}
-
-// ─── EventChip ────────────────────────────────────────────────────────────────
-
-function EventChip({
-  task,
-  compact = false,
-  onClick,
-}: {
-  task: Task;
-  compact?: boolean;
-  onClick: (task: Task) => void;
-}) {
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={e => { e.stopPropagation(); onClick(task); }}
-      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onClick(task); } }}
-      style={{ borderLeft: `3px solid ${priorityColor(task.priority)}` }}
-      className={cn(
-        'w-full text-left rounded-r-md pl-1.5 pr-1 truncate transition-all cursor-pointer',
-        'bg-white border border-slate-100 shadow-sm',
-        'hover:brightness-95 active:scale-[.98]',
-        compact ? 'text-[9px] py-px leading-tight' : 'text-[10px] py-0.5 leading-snug',
-      )}
-    >
-      <span className="font-medium text-slate-700 block truncate">{task.name}</span>
-    </div>
-  );
-}
-
-// ─── TaskSheet ────────────────────────────────────────────────────────────────
-
-function TaskSheet({ task, onClose }: { task: Task; onClose: () => void }) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    // Lock body and AppShell main scroll while modal is active
-    const prevBodyOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    const mainEl = document.querySelector('main');
-    const prevMainOverflow = mainEl ? mainEl.style.overflow : '';
-    if (mainEl) {
-      mainEl.style.overflow = 'hidden';
-    }
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = prevBodyOverflow;
-      if (mainEl) {
-        mainEl.style.overflow = prevMainOverflow;
-      }
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [onClose]);
-
-  if (!mounted || typeof document === 'undefined') return null;
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[100] flex items-end sm:items-center sm:justify-center sm:p-4 animate-in fade-in duration-200"
-      onClick={onClose}
-    >
-      <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity" />
-      <div
-        className={cn(
-          'relative w-full bg-white shadow-2xl transition-all',
-          // Mobile: bottom roll-up sheet
-          'rounded-t-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom-4 duration-300',
-          // Desktop: centered modal popup
-          'sm:rounded-2xl sm:max-w-lg sm:p-6 sm:space-y-5 sm:max-h-[90vh] sm:slide-in-from-bottom-0 sm:zoom-in-95 sm:border sm:border-slate-100'
-        )}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Mobile pull indicator bar */}
-        <div className="sm:hidden absolute top-2.5 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-slate-200" />
-
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3 pt-1 sm:pt-0">
-          <div className="flex items-center gap-2.5 flex-1 min-w-0">
-            <span className={cn('w-3 h-3 rounded-full shrink-0', priorityBg(task.priority))} />
-            <h3 className="font-bold text-slate-900 text-base sm:text-lg leading-snug break-words">
-              {task.name}
-            </h3>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors shrink-0 cursor-pointer"
-            title="Close"
-          >
-            <X size={16} weight="bold" />
-          </button>
-        </div>
-
-        {/* Badges row */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className={cn(
-            'inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border',
-            priorityLight(task.priority),
-          )}>
-            {taskPriorityLabel(task.priority)} Priority
-          </span>
-          <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full', statusPill(task.status))}>
-            {taskStatusLabel(task.status)}
-          </span>
-          {task.isSurveyTask && (
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-100 text-purple-700">
-              Survey Task
-            </span>
-          )}
-          {task.assignedByPc && (
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
-              Assigned by PC
-            </span>
-          )}
-        </div>
-
-        {/* Description */}
-        {task.description && (
-          <div className="text-sm text-slate-600 leading-relaxed bg-slate-50 rounded-xl p-3.5 border border-slate-100/80">
-            {task.description}
-          </div>
-        )}
-
-        {/* Details Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="bg-slate-50 rounded-xl p-3.5 space-y-1.5 border border-slate-100">
-            <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
-              <CalendarBlank size={14} className="text-slate-500" />
-              Duration
-            </div>
-            <div className="text-slate-800 text-xs sm:text-sm font-semibold">{formatShortDate(task.startDate)}</div>
-            <div className="text-slate-500 text-xs font-medium">→ {formatShortDate(task.endDate)}</div>
-          </div>
-          <div className="bg-slate-50 rounded-xl p-3.5 space-y-1.5 border border-slate-100">
-            <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
-              <User size={14} className="text-slate-500" />
-              Assigned to
-            </div>
-            {task.assignedTo.length === 0 ? (
-              <div className="text-slate-400 italic text-xs">Unassigned</div>
-            ) : (
-              <div className="space-y-1">
-                {task.assignedTo.map(a => (
-                  <div key={a.id} className="text-slate-800 text-xs sm:text-sm font-semibold truncate flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-bold flex items-center justify-center shrink-0">
-                      {a.name.charAt(0)}
-                    </span>
-                    <span className="truncate">{a.name}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Footer actions */}
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-          {task.isSurveyTask && (
-            <Link
-              href={task.surveyId ? `/intern/surveys/${task.surveyId}` : '/intern/surveys/survey-01'}
-              onClick={onClose}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[#1e3a8a] hover:bg-[#172554] active:bg-[#1e40af] text-white shadow-sm transition-colors cursor-pointer"
-            >
-              <ClipboardText size={14} weight="bold" />
-              <span>Start Survey</span>
-              <ArrowRight size={13} weight="bold" />
-            </Link>
-          )}
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>,
-    document.body
   );
 }
 
@@ -359,14 +117,14 @@ function MonthView({
   tasks,
   selectedDay,
   onSelectDay,
-  onTaskClick,
+  onStatusUpdate,
 }: {
   year: number;
   month: number;
   tasks: Task[];
   selectedDay: Date | null;
   onSelectDay: (d: Date) => void;
-  onTaskClick: (t: Task) => void;
+  onStatusUpdate?: (taskId: string, status: Task['status'], comment?: string) => Promise<void> | void;
 }) {
   const today = new Date();
   const firstDay = new Date(year, month, 1);
@@ -387,7 +145,6 @@ function MonthView({
       map.set(day.toDateString(), tasks.filter(t => taskActiveOnDay(t, day)));
     });
     return map;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tasks, year, month]);
 
   const selectedDayTasks = selectedDay
@@ -395,7 +152,8 @@ function MonthView({
     : [];
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {/* Weekday Header */}
       <div className="grid grid-cols-7">
         {DAY_NAMES_SHORT.map((d, i) => (
           <div
@@ -410,15 +168,15 @@ function MonthView({
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-px bg-slate-100 rounded-xl overflow-hidden border border-slate-100">
+      {/* Days Grid */}
+      <div className="grid grid-cols-7 gap-px bg-slate-100 rounded-2xl overflow-hidden border border-slate-100">
         {cells.map((day, idx) => {
-          if (!day) return <div key={`empty-${idx}`} className="bg-white min-h-[68px] sm:min-h-[88px]" />;
+          if (!day) return <div key={`empty-${idx}`} className="bg-white min-h-[64px] sm:min-h-[80px]" />;
 
           const dayTaskList = cellTasks.get(day.toDateString()) ?? [];
           const isToday = sameDay(day, today);
           const isSel = !!selectedDay && sameDay(day, selectedDay);
           const isWeekend = day.getDay() === 0 || day.getDay() === 6;
-          const MAX_SHOW = 2;
 
           return (
             <div
@@ -428,15 +186,15 @@ function MonthView({
               onClick={() => onSelectDay(day)}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') onSelectDay(day); }}
               className={cn(
-                'bg-white min-h-[68px] sm:min-h-[88px] flex flex-col items-stretch p-1 sm:p-1.5 transition-colors text-left cursor-pointer',
-                isSel && 'bg-indigo-50',
-                !isSel && isToday && 'bg-indigo-50/50',
+                'bg-white min-h-[64px] sm:min-h-[80px] flex flex-col items-stretch p-1 sm:p-1.5 transition-colors text-left cursor-pointer select-none',
+                isSel && 'bg-indigo-50/90 ring-1 ring-inset ring-indigo-300',
+                !isSel && isToday && 'bg-indigo-50/40',
               )}
             >
-              <div className="flex items-center justify-center mb-0.5">
+              <div className="flex items-center justify-center mb-1">
                 <span
                   className={cn(
-                    'w-7 h-7 flex items-center justify-center rounded-full text-[12px] font-bold',
+                    'w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full text-[11px] sm:text-[12px] font-bold',
                     isToday
                       ? 'bg-indigo-600 text-white'
                       : isSel
@@ -449,13 +207,20 @@ function MonthView({
                   {day.getDate()}
                 </span>
               </div>
-              <div className="flex flex-col gap-0.5 flex-1">
-                {dayTaskList.slice(0, 3).map(t => (
-                  <EventChip key={t.id} task={t} compact onClick={onTaskClick} />
+
+              {/* Task badges */}
+              <div className="space-y-0.5 min-w-0">
+                {dayTaskList.slice(0, 2).map((t) => (
+                  <div
+                    key={t.id}
+                    className="w-full text-[9px] px-1 py-0.5 rounded font-medium truncate bg-slate-100/90 text-slate-700 border-l-2 border-indigo-600"
+                  >
+                    {t.name}
+                  </div>
                 ))}
-                {dayTaskList.length > 3 && (
-                  <span className="text-[9px] text-slate-400 font-semibold pl-1">
-                    +{dayTaskList.length - 3} more
+                {dayTaskList.length > 2 && (
+                  <span className="text-[8.5px] font-bold text-slate-400 block px-1">
+                    +{dayTaskList.length - 2} more
                   </span>
                 )}
               </div>
@@ -464,42 +229,31 @@ function MonthView({
         })}
       </div>
 
+      {/* Selected Day Task Cards list */}
       {selectedDay && (
-        <div className="space-y-2 pt-1">
-          <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
-            {selectedDay.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
-            {selectedDayTasks.length > 0 && (
-              <span className="text-xs font-medium text-slate-400">
-                {selectedDayTasks.length} task{selectedDayTasks.length !== 1 ? 's' : ''}
-              </span>
-            )}
-          </h3>
+        <div className="pt-3 border-t border-slate-100 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-sm font-bold text-slate-800">
+              {selectedDay.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </h3>
+            <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+              {selectedDayTasks.length} {selectedDayTasks.length === 1 ? 'task' : 'tasks'}
+            </span>
+          </div>
 
           {selectedDayTasks.length === 0 ? (
-            <div className="card p-5 text-center">
-              <CalendarBlank size={24} className="mx-auto mb-1.5 text-slate-300" />
-              <p className="text-sm text-slate-400">No tasks on this day</p>
+            <div className="p-6 text-center bg-slate-50/60 rounded-2xl border border-dashed border-slate-200">
+              <CalendarBlank size={28} className="mx-auto mb-1 text-slate-300" />
+              <p className="text-xs font-semibold text-slate-500">No tasks on this day</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="grid gap-3 sm:grid-cols-2">
               {selectedDayTasks.map(task => (
-                <button
+                <TaskCard
                   key={task.id}
-                  type="button"
-                  onClick={() => onTaskClick(task)}
-                  className="w-full text-left card p-3.5 flex items-center gap-3 hover:shadow-md transition-shadow active:scale-[.99]"
-                >
-                  <div className={cn('w-1 self-stretch rounded-full shrink-0', priorityBg(task.priority))} />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm text-slate-900 truncate">{task.name}</div>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full', statusPill(task.status))}>
-                        {taskStatusLabel(task.status)}
-                      </span>
-                    </div>
-                  </div>
-                  <CaretRight size={14} className="text-slate-300 shrink-0" />
-                </button>
+                  task={task}
+                  onStatusUpdate={onStatusUpdate}
+                />
               ))}
             </div>
           )}
@@ -509,29 +263,23 @@ function MonthView({
   );
 }
 
-// ─── WeekView ─────────────────────────────────────────────────────────────────
+// ─── WeekView (No Hourly Slots, Clean Daily Tasks) ────────────────────────────
 
 function WeekView({
   weekDates,
   tasks,
   selectedDay,
   onSelectDay,
-  onTaskClick,
+  onStatusUpdate,
 }: {
   weekDates: Date[];
   tasks: Task[];
   selectedDay: Date | null;
   onSelectDay: (d: Date) => void;
-  onTaskClick: (t: Task) => void;
+  onStatusUpdate?: (taskId: string, status: Task['status'], comment?: string) => Promise<void> | void;
 }) {
   const today = new Date();
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = 8 * 56;
-    }
-  }, []);
+  const currentDay = selectedDay ?? today;
 
   const tasksByDay = useMemo(() => {
     const map = new Map<string, Task[]>();
@@ -541,298 +289,172 @@ function WeekView({
     return map;
   }, [tasks, weekDates]);
 
-  const HOUR_HEIGHT = 56;
-
-  const nowTop = sameDay(today, today)
-    ? (today.getHours() + today.getMinutes() / 60) * HOUR_HEIGHT
-    : null;
-
-  // Find which column (if any) contains today
-  const todayColIdx = weekDates.findIndex(d => sameDay(d, today));
+  const activeDayTasks = tasksByDay.get(currentDay.toDateString()) ?? [];
 
   return (
     <div className="flex flex-col">
-      {/* Day headers */}
-      <div className="flex border-b border-slate-100 bg-white">
-        <div className="w-10 shrink-0" />
+      {/* 7-Day Header Selector Strip */}
+      <div className="grid grid-cols-7 border-b border-slate-100 bg-white p-2 gap-1 sm:gap-2">
         {weekDates.map(day => {
           const isToday = sameDay(day, today);
-          const isSel = !!selectedDay && sameDay(day, selectedDay);
+          const isSel = sameDay(day, currentDay);
           const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+          const dayCount = (tasksByDay.get(day.toDateString()) ?? []).length;
+
           return (
             <button
               key={day.toDateString()}
               type="button"
               onClick={() => onSelectDay(day)}
-              className="flex-1 flex flex-col items-center py-2 sm:py-3 gap-0.5"
+              className={cn(
+                'flex flex-col items-center py-2 px-1 rounded-xl transition-all duration-200 cursor-pointer text-center relative border',
+                isSel
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm ring-2 ring-indigo-200'
+                  : isToday
+                  ? 'bg-indigo-50/70 border-indigo-200 text-slate-800'
+                  : 'bg-white border-transparent hover:bg-slate-50 text-slate-700'
+              )}
             >
-              <span className={cn(
-                'text-[10px] sm:text-xs font-semibold uppercase hidden sm:block',
-                isWeekend ? 'text-rose-400' : 'text-slate-400',
-              )}>
+              <span
+                className={cn(
+                  'text-[10px] sm:text-xs font-semibold uppercase',
+                  isSel ? 'text-indigo-100' : isWeekend ? 'text-rose-400' : 'text-slate-400'
+                )}
+              >
                 {DAY_NAMES_MED[day.getDay()]}
               </span>
-              <span className={cn(
-                'text-[10px] font-semibold uppercase sm:hidden',
-                isWeekend ? 'text-rose-400' : 'text-slate-400',
-              )}>
-                {DAY_NAMES_MED[day.getDay()].charAt(0)}
-              </span>
-              <span className={cn(
-                'w-7 h-7 flex items-center justify-center rounded-full text-[13px] font-bold',
-                isToday
-                  ? 'bg-indigo-600 text-white'
-                  : isSel
-                  ? 'bg-indigo-100 text-indigo-700'
-                  : isWeekend
-                  ? 'text-rose-400'
-                  : 'text-slate-700',
-              )}>
+              <span
+                className={cn(
+                  'text-sm sm:text-base font-black my-0.5',
+                  isSel ? 'text-white' : 'text-slate-800'
+                )}
+              >
                 {day.getDate()}
               </span>
+              {/* Task count pill or subtle dot */}
+              {dayCount > 0 ? (
+                <span
+                  className={cn(
+                    'text-[9px] font-extrabold px-1.5 py-0.2 rounded-full leading-tight',
+                    isSel ? 'bg-white text-indigo-700' : 'bg-indigo-100 text-indigo-700'
+                  )}
+                >
+                  {dayCount}
+                </span>
+              ) : (
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-200 my-0.5" />
+              )}
             </button>
           );
         })}
       </div>
 
-      {/* Timed grid */}
-      <div
-        ref={scrollRef}
-        className="overflow-y-auto scroll-hide relative"
-        style={{ maxHeight: 'min(440px, 60vh)' }}
-      >
-        <div className="relative flex" style={{ minHeight: `${24 * HOUR_HEIGHT}px` }}>
-          {/* Time gutter */}
-          <div className="w-10 shrink-0 relative">
-            {HOURS.map(h => (
-              <div
-                key={h}
-                className="absolute left-0 right-0 text-right pr-1.5"
-                style={{ top: `${h * HOUR_HEIGHT - 6}px` }}
-              >
-                {h > 0 && (
-                  <span className="text-[9px] text-slate-400 font-medium">
-                    {h < 12 ? `${h}am` : h === 12 ? '12pm' : `${h - 12}pm`}
-                  </span>
-                )}
-              </div>
-            ))}
+      {/* Week Content Area - Clean Tasks List for the Selected Day */}
+      <div className="p-4 sm:p-6 space-y-4">
+        {/* Selected day summary banner */}
+        <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <span className="text-sm sm:text-base font-bold text-slate-900">
+              {currentDay.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </span>
+            {sameDay(currentDay, today) && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-600 text-white">
+                Today
+              </span>
+            )}
           </div>
+          <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full shrink-0">
+            {activeDayTasks.length} {activeDayTasks.length === 1 ? 'task' : 'tasks'}
+          </span>
+        </div>
 
-          {/* Hour grid lines + columns */}
-          <div className="flex-1 relative">
-            {HOURS.map(h => (
-              <div
-                key={h}
-                className="absolute left-0 right-0 border-t border-slate-100"
-                style={{ top: `${h * HOUR_HEIGHT}px` }}
+        {/* Selected day tasks */}
+        {activeDayTasks.length === 0 ? (
+          <div className="py-12 text-center bg-slate-50/70 rounded-2xl border border-dashed border-slate-200 p-6">
+            <CalendarBlank size={36} className="mx-auto text-slate-300 mb-2" />
+            <p className="text-sm font-semibold text-slate-700">No tasks on this day</p>
+            <p className="text-xs text-slate-400 mt-0.5">Select another day in the week above to view its tasks.</p>
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {activeDayTasks.map(task => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onStatusUpdate={onStatusUpdate}
               />
             ))}
-
-            {/* Current time line */}
-            {nowTop !== null && todayColIdx >= 0 && (
-              <div
-                className="absolute z-10 pointer-events-none"
-                style={{
-                  top: `${nowTop}px`,
-                  left: `${(todayColIdx / 7) * 100}%`,
-                  width: `${(1 / 7) * 100}%`,
-                }}
-              >
-                <div className="flex items-center">
-                  <div className="w-2 h-2 rounded-full bg-red-500 shrink-0 -ml-1" />
-                  <div className="flex-1 h-px bg-red-500" />
-                </div>
-              </div>
-            )}
-
-            {/* Day columns */}
-            <div className="absolute inset-0 flex">
-              {weekDates.map((day, colIdx) => {
-                const dayTasks = tasksByDay.get(day.toDateString()) ?? [];
-                const isSel = !!selectedDay && sameDay(day, selectedDay);
-                return (
-                  <div
-                    key={day.toDateString()}
-                    className={cn(
-                      'flex-1 relative border-l border-slate-100 cursor-pointer',
-                      isSel && 'bg-indigo-50/30',
-                    )}
-                    onClick={() => onSelectDay(day)}
-                    style={{ minHeight: `${24 * HOUR_HEIGHT}px` }}
-                  >
-                    {dayTasks.map((task, tIdx) => {
-                      const startH = 9 + tIdx * 2;
-                      return (
-                        <button
-                          key={task.id}
-                          type="button"
-                          onClick={e => { e.stopPropagation(); onTaskClick(task); }}
-                          style={{
-                            top: `${startH * HOUR_HEIGHT + 2}px`,
-                            height: `${2 * HOUR_HEIGHT - 4}px`,
-                            left: '2px',
-                            right: '2px',
-                            borderLeft: `3px solid ${priorityColor(task.priority)}`,
-                          }}
-                          className="absolute rounded-r-lg px-1.5 py-1 text-left overflow-hidden bg-white border border-slate-100 shadow-sm hover:brightness-95 active:scale-[.99] transition-all"
-                        >
-                          <span className="text-[9px] font-bold text-slate-700 block truncate leading-tight">
-                            {task.name}
-                          </span>
-                          <span className={cn(
-                            'text-[8px] font-semibold mt-0.5 block',
-                            task.status === 'completed' ? 'text-emerald-600' :
-                            task.status === 'overdue' ? 'text-rose-500' :
-                            task.status === 'in_progress' ? 'text-indigo-600' : 'text-slate-400',
-                          )}>
-                            {taskStatusLabel(task.status)}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
 }
 
-// ─── DayView ──────────────────────────────────────────────────────────────────
+// ─── DayView (No Hourly Slots, Clean Daily Tasks) ─────────────────────────────
 
 function DayView({
   day,
   tasks,
-  onTaskClick,
+  onStatusUpdate,
 }: {
   day: Date;
   tasks: Task[];
-  onTaskClick: (t: Task) => void;
+  onStatusUpdate?: (taskId: string, status: Task['status'], comment?: string) => Promise<void> | void;
 }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
   const dayTasks = tasks.filter(t => taskActiveOnDay(t, day));
   const today = new Date();
   const isToday = sameDay(day, today);
 
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = 8 * 64;
-    }
-  }, [day]);
-
-  const HOUR_HEIGHT = 64;
-  const nowTop = isToday
-    ? (today.getHours() + today.getMinutes() / 60) * HOUR_HEIGHT
-    : null;
-
   return (
-    <div
-      ref={scrollRef}
-      className="overflow-y-auto scroll-hide relative"
-      style={{ maxHeight: 'min(600px, 65vh)' }}
-    >
-      <div className="relative flex" style={{ minHeight: `${24 * HOUR_HEIGHT}px` }}>
-        {/* Time gutter */}
-        <div className="w-14 shrink-0 relative">
-          {HOURS.map(h => (
-            <div
-              key={h}
-              className="absolute left-0 right-0 text-right pr-2"
-              style={{ top: `${h * HOUR_HEIGHT - 7}px` }}
-            >
-              {h > 0 && (
-                <span className="text-[10px] text-slate-400 font-medium leading-none">
-                  {h < 12 ? `${h} am` : h === 12 ? '12 pm' : `${h - 12} pm`}
-                </span>
-              )}
-            </div>
-          ))}
+    <div className="p-4 sm:p-6 space-y-4">
+      {/* Day summary header */}
+      <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100">
+        <div className="flex items-center gap-2">
+          <span className="text-sm sm:text-base font-bold text-slate-900">
+            {day.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          </span>
+          {isToday && (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-600 text-white">
+              Today
+            </span>
+          )}
         </div>
+        <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full shrink-0">
+          {dayTasks.length} {dayTasks.length === 1 ? 'task' : 'tasks'}
+        </span>
+      </div>
 
-        {/* Main area */}
-        <div className="flex-1 relative border-l border-slate-100">
-          {HOURS.map(h => (
-            <div
-              key={h}
-              className="absolute left-0 right-0 border-t border-slate-100"
-              style={{ top: `${h * HOUR_HEIGHT}px` }}
+      {/* Task cards list for this day */}
+      {dayTasks.length === 0 ? (
+        <div className="py-12 text-center bg-slate-50/70 rounded-2xl border border-dashed border-slate-200 p-6">
+          <CalendarBlank size={36} className="mx-auto text-slate-300 mb-2" />
+          <p className="text-sm font-semibold text-slate-700">No tasks scheduled for this day</p>
+          <p className="text-xs text-slate-400 mt-0.5">There are no active tasks or surveys assigned for this date.</p>
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {dayTasks.map(task => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              onStatusUpdate={onStatusUpdate}
             />
           ))}
-
-          {/* Current time */}
-          {nowTop !== null && (
-            <div
-              className="absolute left-0 right-0 z-10 pointer-events-none"
-              style={{ top: `${nowTop}px` }}
-            >
-              <div className="flex items-center">
-                <div className="w-2.5 h-2.5 rounded-full bg-red-500 -ml-1.5 shrink-0" />
-                <div className="flex-1 h-px bg-red-500" />
-              </div>
-            </div>
-          )}
-
-          {/* Task blocks */}
-          {dayTasks.map((task, idx) => {
-            const startH = 9 + idx * 2;
-            return (
-              <button
-                key={task.id}
-                type="button"
-                onClick={() => onTaskClick(task)}
-                style={{
-                  top: `${startH * HOUR_HEIGHT + 2}px`,
-                  height: `${2 * HOUR_HEIGHT - 4}px`,
-                  left: '4px',
-                  right: '4px',
-                  borderLeft: `4px solid ${priorityColor(task.priority)}`,
-                }}
-                className="absolute rounded-r-xl px-3 py-2 text-left overflow-hidden bg-white border border-slate-100 shadow-md hover:shadow-lg active:scale-[.99] transition-all"
-              >
-                <span className="text-xs font-bold text-slate-800 block truncate leading-tight">
-                  {task.name}
-                </span>
-                {task.description && (
-                  <span className="text-[10px] text-slate-400 block mt-0.5 line-clamp-2">
-                    {task.description}
-                  </span>
-                )}
-                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                  <span className={cn('text-[9px] font-semibold px-1.5 py-0.5 rounded-full', statusPill(task.status))}>
-                    {taskStatusLabel(task.status)}
-                  </span>
-                  {task.assignedTo.length > 0 && (
-                    <span className="flex items-center gap-0.5 text-[9px] text-slate-400 font-medium">
-                      <User size={9} />
-                      {task.assignedTo[0].name.split(' ')[0]}
-                    </span>
-                  )}
-                </div>
-              </button>
-            );
-          })}
-
-          {dayTasks.length === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="text-center">
-                <CalendarBlank size={28} className="mx-auto text-slate-200 mb-1" />
-                <p className="text-xs text-slate-300 font-medium">No tasks today</p>
-              </div>
-            </div>
-          )}
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
 // ─── Main MobileCalendar ──────────────────────────────────────────────────────
 
-export default function MobileCalendar({ tasks, view: externalView, onViewChange }: MobileCalendarProps) {
+export default function MobileCalendar({
+  tasks,
+  view: externalView,
+  onViewChange,
+  onStatusUpdate,
+}: MobileCalendarProps) {
   const today = new Date();
 
   const [internalView, setInternalView] = useState<CalendarView>('day');
@@ -841,7 +463,6 @@ export default function MobileCalendar({ tasks, view: externalView, onViewChange
 
   const [currentDate, setCurrentDate] = useState(today);
   const [selectedDay, setSelectedDay] = useState<Date | null>(today);
-  const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -937,17 +558,19 @@ export default function MobileCalendar({ tasks, view: externalView, onViewChange
           </div>
         </div>
 
-        {/* View body */}
-        <div className={cn('p-4 sm:p-6', (view === 'week' || view === 'day') && 'p-0 sm:p-0')}>
+        {/* View body without any hourly timeline */}
+        <div>
           {view === 'month' && (
-            <MonthView
-              year={year}
-              month={month}
-              tasks={tasks}
-              selectedDay={selectedDay}
-              onSelectDay={setSelectedDay}
-              onTaskClick={setActiveTask}
-            />
+            <div className="p-4 sm:p-6">
+              <MonthView
+                year={year}
+                month={month}
+                tasks={tasks}
+                selectedDay={selectedDay}
+                onSelectDay={setSelectedDay}
+                onStatusUpdate={onStatusUpdate}
+              />
+            </div>
           )}
           {view === 'week' && (
             <WeekView
@@ -955,37 +578,18 @@ export default function MobileCalendar({ tasks, view: externalView, onViewChange
               tasks={tasks}
               selectedDay={selectedDay}
               onSelectDay={d => { setSelectedDay(d); setCurrentDate(d); }}
-              onTaskClick={setActiveTask}
+              onStatusUpdate={onStatusUpdate}
             />
           )}
           {view === 'day' && (
             <DayView
               day={selectedDay ?? today}
               tasks={tasks}
-              onTaskClick={setActiveTask}
+              onStatusUpdate={onStatusUpdate}
             />
           )}
         </div>
       </div>
-
-      {/* Priority legend */}
-      <div className="flex items-center gap-4 px-1 mt-3">
-        {[
-          { label: 'High', bg: 'bg-rose-500' },
-          { label: 'Medium', bg: 'bg-amber-400' },
-          { label: 'Low', bg: 'bg-emerald-500' },
-        ].map(p => (
-          <span key={p.label} className="flex items-center gap-1.5 text-xs text-slate-400">
-            <span className={cn('w-2 h-2 rounded-full', p.bg)} />
-            {p.label}
-          </span>
-        ))}
-      </div>
-
-      {/* Task detail bottom sheet */}
-      {activeTask && (
-        <TaskSheet task={activeTask} onClose={() => setActiveTask(null)} />
-      )}
     </div>
   );
 }

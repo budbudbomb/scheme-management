@@ -174,72 +174,193 @@ export default function InternTasksPage() {
 
   return (
     <div className="space-y-4">
-      {/* Top Header Row with Title on Left and Calendar-List switch on Right */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">My Tasks</h1>
-          <p className="text-sm text-slate-500 mt-0.5">View and update the status of tasks assigned to you</p>
+      {/* 1. Header: Title and Subtitle */}
+      <div>
+        <h1 className="text-xl font-bold text-slate-900">My Tasks</h1>
+        <p className="text-sm text-slate-500 mt-0.5">View and update the status of tasks assigned to you</p>
+      </div>
+
+      {/* 2. KPIs Strip - SHOWN ABOVE THE CALENDAR AND LIST SWITCH */}
+      {/* Phone View: Horizontally Scrollable Circular Cards like in CPM / SPM login */}
+      <div className="flex sm:hidden items-center gap-2.5 overflow-x-auto no-scrollbar py-1 px-0.5 scroll-smooth snap-x">
+        {kpiItems.map((item) => {
+          const Icon = item.icon;
+          const isSelected = statusFilter === item.key;
+          return (
+            <button
+              key={`phone-${item.label}`}
+              type="button"
+              onClick={() => setStatusFilter(prev => prev === item.key ? 'all' : item.key)}
+              title={`Filter by ${item.label}`}
+              className={cn(
+                'group shrink-0 w-[74px] h-[74px] rounded-full aspect-square snap-start flex flex-col items-center justify-center p-1 border transition-all duration-200 cursor-pointer select-none text-center',
+                isSelected
+                  ? item.activeStyle
+                  : 'bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/70 text-slate-700 shadow-2xs'
+              )}
+            >
+              <Icon
+                size={13}
+                weight={isSelected ? 'fill' : 'bold'}
+                className={cn(
+                  'shrink-0 mb-0.5 transition-colors',
+                  isSelected ? item.activeIcon : item.color
+                )}
+              />
+              <span
+                className={cn(
+                  'text-base font-black tracking-tight leading-none',
+                  isSelected ? item.activeText : 'text-slate-800'
+                )}
+              >
+                {item.value}
+              </span>
+              <span
+                className={cn(
+                  'text-[8.5px] font-semibold tracking-tight mt-0.5 max-w-[62px] truncate px-0.5 text-center leading-tight',
+                  isSelected ? item.activeSub : 'text-slate-500'
+                )}
+              >
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Desktop View: Full 5 Rounded KPI Cards in a Grid like in CPM / SPM login */}
+      <div className="hidden sm:grid sm:grid-cols-5 sm:gap-3">
+        {kpiItems.map((item) => {
+          const Icon = item.icon;
+          const isSelected = statusFilter === item.key;
+          return (
+            <button
+              key={`desktop-${item.label}`}
+              type="button"
+              onClick={() => setStatusFilter(prev => prev === item.key ? 'all' : item.key)}
+              className={cn(
+                'p-3.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer flex items-center justify-between gap-3',
+                isSelected
+                  ? item.activeDesktopStyle
+                  : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/70 shadow-2xs'
+              )}
+            >
+              <div>
+                <div
+                  className={cn(
+                    'text-xs font-semibold',
+                    isSelected ? item.activeDesktopText : 'text-slate-500'
+                  )}
+                >
+                  {item.desktopLabel}
+                </div>
+                <div
+                  className={cn(
+                    'text-2xl font-black mt-0.5 tracking-tight',
+                    isSelected ? item.activeDesktopText : 'text-slate-800'
+                  )}
+                >
+                  {item.value}
+                </div>
+              </div>
+              <div
+                className={cn(
+                  'w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors',
+                  isSelected ? item.activeDesktopIconBg : 'bg-slate-100 text-slate-600'
+                )}
+              >
+                <Icon
+                  size={20}
+                  weight={isSelected ? 'fill' : 'bold'}
+                  className={isSelected ? 'text-white' : item.color}
+                />
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 3. Controls Row: BELOW THE KPIS */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 pt-1">
+        {/* Status filter active indicator */}
+        <div className="text-xs font-semibold text-slate-500">
+          {statusFilter === 'all' ? (
+            <span>Showing all tasks</span>
+          ) : (
+            <span className="flex items-center gap-1.5">
+              Filtered by: <strong className="text-indigo-700 capitalize">{statusFilter.replace('_', ' ')}</strong>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('all')}
+                className="text-[11px] text-indigo-600 hover:text-indigo-800 underline ml-1 cursor-pointer font-bold"
+              >
+                Clear filter
+              </button>
+            </span>
+          )}
         </div>
 
-        {/* Calendar / List toggle on the RIGHT side */}
-        <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 w-fit self-end sm:self-auto shrink-0 shadow-2xs border border-slate-200/50">
-          <button
-            type="button"
-            onClick={() => setPageView('calendar')}
-            className={cn(
-              'flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer',
-              pageView === 'calendar'
-                ? 'bg-white text-indigo-600 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
-            )}
-          >
-            <CalendarBlank size={14} weight={pageView === 'calendar' ? 'bold' : 'regular'} />
-            <span>Calendar</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setPageView('list')}
-            className={cn(
-              'flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer',
-              pageView === 'list'
-                ? 'bg-white text-indigo-600 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
-            )}
-          >
-            <ListBullets size={14} weight={pageView === 'list' ? 'bold' : 'regular'} />
-            <span>List</span>
-          </button>
+        {/* Right side switches: Day-Week-Month (if calendar) + Calendar-List toggle */}
+        <div className="flex items-center gap-2 flex-wrap self-end sm:self-auto">
+          {/* Day - Week - Month selector when on Calendar view */}
+          {pageView === 'calendar' && (
+            <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 shadow-2xs border border-slate-200/50">
+              {[
+                { key: 'day' as const, label: 'Day', Icon: Rows },
+                { key: 'week' as const, label: 'Week', Icon: CalendarDots },
+                { key: 'month' as const, label: 'Month', Icon: GridFour },
+              ].map(({ key, label, Icon }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setCalendarView(key)}
+                  className={cn(
+                    'flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer',
+                    calendarView === key
+                      ? 'bg-white text-indigo-600 shadow-sm shadow-slate-200'
+                      : 'text-slate-500 hover:text-slate-700'
+                  )}
+                >
+                  <Icon size={13} weight={calendarView === key ? 'bold' : 'regular'} />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Calendar / List toggle on the right */}
+          <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 shadow-2xs border border-slate-200/50">
+            <button
+              type="button"
+              onClick={() => setPageView('calendar')}
+              className={cn(
+                'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer',
+                pageView === 'calendar'
+                  ? 'bg-white text-indigo-600 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              )}
+            >
+              <CalendarBlank size={14} weight={pageView === 'calendar' ? 'bold' : 'regular'} />
+              <span>Calendar</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPageView('list')}
+              className={cn(
+                'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer',
+                pageView === 'list'
+                  ? 'bg-white text-indigo-600 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              )}
+            >
+              <ListBullets size={14} weight={pageView === 'list' ? 'bold' : 'regular'} />
+              <span>List</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Row below Calendar - List switch: Day - Week - Month selector (Order: Day-Week-Month) */}
-      {pageView === 'calendar' && (
-        <div className="flex justify-end pt-1">
-          <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 w-fit shadow-2xs border border-slate-200/50">
-            {[
-              { key: 'day' as const, label: 'Day', Icon: Rows },
-              { key: 'week' as const, label: 'Week', Icon: CalendarDots },
-              { key: 'month' as const, label: 'Month', Icon: GridFour },
-            ].map(({ key, label, Icon }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setCalendarView(key)}
-                className={cn(
-                  'flex items-center gap-1.5 py-1.5 px-3.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer',
-                  calendarView === key
-                    ? 'bg-white text-indigo-600 shadow-sm shadow-slate-200'
-                    : 'text-slate-500 hover:text-slate-700'
-                )}
-              >
-                <Icon size={13} weight={calendarView === key ? 'bold' : 'regular'} />
-                <span>{label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
+      {/* 4. Content Area: Calendar or List view */}
       {loading ? (
         <div className="grid gap-3 sm:grid-cols-2 pt-2">
           {[1, 2, 3].map((i) => (
@@ -261,114 +382,16 @@ export default function InternTasksPage() {
           {/* Calendar view */}
           {pageView === 'calendar' && (
             <MobileCalendar
-              tasks={tasks}
+              tasks={filteredTasks}
               view={calendarView}
               onViewChange={setCalendarView}
+              onStatusUpdate={updateStatus}
             />
           )}
 
           {/* List view */}
           {pageView === 'list' && (
             <div className="space-y-4 pt-1">
-              {/* Circular KPIs: Phone View (Horizontally Scrollable Circular Cards like in CPM / SPM login) */}
-              <div className="flex sm:hidden items-center gap-2.5 overflow-x-auto no-scrollbar py-1 px-0.5 scroll-smooth snap-x">
-                {kpiItems.map((item) => {
-                  const Icon = item.icon;
-                  const isSelected = statusFilter === item.key;
-                  return (
-                    <button
-                      key={`phone-${item.label}`}
-                      type="button"
-                      onClick={() => setStatusFilter(item.key)}
-                      title={`Filter by ${item.label}`}
-                      className={cn(
-                        'group shrink-0 w-[74px] h-[74px] rounded-full aspect-square snap-start flex flex-col items-center justify-center p-1 border transition-all duration-200 cursor-pointer select-none text-center',
-                        isSelected
-                          ? item.activeStyle
-                          : 'bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/70 text-slate-700 shadow-2xs'
-                      )}
-                    >
-                      <Icon
-                        size={13}
-                        weight={isSelected ? 'fill' : 'bold'}
-                        className={cn(
-                          'shrink-0 mb-0.5 transition-colors',
-                          isSelected ? item.activeIcon : item.color
-                        )}
-                      />
-                      <span
-                        className={cn(
-                          'text-base font-black tracking-tight leading-none',
-                          isSelected ? item.activeText : 'text-slate-800'
-                        )}
-                      >
-                        {item.value}
-                      </span>
-                      <span
-                        className={cn(
-                          'text-[8.5px] font-semibold tracking-tight mt-0.5 max-w-[62px] truncate px-0.5 text-center leading-tight',
-                          isSelected ? item.activeSub : 'text-slate-500'
-                        )}
-                      >
-                        {item.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Desktop View: Full 5 Rounded KPI Cards in a Grid like in CPM / SPM login */}
-              <div className="hidden sm:grid sm:grid-cols-5 sm:gap-3">
-                {kpiItems.map((item) => {
-                  const Icon = item.icon;
-                  const isSelected = statusFilter === item.key;
-                  return (
-                    <button
-                      key={`desktop-${item.label}`}
-                      type="button"
-                      onClick={() => setStatusFilter(item.key)}
-                      className={cn(
-                        'p-3.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer flex items-center justify-between gap-3',
-                        isSelected
-                          ? item.activeDesktopStyle
-                          : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/70 shadow-2xs'
-                      )}
-                    >
-                      <div>
-                        <div
-                          className={cn(
-                            'text-xs font-semibold',
-                            isSelected ? item.activeDesktopText : 'text-slate-500'
-                          )}
-                        >
-                          {item.desktopLabel}
-                        </div>
-                        <div
-                          className={cn(
-                            'text-2xl font-black mt-0.5 tracking-tight',
-                            isSelected ? item.activeDesktopText : 'text-slate-800'
-                          )}
-                        >
-                          {item.value}
-                        </div>
-                      </div>
-                      <div
-                        className={cn(
-                          'w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors',
-                          isSelected ? item.activeDesktopIconBg : 'bg-slate-100 text-slate-600'
-                        )}
-                      >
-                        <Icon
-                          size={20}
-                          weight={isSelected ? 'fill' : 'bold'}
-                          className={isSelected ? 'text-white' : item.color}
-                        />
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
               {!filteredTasks.length ? (
                 <div className="card p-8 text-center text-slate-500 text-sm">
                   No tasks found in this status category.
