@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import LoginForm from './LoginForm';
+import { LOGO_DATA_URL } from '@/lib/constants/logo';
 
 export const metadata: Metadata = {
   title: 'Sign In',
@@ -27,14 +28,14 @@ export default function LoginPage() {
         {/* Top Header with New Logo */}
         <div className="relative z-10">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-white p-1.5 shadow-md flex items-center justify-center shrink-0">
-              <Image
-                src="/logo.png"
-                alt="CMYP Portal Logo"
+            <div className="w-12 h-12 rounded-2xl bg-white p-1.5 shadow-md flex items-center justify-center shrink-0 overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={LOGO_DATA_URL}
+                alt="Good Governance Logo"
                 width={42}
                 height={42}
-                className="object-contain"
-                priority
+                className="w-full h-full object-contain"
               />
             </div>
             <div>

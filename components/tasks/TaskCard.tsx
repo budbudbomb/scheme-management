@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { cn, taskStatusColor, taskStatusLabel, taskPriorityColor, taskPriorityLabel, formatDate } from '@/lib/utils/formatters';
-import type { Task } from '@/types/models';
+import type { Task, TaskStatus } from '@/types/models';
+import { MOCK_SURVEYS } from '@/lib/api/mockData';
 import { CalendarBlank, User, ClipboardText, PencilSimple, Trash, ArrowRight, ArrowsClockwise } from '@phosphor-icons/react';
 import UpdateTaskStatusModal from './UpdateTaskStatusModal';
 
@@ -52,6 +54,50 @@ export default function TaskCard({
   compact = false,
 }: TaskCardProps) {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const pathname = usePathname() || '';
+
+  // Resolve survey details if it's a survey task
+  const surveyId = task.surveyId || (task.isSurveyTask ? 'survey-01' : undefined);
+  const matchedSurvey = useMemo(() => {
+    if (!task.isSurveyTask || !surveyId) return null;
+    return (
+      MOCK_SURVEYS.find(
+        (s) =>
+          s.id === surveyId ||
+          s.id === surveyId.replace(/^surv-/, 'survey-') ||
+          s.id.replace(/^survey-/, 'surv-') === surveyId
+      ) || MOCK_SURVEYS[0]
+    );
+  }, [task.isSurveyTask, surveyId]);
+
+  // Automatic status calculation for survey tasks based on participants surveyed
+  const computedStatus: TaskStatus = useMemo(() => {
+    if (!task.isSurveyTask) return task.status;
+    if (matchedSurvey) {
+      const resp = matchedSurvey.responsesCount ?? 0;
+      const req = matchedSurvey.participantsRequired ?? 50;
+      if (resp >= req) {
+        return 'completed';
+      }
+      if (resp > 0) {
+        return 'in_progress';
+      }
+      return 'pending';
+    }
+    return task.status;
+  }, [task.isSurveyTask, task.status, matchedSurvey]);
+
+  // Determine correct role survey URL (interns, fellows, or pc)
+  const surveyUrl = useMemo(() => {
+    const id = surveyId || 'survey-01';
+    if (pathname.startsWith('/fellow')) {
+      return `/fellow/surveys/${id}`;
+    }
+    if (pathname.startsWith('/pc')) {
+      return `/pc/surveys/${id}`;
+    }
+    return `/intern/surveys/${id}`;
+  }, [pathname, surveyId]);
 
   return (
     <div className={cn(
@@ -78,9 +124,9 @@ export default function TaskCard({
             )}
           </div>
 
-          {/* Action icons */}
+          {/* Action icons - Don't show Update Status button for survey tasks */}
           <div className="flex items-center gap-1 shrink-0 -mt-0.5">
-            {onStatusUpdate && (
+            {onStatusUpdate && !task.isSurveyTask && (
               <button
                 type="button"
                 onClick={() => setIsStatusModalOpen(true)}
@@ -132,15 +178,24 @@ export default function TaskCard({
           </span>
           <span className={cn(
             'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border',
-            statusChipColor(task.status)
+            statusChipColor(computedStatus)
           )}>
-            {taskStatusLabel(task.status)}
+            {taskStatusLabel(computedStatus)}
           </span>
           {task.isSurveyTask && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-purple-50 text-purple-700 border-purple-200">
-              <ClipboardText size={9} weight="fill" />
-              Survey
-            </span>
+            <Link
+              href={surveyUrl}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200 hover:text-slate-900 transition-colors"
+              title="Start Survey"
+            >
+              <ClipboardText size={10} weight="fill" className="text-slate-600" />
+              <span>Survey</span>
+              {matchedSurvey && (
+                <span className="text-[9px] font-bold text-slate-500 ml-0.5">
+                  ({matchedSurvey.responsesCount ?? 0}/{matchedSurvey.participantsRequired ?? 50})
+                </span>
+              )}
+            </Link>
           )}
         </div>
 
@@ -175,21 +230,22 @@ export default function TaskCard({
           )}
         </div>
 
-        {/* Survey action */}
+        {/* Survey action - Navy blue theme button that starts the survey */}
         {task.isSurveyTask && !compact && (
           <Link
-            href={task.surveyId ? `/surveys/${task.surveyId}` : '/surveys'}
-            className="mt-3 flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-xl text-xs font-semibold bg-purple-600 text-white hover:bg-purple-700 btn-press transition-colors"
+            href={surveyUrl}
+            className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-[#152033] hover:bg-[#1e2d47] active:bg-[#0f1726] text-white shadow-sm hover:shadow-md transition-all cursor-pointer"
+            title="Start Survey"
           >
-            <ClipboardText size={13} weight="bold" />
-            Fill Survey
-            <ArrowRight size={12} weight="bold" />
+            <ClipboardText size={14} weight="bold" />
+            <span>Start Survey</span>
+            <ArrowRight size={13} weight="bold" />
           </Link>
         )}
       </div>
 
       {/* Status Update Popup Modal */}
-      {isStatusModalOpen && onStatusUpdate && (
+      {isStatusModalOpen && onStatusUpdate && !task.isSurveyTask && (
         <UpdateTaskStatusModal
           task={task}
           isOpen={isStatusModalOpen}

@@ -17,6 +17,8 @@ import {
 import { cn } from '@/lib/utils/formatters';
 import { useAuth } from '@/lib/auth/context';
 
+import { LOGO_DATA_URL } from '@/lib/constants/logo';
+
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(1, 'Password is required'),
@@ -104,15 +106,14 @@ export default function LoginForm() {
     <div>
       {/* Top Floating Circular Logo Emblem as shown in user reference */}
       <div className="flex justify-center -mt-16 sm:-mt-18 mb-4">
-        <div className="w-18 h-18 rounded-full bg-white shadow-lg border border-slate-100 p-2.5 flex items-center justify-center ring-4 ring-slate-50">
-          <Image
-            src="/logo.png"
-            alt="CMYP Logo"
-            width={52}
-            height={52}
-            unoptimized
-            className="object-contain"
-            priority
+        <div className="w-18 h-18 rounded-full bg-white shadow-lg border border-slate-100 p-2 flex items-center justify-center ring-4 ring-slate-50 overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={LOGO_DATA_URL}
+            alt="Good Governance Logo"
+            width={54}
+            height={54}
+            className="w-full h-full object-contain"
           />
         </div>
       </div>

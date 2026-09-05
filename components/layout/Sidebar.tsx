@@ -1,9 +1,8 @@
 'use client';
 
-import Image from 'next/image';
-
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { LOGO_DATA_URL } from '@/lib/constants/logo';
 import {
   House,
   Users,
@@ -107,13 +106,12 @@ export default function Sidebar({
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 h-16 border-b border-slate-800/80 shrink-0">
         <div className="w-9 h-9 rounded-xl bg-white p-1 flex items-center justify-center shrink-0 shadow-sm border border-slate-700/40 overflow-hidden">
-          <Image
-            src="/logo.png"
-            alt="CMYP Logo"
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={LOGO_DATA_URL}
+            alt="Good Governance Logo"
             width={28}
             height={28}
-            unoptimized
-            priority
             className="w-full h-full object-contain"
           />
         </div>

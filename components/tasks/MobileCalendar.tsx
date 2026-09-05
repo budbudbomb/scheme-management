@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import Link from 'next/link';
 import { cn, taskPriorityLabel, taskStatusLabel } from '@/lib/utils/formatters';
 import type { Task } from '@/types/models';
 import {
@@ -13,6 +14,8 @@ import {
   Rows,
   GridFour,
   CalendarDots,
+  ClipboardText,
+  ArrowRight,
 } from '@phosphor-icons/react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -319,8 +322,19 @@ function TaskSheet({ task, onClose }: { task: Task; onClose: () => void }) {
           </div>
         </div>
 
-        {/* Desktop footer with Close button */}
-        <div className="hidden sm:flex justify-end pt-1">
+        {/* Footer actions */}
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          {task.isSurveyTask && (
+            <Link
+              href={task.surveyId ? `/intern/surveys/${task.surveyId}` : '/intern/surveys/survey-01'}
+              onClick={onClose}
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[#152033] hover:bg-[#1e2d47] text-white transition-colors cursor-pointer"
+            >
+              <ClipboardText size={14} weight="bold" />
+              <span>Start Survey</span>
+              <ArrowRight size={13} weight="bold" />
+            </Link>
+          )}
           <button
             type="button"
             onClick={onClose}
