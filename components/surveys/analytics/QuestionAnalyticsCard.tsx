@@ -213,8 +213,14 @@ export default function QuestionAnalyticsCard({
         <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
           <span className="flex items-center gap-1.5 font-medium">
             <Info size={14} className="text-indigo-600 shrink-0" />
-            <span>Leading Response:</span>
-            <strong className="text-slate-900 font-bold">{analytics.topAnswer}</strong>
+            {analytics.questionType === 'descriptive' ? (
+              <span>Participant Submissions: <strong className="text-slate-900 font-bold">{analytics.participantResponses?.length || 0} Ground Entries (Voice, Video, Photo, Text)</strong></span>
+            ) : (
+              <>
+                <span>Leading Response:</span>
+                <strong className="text-slate-900 font-bold">{analytics.topAnswer}</strong>
+              </>
+            )}
           </span>
         </div>
       )}

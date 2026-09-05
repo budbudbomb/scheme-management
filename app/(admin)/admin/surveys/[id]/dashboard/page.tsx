@@ -290,27 +290,6 @@ export default function SurveyDashboardPage({ params }: SurveyDashboardPageProps
         </div>
       </div>
 
-      {/* ── Supervisor Review Summary Banner (if feedbacks present) ── */}
-      {survey.feedbacks && survey.feedbacks.length > 0 && (
-        <div className="card p-4 sm:p-5 border border-purple-200/80 bg-purple-50/40 rounded-2xl space-y-3">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-purple-600" />
-              <h2 className="text-xs font-bold text-purple-950 uppercase tracking-wider">
-                Latest Hierarchy Review Notes:
-              </h2>
-            </div>
-            <span className="text-[11px] text-purple-700 font-semibold">
-              {survey.feedbacks[survey.feedbacks.length - 1].submittedBy.name} (
-              {survey.feedbacks[survey.feedbacks.length - 1].role.toUpperCase()})
-            </span>
-          </div>
-          <p className="text-xs text-purple-900 leading-relaxed">
-            "{survey.feedbacks[survey.feedbacks.length - 1].feedbackText}"
-          </p>
-        </div>
-      )}
-
       {/* ── Sticky Question Navigator Strip (handles up to 30 questions) ── */}
       <div className="sticky top-16 z-30 bg-white/95 backdrop-blur-md p-3 rounded-2xl border border-slate-200/90 shadow-sm space-y-2.5">
         <div className="flex items-center justify-between gap-3 flex-wrap">

@@ -7,6 +7,27 @@ export interface OptionDistribution {
   color: string;
 }
 
+export interface ParticipantDescriptiveResponse {
+  id: string;
+  participantNumber: number;
+  participantName: string;
+  initials: string;
+  village: string;
+  block: string;
+  district: string;
+  interviewDate: string;
+  interviewerName: string;
+  interviewerRole: 'intern' | 'fellow' | 'pc';
+  responseType: 'voice' | 'video' | 'image' | 'text';
+  textResponse: string;
+  voiceDuration?: string;
+  videoDuration?: string;
+  videoThumbnail?: string;
+  imageUrl?: string;
+  imageCaption?: string;
+  avatarColor: string;
+}
+
 export interface QuestionAnalytics {
   questionId: string;
   questionNumber: number;
@@ -16,7 +37,7 @@ export interface QuestionAnalytics {
   distributions: OptionDistribution[];
   likertScore?: number; // Average score out of 5 if likert
   topAnswer?: string;
-  textResponses?: { id: string; text: string; sentiment: 'positive' | 'neutral' | 'suggestion'; authorLocation?: string }[];
+  participantResponses?: ParticipantDescriptiveResponse[];
 }
 
 export interface SurveyAnalyticsData {
@@ -184,33 +205,177 @@ export function getSurveyAnalytics(survey: Survey): SurveyAnalyticsData {
       };
     }
 
-    // Descriptive / Text answers
-    const sampleResponses = [
+    // Descriptive responses (Circle for each participant: voice, video, image, text)
+    const participantTemplates: Array<{
+      name: string;
+      initials: string;
+      village: string;
+      block: string;
+      district: string;
+      responseType: 'voice' | 'video' | 'image' | 'text';
+      textResponse: string;
+      voiceDuration?: string;
+      videoDuration?: string;
+      videoThumbnail?: string;
+      imageUrl?: string;
+      imageCaption?: string;
+      avatarColor: string;
+    }> = [
       {
-        id: 'resp-1',
-        text: 'Villagers noted that while Ladli Behna funds are disbursed promptly, youth need local technical coaching centers to qualify for IT and government jobs without migrating.',
-        sentiment: 'suggestion' as const,
-        authorLocation: 'Bharkhedi Kalan, Ujjain',
+        name: 'Rameshwar Dhakad',
+        initials: 'RD',
+        village: 'Bharkhedi Kalan',
+        block: 'Ujjain Urban',
+        district: 'Ujjain',
+        responseType: 'voice',
+        textResponse: 'Voice Recording Transcript: "While Ladli Behna installments are disbursed on time each month, the youth in our village urgently require local skill coaching so they do not have to migrate to Indore or Kota for technical jobs."',
+        voiceDuration: '01:42',
+        avatarColor: '#6366f1',
       },
       {
-        id: 'resp-2',
-        text: 'The solar pump installation under PM Kusum was praised by majority of farmer families. Water table issues remain in summer months.',
-        sentiment: 'positive' as const,
-        authorLocation: 'Ward 4, Indore Urban',
+        name: 'Sunita Meena',
+        initials: 'SM',
+        village: 'Kolar Ward 3',
+        block: 'Bhopal Rural',
+        district: 'Bhopal',
+        responseType: 'video',
+        textResponse: 'Field Video Recording: Community meeting with women SHG members demonstrating their dairy cooperative ledger and requesting government linkage for refrigerated transport milk vans.',
+        videoDuration: '02:18',
+        videoThumbnail: 'SHG Dairy Cooperative Meeting',
+        avatarColor: '#ec4899',
       },
       {
-        id: 'resp-3',
-        text: 'Primary health sub-center opens irregularly on weekends. Anganwadi worker is actively screening maternal nutrition.',
-        sentiment: 'neutral' as const,
-        authorLocation: 'Kolar Block, Bhopal',
+        name: 'Gopal Yadav',
+        initials: 'GY',
+        village: 'Bhitarwar Khurd',
+        block: 'Gwalior Block A',
+        district: 'Gwalior',
+        responseType: 'image',
+        textResponse: 'Photo Documentation: Captured field evidence of recently repaired bridge connecting the primary agricultural storage center to the state highway. Farmers can now transport produce even during rains.',
+        imageUrl: '/bridge_inspection.jpg',
+        imageCaption: 'Connecting bridge repaired under Gram Sadak Yojana',
+        avatarColor: '#14b8a6',
       },
       {
-        id: 'resp-4',
-        text: 'Road connectivity improved travel time to block headquarters from 90 mins to 35 mins. Bus frequency could be increased.',
-        sentiment: 'positive' as const,
-        authorLocation: 'Gwalior Block A',
+        name: 'Manish Chouhan',
+        initials: 'MC',
+        village: 'Pithampur Sector 2',
+        block: 'Dhar Rural',
+        district: 'Dhar',
+        responseType: 'text',
+        textResponse: 'Our village water pipeline reaches 70% of households, but during summer peak hours the pressure drops severely. A secondary booster pump near the community tank would solve the issue completely.',
+        avatarColor: '#0ea5e9',
+      },
+      {
+        name: 'Pooja Tiwari',
+        initials: 'PT',
+        village: 'Sanwer Kalan',
+        block: 'Sanwer',
+        district: 'Indore',
+        responseType: 'voice',
+        textResponse: 'Voice Recording Transcript: "The primary health sub-center doctor visits twice a week. The ANM worker is doing excellent work with maternal vaccination, but generic anti-diabetes medicines are frequently stock-out."',
+        voiceDuration: '01:15',
+        avatarColor: '#f59e0b',
+      },
+      {
+        name: 'Kailash Patidar',
+        initials: 'KP',
+        village: 'Depalpur Ward 5',
+        block: 'Depalpur',
+        district: 'Indore',
+        responseType: 'image',
+        textResponse: 'Field Photograph: Solar pump installation under PM Kusum scheme operational at cooperative farm field. Farmer reports 40% savings in diesel costs.',
+        imageUrl: '/solar_pump_field.jpg',
+        imageCaption: 'Solar pump operational in Depalpur village',
+        avatarColor: '#10b981',
+      },
+      {
+        name: 'Deepak Sharma',
+        initials: 'DS',
+        village: 'Narsinghpur Basti',
+        block: 'Gadarwara',
+        district: 'Narsinghpur',
+        responseType: 'video',
+        textResponse: 'Video Interview: Village Sarpanch and ward members discussing need for solar streetlights near the primary government school crossing to prevent accidents during foggy winter evenings.',
+        videoDuration: '01:54',
+        videoThumbnail: 'Interview with Village Sarpanch',
+        avatarColor: '#8b5cf6',
+      },
+      {
+        name: 'Rekha Ahirwar',
+        initials: 'RA',
+        village: 'Sihora Khurd',
+        block: 'Sihora',
+        district: 'Jabalpur',
+        responseType: 'text',
+        textResponse: 'Self-help group tailoring center established in January is running well with 22 women members. We received orders from the local block office for stitching school uniforms.',
+        avatarColor: '#f43f5e',
+      },
+      {
+        name: 'Babulal Verma',
+        initials: 'BV',
+        village: 'Hoshangabad Rural',
+        block: 'Babai',
+        district: 'Narmadapuram',
+        responseType: 'voice',
+        textResponse: 'Voice Recording Transcript: "Paddy procurement center operates smoothly with electronic weighing. The SMS token system has eliminated long queues at the Mandi."',
+        voiceDuration: '02:05',
+        avatarColor: '#0284c7',
+      },
+      {
+        name: 'Anita Lodhi',
+        initials: 'AL',
+        village: 'Damoh Dehat',
+        block: 'Jabera',
+        district: 'Damoh',
+        responseType: 'image',
+        textResponse: 'Photo Record: Demonstration of new digital banking kiosk (Bank Mitra) installed inside the Panchayat Bhawan, serving 4 nearby villages with pension withdrawals.',
+        imageUrl: '/bank_mitra_kiosk.jpg',
+        imageCaption: 'Bank Mitra banking kiosk in Damoh',
+        avatarColor: '#d97706',
+      },
+      {
+        name: 'Virendra Singh',
+        initials: 'VS',
+        village: 'Bina Block C',
+        block: 'Bina',
+        district: 'Sagar',
+        responseType: 'text',
+        textResponse: 'Mobile internet connectivity is weak in the outer settlements of our village. During online school tests, students have to walk 1 km towards the highway to get 4G coverage.',
+        avatarColor: '#4b5563',
+      },
+      {
+        name: 'Kamla Bai',
+        initials: 'KB',
+        village: 'Sehore Ward 8',
+        block: 'Ashta',
+        district: 'Sehore',
+        responseType: 'voice',
+        textResponse: 'Voice Recording Transcript: "Elderly pension is credited directly to post office accounts on the 5th of every month without deductions. Extremely satisfied with DBT transfer."',
+        voiceDuration: '00:54',
+        avatarColor: '#059669',
       },
     ];
+
+    const participantResponses: ParticipantDescriptiveResponse[] = participantTemplates.map((p, pIdx) => ({
+      id: `part-resp-${pIdx + 1}`,
+      participantNumber: pIdx + 1,
+      participantName: p.name,
+      initials: p.initials,
+      village: p.village,
+      block: p.block,
+      district: p.district,
+      interviewDate: '2026-08-28',
+      interviewerName: pIdx % 2 === 0 ? 'Priya Patel' : 'Rohit Yadav',
+      interviewerRole: 'intern' as const,
+      responseType: p.responseType,
+      textResponse: p.textResponse,
+      voiceDuration: p.voiceDuration,
+      videoDuration: p.videoDuration,
+      imageUrl: p.imageUrl,
+      imageCaption: p.imageCaption,
+      avatarColor: p.avatarColor,
+    }));
 
     return {
       questionId: q.id || `q-${idx}`,
@@ -218,13 +383,9 @@ export function getSurveyAnalytics(survey: Survey): SurveyAnalyticsData {
       questionText: q.question,
       questionType: q.type,
       totalAnswers: totalInterviewed,
-      distributions: [
-        { label: 'Positive Sentiment', count: Math.round(totalInterviewed * 0.52), percentage: 52, color: '#4ade80' },
-        { label: 'Constructive Suggestion', count: Math.round(totalInterviewed * 0.33), percentage: 33, color: '#0ea5e9' },
-        { label: 'Critical Issue / Bottleneck', count: Math.round(totalInterviewed * 0.15), percentage: 15, color: '#f59e0b' },
-      ],
-      textResponses: sampleResponses,
-      topAnswer: '52% Positive Sentiment, 33% Policy Suggestions',
+      distributions: [], // No graphs for descriptive questions
+      participantResponses,
+      topAnswer: `${participantResponses.length} Participant Submissions (Voice, Video, Image, Text)`,
     };
   });
 
