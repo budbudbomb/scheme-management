@@ -536,22 +536,21 @@ function NewTaskForm() {
   const pcCount = users.filter(u => u.role === 'pc').length;
 
 
-  return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-36 lg:pb-12">
-      {/* Header & Stepper Container */}
-      <div className="sticky top-0 z-20 bg-[hsl(var(--color-bg))] backdrop-blur-md pt-1 pb-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:static lg:bg-transparent lg:p-0 lg:m-0 space-y-4 border-b border-slate-200/70 lg:border-none shadow-2xs lg:shadow-none">
-        <div className="flex items-center gap-3">
+  return (    <div className="max-w-4xl mx-auto space-y-3 sm:space-y-6 pb-36 lg:pb-12">
+      {/* Header Container */}
+      <div className="sticky top-0 z-20 bg-[hsl(var(--color-bg))] backdrop-blur-md pt-0.5 pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:static lg:bg-transparent lg:p-0 lg:m-0 border-b border-slate-200/70 lg:border-none shadow-2xs lg:shadow-none">
+        <div className="flex items-center gap-2.5 sm:gap-3">
           <Link
             href={cameFromSurvey ? '/admin/surveys' : '/admin/tasks'}
-            className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+            className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
           >
             <ArrowLeft size={18} />
           </Link>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-2xl font-bold text-slate-900 leading-tight truncate">
               {cameFromSurvey ? 'Allocate Survey Task' : 'Create Task'}
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            <p className="text-[11px] sm:text-sm text-slate-500 mt-0.5 truncate">
               {cameFromSurvey
                 ? `Deploy "${watchName || 'Survey'}" by selecting assignees below`
                 : 'Assign a task to one or more users across the state'}
@@ -560,7 +559,7 @@ function NewTaskForm() {
         </div>
 
         {/* Mobile Stepper UI - Frozen right under header */}
-        <div className="block lg:hidden pt-2">
+        <div className="block lg:hidden pt-1.5 sm:pt-2">
           <div className="flex items-center justify-between gap-1.5 px-0.5">
             {(cameFromSurvey || (step === 0 && isSurveyToggle)
               ? [{ key: 0 }, { key: 3 }]
@@ -649,19 +648,20 @@ function NewTaskForm() {
         })}
       </div>
 
-      <form id="create-task-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form id="create-task-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
         {/* STEP 0: Task Type */}
         {step === 0 && (
-          <div className="card p-6 sm:p-8 space-y-6 border border-slate-200/80 shadow-xs bg-white animate-in fade-in duration-200">
-            <div className="border-b border-slate-100 pb-4">
-              <h2 className="text-base sm:text-lg font-bold text-slate-900">Step 1: Task Type</h2>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-                Choose whether this task requires field officers to complete a survey questionnaire, or is a standard task.
+          <div className="card p-3.5 sm:p-8 space-y-3 sm:space-y-6 border border-slate-200/80 shadow-xs bg-white animate-in fade-in duration-200">
+            <div className="border-b border-slate-100 pb-2.5 sm:pb-4">
+              <h2 className="text-sm sm:text-lg font-bold text-slate-900">Step 1: Task Type</h2>
+              <p className="text-[11px] sm:text-sm text-slate-500 mt-0.5">
+                <span className="sm:hidden">Select the type of assignment for field officers</span>
+                <span className="hidden sm:inline">Choose whether this task requires field officers to complete a survey questionnaire, or is a standard task.</span>
               </p>
             </div>
 
             {/* Type Selection Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2.5 sm:grid sm:grid-cols-2 sm:gap-4 sm:space-y-0">
               {/* Standard Task Card */}
               <button
                 type="button"
@@ -672,22 +672,31 @@ function NewTaskForm() {
                   setSurveyError(false);
                 }}
                 className={cn(
-                  'p-5 rounded-xl border-2 text-left transition-all cursor-pointer flex items-start gap-4',
+                  'w-full p-3 sm:p-5 rounded-xl border-2 text-left transition-all cursor-pointer flex items-center sm:items-start gap-3 sm:gap-4',
                   !isSurveyToggle
-                    ? 'border-indigo-600 bg-indigo-50/40 shadow-xs ring-1 ring-indigo-200'
+                    ? 'border-indigo-600 bg-indigo-50/50 shadow-xs ring-1 ring-indigo-200'
                     : 'border-slate-200 hover:border-slate-300 bg-white'
                 )}
               >
                 <div className={cn(
-                  'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+                  'w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors',
                   !isSurveyToggle ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-100 text-slate-500'
                 )}>
-                  <CheckSquare size={22} weight="bold" />
+                  <CheckSquare size={20} weight="bold" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="font-bold text-slate-900 text-sm">Standard Task</div>
-                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                    Create a regular field assignment, documentation, inspection, or review task.
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-900 text-xs sm:text-sm">Standard Task</span>
+                    <div className={cn(
+                      'w-4 h-4 rounded-full border flex items-center justify-center shrink-0 sm:hidden',
+                      !isSurveyToggle ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
+                    )}>
+                      {!isSurveyToggle && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </div>
+                  </div>
+                  <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 leading-snug">
+                    <span className="sm:hidden">Field assignment, documentation & review</span>
+                    <span className="hidden sm:inline">Create a regular field assignment, documentation, inspection, or review task.</span>
                   </p>
                 </div>
               </button>
@@ -700,22 +709,31 @@ function NewTaskForm() {
                   setValue('isSurveyTask', true, { shouldValidate: true });
                 }}
                 className={cn(
-                  'p-5 rounded-xl border-2 text-left transition-all cursor-pointer flex items-start gap-4',
+                  'w-full p-3 sm:p-5 rounded-xl border-2 text-left transition-all cursor-pointer flex items-center sm:items-start gap-3 sm:gap-4',
                   isSurveyToggle
-                    ? 'border-purple-600 bg-purple-50/40 shadow-xs ring-1 ring-purple-200'
+                    ? 'border-purple-600 bg-purple-50/50 shadow-xs ring-1 ring-purple-200'
                     : 'border-slate-200 hover:border-slate-300 bg-white'
                 )}
               >
                 <div className={cn(
-                  'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+                  'w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors',
                   isSurveyToggle ? 'bg-purple-600 text-white shadow-xs' : 'bg-slate-100 text-slate-500'
                 )}>
-                  <ClipboardText size={22} weight="bold" />
+                  <ClipboardText size={20} weight="bold" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="font-bold text-slate-900 text-sm">Survey Task</div>
-                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                    Deploy an active survey questionnaire for respondents to fill and submit directly.
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-900 text-xs sm:text-sm">Survey Task</span>
+                    <div className={cn(
+                      'w-4 h-4 rounded-full border flex items-center justify-center shrink-0 sm:hidden',
+                      isSurveyToggle ? 'border-purple-600 bg-purple-600' : 'border-slate-300'
+                    )}>
+                      {isSurveyToggle && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </div>
+                  </div>
+                  <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 leading-snug">
+                    <span className="sm:hidden">Deploy questionnaires for field responses</span>
+                    <span className="hidden sm:inline">Deploy an active survey questionnaire for respondents to fill and submit directly.</span>
                   </p>
                 </div>
               </button>
@@ -723,8 +741,8 @@ function NewTaskForm() {
 
             {/* If Survey Task is selected: Choose Survey dropdown */}
             {isSurveyToggle && (
-              <div className="p-4 rounded-xl bg-purple-50/60 border border-purple-200/80 space-y-3 animate-in fade-in duration-200">
-                <label className="block text-sm font-bold text-purple-950">
+              <div className="p-3 sm:p-4 rounded-xl bg-purple-50/60 border border-purple-200/80 space-y-2 sm:space-y-3 animate-in fade-in duration-200">
+                <label className="block text-xs sm:text-sm font-bold text-purple-950">
                   Select Survey Questionnaire <span className="text-rose-500">*</span>
                 </label>
                 <select
@@ -742,7 +760,7 @@ function NewTaskForm() {
                       }
                     }
                   }}
-                  className={inputCls(surveyError)}
+                  className={cn(inputCls(surveyError), 'text-xs sm:text-sm py-2')}
                 >
                   <option value="">Choose an active survey to attach…</option>
                   {surveys.map(s => (
@@ -750,7 +768,7 @@ function NewTaskForm() {
                   ))}
                 </select>
                 {surveyError && (
-                  <p className="text-xs text-rose-600 mt-1 flex items-center gap-1 font-semibold">
+                  <p className="text-[11px] sm:text-xs text-rose-600 mt-1 flex items-center gap-1 font-semibold">
                     <Warning size={13} weight="bold" /> Please choose a survey to proceed
                   </p>
                 )}
