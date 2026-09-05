@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -164,6 +164,41 @@ function NewTaskForm() {
   const currentGPVillages = selectedGPs.length > 0
     ? villages.filter(v => selectedGPs.includes(v.gramPanchayatId))
     : [];
+
+  // Grouped location structures for sticky section headers
+  const groupedDistrictsByDivision = useMemo(() => {
+    const map = new Map<string, { division: Division; districts: District[] }>();
+    for (const divId of selectedDivisions) {
+      const div = divisions.find(d => d.id === divId) || { id: divId, name: 'Division' };
+      map.set(divId, { division: div, districts: [] });
+    }
+    for (const dst of currentDivisionDistricts) {
+      if (map.has(dst.divisionId)) {
+        map.get(dst.divisionId)!.districts.push(dst);
+      } else {
+        const div = divisions.find(d => d.id === dst.divisionId) || { id: dst.divisionId, name: dst.divisionName || 'Division' };
+        map.set(dst.divisionId, { division: div, districts: [dst] });
+      }
+    }
+    return Array.from(map.values()).filter(g => g.districts.length > 0);
+  }, [selectedDivisions, divisions, currentDivisionDistricts]);
+
+  const groupedBlocksByDistrict = useMemo(() => {
+    const map = new Map<string, { district: District; blocks: Block[] }>();
+    for (const dstId of selectedDistricts) {
+      const dst = districts.find(d => d.id === dstId) || { id: dstId, name: 'District', divisionId: '', divisionName: '' };
+      map.set(dstId, { district: dst, blocks: [] });
+    }
+    for (const blk of currentDistrictBlocks) {
+      if (map.has(blk.districtId)) {
+        map.get(blk.districtId)!.blocks.push(blk);
+      } else {
+        const dst = districts.find(d => d.id === blk.districtId) || { id: blk.districtId, name: blk.districtName || 'District', divisionId: '', divisionName: '' };
+        map.set(blk.districtId, { district: dst, blocks: [blk] });
+      }
+    }
+    return Array.from(map.values()).filter(g => g.blocks.length > 0);
+  }, [selectedDistricts, districts, currentDistrictBlocks]);
 
   // Stop at Division Level
   const handleSelectEntireDivisions = (divIds: string[]) => {
@@ -1325,10 +1360,10 @@ function NewTaskForm() {
                 {/* If still exploring hierarchy */}
                 {areaStep !== 'completed' && (
                   <div className="border border-emerald-200 rounded-xl bg-white shadow-2xs overflow-hidden">
-                      {/* Navigation, Breadcrumb & Action Buttons Header - SLIM SINGLE ROW */}
-                      <div className="py-2 px-2.5 sm:py-2.5 sm:px-3.5 bg-gradient-to-r from-emerald-50/90 to-teal-50/60 border-b border-emerald-100 flex items-center justify-between gap-1.5 flex-wrap">
+                      {/* Navigation, Breadcrumb & Action Buttons Header - RESPONSIVE CLEAN ROW */}
+                      <div className="py-2 px-2.5 sm:py-2.5 sm:px-3.5 bg-gradient-to-r from-emerald-50/90 to-teal-50/60 border-b border-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         {/* Left: Back button & Breadcrumb Info */}
-                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 min-w-0 w-full sm:w-auto">
                           {areaStep !== 'division' && (
                             <button
                               type="button"
@@ -1355,13 +1390,13 @@ function NewTaskForm() {
                                   setSelectedVillages([]);
                                 }
                               }}
-                              className="p-1 rounded-md bg-white hover:bg-slate-50 text-slate-700 border border-emerald-200/70 transition-colors cursor-pointer flex items-center shrink-0"
+                              className="p-1 rounded-md bg-white hover:bg-slate-50 text-slate-700 border border-emerald-200/70 transition-colors cursor-pointer flex items-center shrink-0 shadow-2xs"
                               aria-label="Back"
                             >
                               <ArrowLeft size={13} weight="bold" />
                             </button>
                           )}
-                          <div className="min-w-0 flex items-center gap-2">
+                          <div className="min-w-0 flex items-center gap-2 flex-1">
                             <h3 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
                               {areaStep === 'division' && (checkedAreaItems.length > 0 ? `Select Division (${checkedAreaItems.length})` : 'Select Division')}
                               {areaStep === 'district' && (
@@ -1408,7 +1443,7 @@ function NewTaskForm() {
                         </div>
 
                         {/* Right: Action Buttons in the Header (enabled when an item checkbox is checked) */}
-                        <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="flex items-center gap-1.5 shrink-0 justify-end w-full sm:w-auto">
                           {areaStep === 'division' && (
                             <>
                               <button
@@ -1622,48 +1657,82 @@ function NewTaskForm() {
                           );
                         })}
 
-                        {/* Level 2: Districts */}
+                        {/* Level 2: Districts (Grouped with Sticky Frozen Division Headers) */}
                         {areaStep === 'district' && (
                           currentDivisionDistricts.length === 0 ? (
                             <div className="p-8 text-center text-slate-400 text-xs">
                               No districts configured for the selected division(s).
                             </div>
                           ) : (
-                            currentDivisionDistricts.map(dst => {
-                              const isChecked = checkedAreaItems.includes(dst.id);
+                            groupedDistrictsByDivision.map(group => {
+                              const groupDistrictIds = group.districts.map(d => d.id);
+                              const isAllGroupChecked = groupDistrictIds.length > 0 && groupDistrictIds.every(id => checkedAreaItems.includes(id));
+
                               return (
-                                <div
-                                  key={dst.id}
-                                  onClick={() => toggleCheckedAreaItem(dst.id)}
-                                  className={cn(
-                                    'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
-                                    isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
-                                  )}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    onChange={() => {}}
-                                    className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
-                                  />
-                                  <div className={cn(
-                                    'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
-                                    isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-teal-50 text-teal-700 border-teal-100'
-                                  )}>
-                                    DST
+                                <div key={group.division.id} className="relative">
+                                  {/* Frozen Sticky Division Header in bold */}
+                                  <div className="sticky top-0 z-10 px-3.5 py-2 bg-slate-100/95 backdrop-blur-md border-y border-slate-200/90 flex items-center justify-between shadow-2xs">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 shrink-0" />
+                                      <span className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight truncate">
+                                        {group.division.name}
+                                      </span>
+                                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-200/70 shrink-0">
+                                        {group.districts.length} {group.districts.length === 1 ? 'district' : 'districts'}
+                                      </span>
+                                    </div>
+                                    {groupDistrictIds.length > 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (isAllGroupChecked) {
+                                            setCheckedAreaItems(prev => prev.filter(id => !groupDistrictIds.includes(id)));
+                                          } else {
+                                            setCheckedAreaItems(prev => Array.from(new Set([...prev, ...groupDistrictIds])));
+                                          }
+                                        }}
+                                        className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 bg-white/90 hover:bg-white px-2 py-0.5 rounded border border-emerald-200/70 cursor-pointer shrink-0 transition-colors shadow-2xs"
+                                      >
+                                        {isAllGroupChecked ? 'Deselect All' : `Select All (${groupDistrictIds.length})`}
+                                      </button>
+                                    )}
                                   </div>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      <span className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{dst.name}</span>
-                                      {selectedDivisions.length > 1 && dst.divisionName && (
-                                        <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-emerald-100/70 text-emerald-800 border border-emerald-200/80">
-                                          {dst.divisionName.replace(/\s+Division$/i, '')}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <div className="text-[11px] text-slate-400">
-                                      {dst.divisionName ? `${dst.divisionName} · District` : 'District'}
-                                    </div>
+
+                                  {/* District rows in this division */}
+                                  <div className="divide-y divide-slate-100">
+                                    {group.districts.map(dst => {
+                                      const isChecked = checkedAreaItems.includes(dst.id);
+                                      return (
+                                        <div
+                                          key={dst.id}
+                                          onClick={() => toggleCheckedAreaItem(dst.id)}
+                                          className={cn(
+                                            'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
+                                            isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                                          )}
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={isChecked}
+                                            onChange={() => {}}
+                                            className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
+                                          />
+                                          <div className={cn(
+                                            'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
+                                            isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-teal-50 text-teal-700 border-teal-100'
+                                          )}>
+                                            DST
+                                          </div>
+                                          <div className="min-w-0 flex-1">
+                                            <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{dst.name}</div>
+                                            <div className="text-[11px] text-slate-400">
+                                              {group.division.name.replace(/\s+Division$/i, '')} · District
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               );
@@ -1671,48 +1740,87 @@ function NewTaskForm() {
                           )
                         )}
 
-                        {/* Level 3: Blocks */}
+                        {/* Level 3: Blocks (Grouped with Sticky Frozen District Headers) */}
                         {areaStep === 'block' && (
                           currentDistrictBlocks.length === 0 ? (
                             <div className="p-8 text-center text-slate-400 text-xs">
                               No blocks configured for the selected district(s).
                             </div>
                           ) : (
-                            currentDistrictBlocks.map(blk => {
-                              const isChecked = checkedAreaItems.includes(blk.id);
+                            groupedBlocksByDistrict.map(group => {
+                              const groupBlockIds = group.blocks.map(b => b.id);
+                              const isAllGroupChecked = groupBlockIds.length > 0 && groupBlockIds.every(id => checkedAreaItems.includes(id));
+
                               return (
-                                <div
-                                  key={blk.id}
-                                  onClick={() => toggleCheckedAreaItem(blk.id)}
-                                  className={cn(
-                                    'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
-                                    isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
-                                  )}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    onChange={() => {}}
-                                    className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
-                                  />
-                                  <div className={cn(
-                                    'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
-                                    isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-indigo-50 text-indigo-700 border-indigo-100'
-                                  )}>
-                                    BLK
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      <span className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{blk.name}</span>
-                                      {blk.districtName && (
-                                        <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-indigo-100/70 text-indigo-800 border border-indigo-200/80">
-                                          {blk.districtName}
+                                <div key={group.district.id} className="relative">
+                                  {/* Frozen Sticky District Header in bold */}
+                                  <div className="sticky top-0 z-10 px-3.5 py-2 bg-slate-100/95 backdrop-blur-md border-y border-slate-200/90 flex items-center justify-between shadow-2xs">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 shrink-0" />
+                                      <span className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight truncate">
+                                        {group.district.name} District
+                                      </span>
+                                      {group.district.divisionName && (
+                                        <span className="text-[10px] font-medium text-slate-500 hidden sm:inline truncate">
+                                          ({group.district.divisionName.replace(/\s+Division$/i, '')})
                                         </span>
                                       )}
+                                      <span className="text-[10px] font-bold text-indigo-800 bg-indigo-100/80 px-2 py-0.5 rounded-full border border-indigo-200/70 shrink-0">
+                                        {group.blocks.length} {group.blocks.length === 1 ? 'block' : 'blocks'}
+                                      </span>
                                     </div>
-                                    <div className="text-[11px] text-slate-400">
-                                      {blk.districtName ? `${blk.districtName} District · Block` : 'Block'}
-                                    </div>
+                                    {groupBlockIds.length > 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (isAllGroupChecked) {
+                                            setCheckedAreaItems(prev => prev.filter(id => !groupBlockIds.includes(id)));
+                                          } else {
+                                            setCheckedAreaItems(prev => Array.from(new Set([...prev, ...groupBlockIds])));
+                                          }
+                                        }}
+                                        className="text-[11px] font-semibold text-indigo-700 hover:text-indigo-800 bg-white/90 hover:bg-white px-2 py-0.5 rounded border border-indigo-200/70 cursor-pointer shrink-0 transition-colors shadow-2xs"
+                                      >
+                                        {isAllGroupChecked ? 'Deselect All' : `Select All (${groupBlockIds.length})`}
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  {/* Block rows in this district */}
+                                  <div className="divide-y divide-slate-100">
+                                    {group.blocks.map(blk => {
+                                      const isChecked = checkedAreaItems.includes(blk.id);
+                                      return (
+                                        <div
+                                          key={blk.id}
+                                          onClick={() => toggleCheckedAreaItem(blk.id)}
+                                          className={cn(
+                                            'p-3 sm:p-3.5 flex items-center gap-3 transition-colors cursor-pointer select-none',
+                                            isChecked ? 'bg-emerald-50/70 text-emerald-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                                          )}
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={isChecked}
+                                            onChange={() => {}}
+                                            className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
+                                          />
+                                          <div className={cn(
+                                            'w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border transition-colors',
+                                            isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-indigo-50 text-indigo-700 border-indigo-100'
+                                          )}>
+                                            BLK
+                                          </div>
+                                          <div className="min-w-0 flex-1">
+                                            <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{blk.name}</div>
+                                            <div className="text-[11px] text-slate-400">
+                                              {group.district.name} District · Block
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               );
