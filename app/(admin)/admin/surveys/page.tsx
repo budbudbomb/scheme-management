@@ -113,7 +113,7 @@ export default function AdminSurveysPage() {
           <Link
             href="/admin/surveys/new"
             id="create-survey-btn"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 shadow-md hover:shadow-lg active:scale-95 transition-all cursor-pointer btn-press"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-[#152033] text-white hover:bg-[#1e2d48] border border-slate-700/60 shadow-md hover:shadow-lg active:scale-95 transition-all cursor-pointer btn-press"
           >
             <Plus size={16} weight="bold" />
             <span>Create Survey</span>
@@ -240,7 +240,7 @@ export default function AdminSurveysPage() {
           <div className="pt-2">
             <Link
               href="/admin/surveys/new"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 shadow-md transition-all"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#152033] text-white hover:bg-[#1e2d48] border border-slate-700/60 shadow-md transition-all"
             >
               <Plus size={16} weight="bold" />
               <span>Create Survey Now</span>
