@@ -161,8 +161,8 @@ function NewTaskForm() {
     ? gramPanchayats.filter(gp => selectedBlocks.includes(gp.blockId))
     : [];
 
-  const currentGPVillages = selectedVillages.length > 0
-    ? villages.filter(v => selectedVillages.includes(v.gramPanchayatId))
+  const currentGPVillages = selectedGPs.length > 0
+    ? villages.filter(v => selectedGPs.includes(v.gramPanchayatId))
     : [];
 
   // Stop at Division Level
@@ -623,6 +623,18 @@ function NewTaskForm() {
             areaTarget = vils.length === 1
               ? `Village: ${vils[0].name}`
               : `${vils.length} Villages: ${vils.map(v => v.name).join(', ')}`;
+          }
+        }
+        if (!areaTarget) {
+          if (selectedBlocks.length > 0) {
+            const blks = blocks.filter(b => selectedBlocks.includes(b.id));
+            areaTarget = blks.length === 1 ? `Block: ${blks[0].name}` : `${blks.length} Blocks: ${blks.map(b => b.name).join(', ')}`;
+          } else if (selectedDistricts.length > 0) {
+            const dsts = districts.filter(d => selectedDistricts.includes(d.id));
+            areaTarget = dsts.length === 1 ? `District: ${dsts[0].name}` : `${dsts.length} Districts: ${dsts.map(d => d.name).join(', ')}`;
+          } else if (selectedDivisions.length > 0) {
+            const divs = divisions.filter(d => selectedDivisions.includes(d.id));
+            areaTarget = divs.length === 1 ? `Division: ${divs[0].name}` : `${divs.length} Divisions: ${divs.map(d => d.name.replace(/\s+Division$/i, '')).join(', ')}`;
           }
         }
       }
@@ -1354,12 +1366,16 @@ function NewTaskForm() {
                               {areaStep === 'division' && (checkedAreaItems.length > 0 ? `Select Division (${checkedAreaItems.length})` : 'Select Division')}
                               {areaStep === 'district' && (
                                 selectedDivisions.length === 1
-                                  ? `District in ${divisions.find(d => d.id === selectedDivisions[0])?.name.replace(/\s+Division$/i, '')}`
+                                  ? `Districts in ${divisions.find(d => d.id === selectedDivisions[0])?.name.replace(/\s+Division$/i, '')}`
+                                  : selectedDivisions.length <= 3
+                                  ? `Districts in ${selectedDivisions.map(id => divisions.find(d => d.id === id)?.name.replace(/\s+Division$/i, '')).filter(Boolean).join(' & ')}`
                                   : `Districts in ${selectedDivisions.length} Divisions`
                               )}
                               {areaStep === 'block' && (
                                 selectedDistricts.length === 1
-                                  ? `Block in ${districts.find(d => d.id === selectedDistricts[0])?.name}`
+                                  ? `Blocks in ${districts.find(d => d.id === selectedDistricts[0])?.name}`
+                                  : selectedDistricts.length <= 3
+                                  ? `Blocks in ${selectedDistricts.map(id => districts.find(d => d.id === id)?.name).filter(Boolean).join(', ')}`
                                   : `Blocks in ${selectedDistricts.length} Districts`
                               )}
                               {areaStep === 'gp' && (
@@ -1637,7 +1653,14 @@ function NewTaskForm() {
                                     DST
                                   </div>
                                   <div className="min-w-0 flex-1">
-                                    <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{dst.name}</div>
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{dst.name}</span>
+                                      {selectedDivisions.length > 1 && dst.divisionName && (
+                                        <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-emerald-100/70 text-emerald-800 border border-emerald-200/80">
+                                          {dst.divisionName.replace(/\s+Division$/i, '')}
+                                        </span>
+                                      )}
+                                    </div>
                                     <div className="text-[11px] text-slate-400">
                                       {dst.divisionName ? `${dst.divisionName} · District` : 'District'}
                                     </div>
@@ -1679,9 +1702,16 @@ function NewTaskForm() {
                                     BLK
                                   </div>
                                   <div className="min-w-0 flex-1">
-                                    <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{blk.name}</div>
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{blk.name}</span>
+                                      {blk.districtName && (
+                                        <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-indigo-100/70 text-indigo-800 border border-indigo-200/80">
+                                          {blk.districtName}
+                                        </span>
+                                      )}
+                                    </div>
                                     <div className="text-[11px] text-slate-400">
-                                      {blk.districtName ? `${blk.districtName} · Block` : 'Block'}
+                                      {blk.districtName ? `${blk.districtName} District · Block` : 'Block'}
                                     </div>
                                   </div>
                                 </div>
