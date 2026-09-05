@@ -329,7 +329,7 @@ export default function AdminSurveysPage() {
                 </div>
 
                 {/* Bottom Card Actions */}
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
                   <button
                     type="button"
                     onClick={() => {
@@ -338,17 +338,32 @@ export default function AdminSurveysPage() {
                     }}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer border border-slate-200"
                   >
-                    <Eye size={15} />
-                    <span>View Details {feedbackCount > 0 && `(${feedbackCount})`}</span>
+                    <Eye size={14} />
+                    <span>Details {feedbackCount > 0 && `(${feedbackCount})`}</span>
                   </button>
 
-                  <Link
-                    href={`/admin/tasks/new?surveyId=${survey.id}&surveyName=${encodeURIComponent(survey.title)}`}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors cursor-pointer"
-                  >
-                    <span>Allocate Task</span>
-                    <ArrowRight size={13} weight="bold" />
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    {/* Only show Allocate Task if survey is fresh/unallocated and has 0 responses */}
+                    {!survey.isAllocatedAsTask && (survey.responsesCount || 0) === 0 && (
+                      <Link
+                        href={`/admin/tasks/new?surveyId=${survey.id}&surveyName=${encodeURIComponent(survey.title)}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors cursor-pointer"
+                      >
+                        <span>Allocate</span>
+                        <ArrowRight size={13} weight="bold" />
+                      </Link>
+                    )}
+
+                    {/* Primary View Dashboard button requested on each Survey Card */}
+                    <Link
+                      href={`/admin/surveys/${survey.id}/dashboard`}
+                      id={`view-dashboard-btn-${survey.id}`}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white hover:bg-indigo-600 shadow-2xs hover:shadow-xs transition-all cursor-pointer"
+                    >
+                      <ChartBar size={14} weight="bold" />
+                      <span>View Dashboard</span>
+                    </Link>
+                  </div>
                 </div>
               </div>
             );
@@ -558,13 +573,24 @@ export default function AdminSurveysPage() {
               >
                 Close
               </button>
-              <Link
-                href={`/admin/tasks/new?surveyId=${selectedSurveyForModal.id}&surveyName=${encodeURIComponent(selectedSurveyForModal.title)}`}
-                className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition-colors flex items-center gap-1.5 shadow-xs"
-              >
-                <span>Allocate as Task</span>
-                <ArrowRight size={14} weight="bold" />
-              </Link>
+              <div className="flex items-center gap-2">
+                {!selectedSurveyForModal.isAllocatedAsTask && (selectedSurveyForModal.responsesCount || 0) === 0 && (
+                  <Link
+                    href={`/admin/tasks/new?surveyId=${selectedSurveyForModal.id}&surveyName=${encodeURIComponent(selectedSurveyForModal.title)}`}
+                    className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-semibold hover:bg-slate-200 transition-colors flex items-center gap-1.5"
+                  >
+                    <span>Allocate as Task</span>
+                    <ArrowRight size={13} weight="bold" />
+                  </Link>
+                )}
+                <Link
+                  href={`/admin/surveys/${selectedSurveyForModal.id}/dashboard`}
+                  className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-indigo-600 transition-colors flex items-center gap-1.5 shadow-xs"
+                >
+                  <ChartBar size={14} weight="bold" />
+                  <span>Open Full Dashboard</span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
