@@ -42,6 +42,7 @@ import { surveysApi } from '@/lib/api/surveys';
 import type { QuestionType, SurveyQuestion, LikertConfig, SurveyDocument } from '@/types/models';
 import { toast } from 'sonner';
 import { useVirtualKeyboard } from '@/lib/hooks/useVirtualKeyboard';
+import DatePicker from '@/components/shared/DatePicker';
 
 // ── Question Types Metadata ──────────────────────────────────────────────────
 interface QuestionTypeDef {
@@ -601,57 +602,32 @@ export default function AdminNewSurveyPage() {
               )}
             </div>
 
-            {/* Timeline: Start Date & End Date (Single row on all screens) */}
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              <div>
-                <label className="block text-xs sm:text-sm font-semibold text-slate-800 mb-1.5">
-                  Start Date <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={e => {
-                      setStartDate(e.target.value);
-                      if (step1Errors.startDate) setStep1Errors(prev => ({ ...prev, startDate: '' }));
-                    }}
-                    className={cn(
-                      'w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border bg-white text-slate-900 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all',
-                      step1Errors.startDate ? 'border-rose-400' : 'border-slate-200 hover:border-slate-300'
-                    )}
-                  />
-                </div>
-                {step1Errors.startDate && (
-                  <p className="text-xs text-rose-600 mt-1.5 flex items-center gap-1 font-medium">
-                    <Warning size={13} weight="bold" /> {step1Errors.startDate}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs sm:text-sm font-semibold text-slate-800 mb-1.5">
-                  End Date <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={e => {
-                      setEndDate(e.target.value);
-                      if (step1Errors.endDate) setStep1Errors(prev => ({ ...prev, endDate: '' }));
-                    }}
-                    className={cn(
-                      'w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border bg-white text-slate-900 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all',
-                      step1Errors.endDate ? 'border-rose-400' : 'border-slate-200 hover:border-slate-300'
-                    )}
-                  />
-                </div>
-                {step1Errors.endDate && (
-                  <p className="text-xs text-rose-600 mt-1.5 flex items-center gap-1 font-medium">
-                    <Warning size={13} weight="bold" /> {step1Errors.endDate}
-                  </p>
-                )}
-              </div>
+            {/* Timeline: Start Date & End Date using sleek DatePicker */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <DatePicker
+                label="Start Date"
+                required
+                value={startDate}
+                onChange={val => {
+                  setStartDate(val);
+                  if (step1Errors.startDate) setStep1Errors(prev => ({ ...prev, startDate: '' }));
+                }}
+                maxDate={endDate}
+                hasError={!!step1Errors.startDate}
+                errorMessage={step1Errors.startDate}
+              />
+              <DatePicker
+                label="End Date"
+                required
+                value={endDate}
+                onChange={val => {
+                  setEndDate(val);
+                  if (step1Errors.endDate) setStep1Errors(prev => ({ ...prev, endDate: '' }));
+                }}
+                minDate={startDate}
+                hasError={!!step1Errors.endDate}
+                errorMessage={step1Errors.endDate}
+              />
             </div>
 
             {/* Participants Required */}

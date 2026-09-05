@@ -15,6 +15,8 @@ import type { User, Survey, Division, District, Block, GramPanchayat, Village } 
 import { cn, roleLabel } from '@/lib/utils/formatters';
 import { toast } from 'sonner';
 import { useVirtualKeyboard } from '@/lib/hooks/useVirtualKeyboard';
+import DatePicker from '@/components/shared/DatePicker';
+import CustomSelect from '@/components/shared/CustomSelect';
 
 const schema = z.object({
   name: z.string().min(2, 'Task name required'),
@@ -917,13 +919,21 @@ function NewTaskForm() {
             {/* If Survey Task is selected: Choose Survey dropdown */}
             {isSurveyToggle && (
               <div className="p-3 sm:p-4 rounded-xl bg-purple-50/60 border border-purple-200/80 space-y-2 sm:space-y-3 animate-in fade-in duration-200">
-                <label className="block text-xs sm:text-sm font-bold text-purple-950">
-                  Select Survey Questionnaire <span className="text-rose-500">*</span>
-                </label>
-                <select
+                <CustomSelect
+                  label="Select Survey Questionnaire"
+                  required
                   value={watchSurveyId}
-                  onChange={e => {
-                    const val = e.target.value;
+                  placeholder="Choose an active survey to attach…"
+                  hasError={surveyError}
+                  errorMessage={surveyError ? "Please choose a survey to proceed" : undefined}
+                  options={surveys.map(s => ({
+                    value: s.id,
+                    label: s.title,
+                    subtext: `${s.questions?.length || 0} questions · Target: ${s.participantsRequired || 0} participants`,
+                    badge: s.status === 'active' ? 'Active' : s.status,
+                    badgeColor: s.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600',
+                  }))}
+                  onChange={val => {
                     setValue('surveyId', val, { shouldValidate: true });
                     if (val) {
                       setSurveyError(false);
@@ -935,18 +945,7 @@ function NewTaskForm() {
                       }
                     }
                   }}
-                  className={cn(inputCls(surveyError), 'text-xs sm:text-sm py-2')}
-                >
-                  <option value="">Choose an active survey to attach…</option>
-                  {surveys.map(s => (
-                    <option key={s.id} value={s.id}>{s.title}</option>
-                  ))}
-                </select>
-                {surveyError && (
-                  <p className="text-[11px] sm:text-xs text-rose-600 mt-1 flex items-center gap-1 font-semibold">
-                    <Warning size={13} weight="bold" /> Please choose a survey to proceed
-                  </p>
-                )}
+                />
               </div>
             )}
 
@@ -1041,46 +1040,57 @@ function NewTaskForm() {
 
             <div className="space-y-4 sm:space-y-5">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                  Priority <span className="text-rose-500">*</span>
-                </label>
-                <select
+                <CustomSelect
+                  label="Priority"
+                  required
                   value={watchPriority}
-                  onChange={e => setValue('priority', e.target.value as any, { shouldValidate: true })}
-                  className={inputCls()}
-                >
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                </select>
+                  onChange={val => setValue('priority', val as any, { shouldValidate: true })}
+                  options={[
+                    {
+                      value: 'high',
+                      label: 'High Priority',
+                      badge: 'High',
+                      badgeColor: 'bg-rose-50 text-rose-700 border border-rose-200',
+                      subtext: 'Urgent timeline, requires immediate attention',
+                    },
+                    {
+                      value: 'medium',
+                      label: 'Medium Priority',
+                      badge: 'Normal',
+                      badgeColor: 'bg-amber-50 text-amber-700 border border-amber-200',
+                      subtext: 'Standard operational workflow timeline',
+                    },
+                    {
+                      value: 'low',
+                      label: 'Low Priority',
+                      badge: 'Low',
+                      badgeColor: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+                      subtext: 'Flexible schedule with routine delivery',
+                    },
+                  ]}
+                />
               </div>
 
-              {/* Start Date and End Date side by side */}
-              <div className="grid grid-cols-2 gap-3 sm:gap-5">
-                <div>
-                  <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5 truncate">
-                    Start Date <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={watchStartDate}
-                    onChange={e => setValue('startDate', e.target.value, { shouldValidate: true })}
-                    className={inputCls(!!errors.startDate)}
-                  />
-                  {errors.startDate && <p className="mt-1 text-[11px] text-rose-600">{errors.startDate.message}</p>}
-                </div>
-                <div>
-                  <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5 truncate">
-                    End Date <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={watchEndDate}
-                    onChange={e => setValue('endDate', e.target.value, { shouldValidate: true })}
-                    className={inputCls(!!errors.endDate)}
-                  />
-                  {errors.endDate && <p className="mt-1 text-[11px] text-rose-600">{errors.endDate.message}</p>}
-                </div>
+              {/* Start Date and End Date side by side using sleek DatePicker */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5">
+                <DatePicker
+                  label="Start Date"
+                  required
+                  value={watchStartDate}
+                  onChange={val => setValue('startDate', val, { shouldValidate: true })}
+                  maxDate={watchEndDate}
+                  hasError={!!errors.startDate}
+                  errorMessage={errors.startDate?.message}
+                />
+                <DatePicker
+                  label="End Date"
+                  required
+                  value={watchEndDate}
+                  onChange={val => setValue('endDate', val, { shouldValidate: true })}
+                  minDate={watchStartDate}
+                  hasError={!!errors.endDate}
+                  errorMessage={errors.endDate?.message}
+                />
               </div>
             </div>
 
