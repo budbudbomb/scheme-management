@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Check, Warning, Trash, ClipboardText, Checks, CheckCircle, CheckSquare, MagnifyingGlass, X, FunnelSimple, MapPin, CaretRight, UsersThree, Users, UserCheck } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowRight, Check, Warning, Trash, ClipboardText, CheckCircle, CheckSquare, MagnifyingGlass, X, FunnelSimple, MapPin, CaretRight, UsersThree, Users, UserCheck } from '@phosphor-icons/react';
 import { usersApi } from '@/lib/api/users';
 import { tasksApi } from '@/lib/api/tasks';
 import { surveysApi } from '@/lib/api/surveys';
@@ -1040,13 +1040,12 @@ function NewTaskForm() {
                     type="button"
                     onClick={() => setRoleGroup(prev => prev === 'intern' ? null : 'intern')}
                     className={cn(
-                      'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
+                      'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center justify-center cursor-pointer shrink-0 active:scale-95',
                       roleGroup === 'intern'
                         ? 'bg-indigo-600 text-white border border-indigo-500 shadow-[0_0_16px_rgba(99,102,241,0.55)] ring-2 ring-indigo-400 ring-offset-1 font-bold scale-[1.02]'
                         : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
                     )}
                   >
-                    <Checks size={14} className={roleGroup === 'intern' ? 'text-white' : 'text-indigo-600'} weight="bold" />
                     <span>Interns</span>
                   </button>
 
@@ -1055,13 +1054,12 @@ function NewTaskForm() {
                     type="button"
                     onClick={() => setRoleGroup(prev => prev === 'fellow' ? null : 'fellow')}
                     className={cn(
-                      'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
+                      'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center justify-center cursor-pointer shrink-0 active:scale-95',
                       roleGroup === 'fellow'
                         ? 'bg-purple-600 text-white border border-purple-500 shadow-[0_0_16px_rgba(168,85,247,0.55)] ring-2 ring-purple-400 ring-offset-1 font-bold scale-[1.02]'
                         : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
                     )}
                   >
-                    <Checks size={14} className={roleGroup === 'fellow' ? 'text-white' : 'text-purple-600'} weight="bold" />
                     <span>Fellows</span>
                   </button>
 
@@ -1070,13 +1068,12 @@ function NewTaskForm() {
                     type="button"
                     onClick={() => setRoleGroup(prev => prev === 'pc' ? null : 'pc')}
                     className={cn(
-                      'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95',
+                      'px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center justify-center cursor-pointer shrink-0 active:scale-95',
                       roleGroup === 'pc'
                         ? 'bg-amber-600 text-white border border-amber-500 shadow-[0_0_16px_rgba(217,119,6,0.55)] ring-2 ring-amber-400 ring-offset-1 font-bold scale-[1.02]'
                         : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs font-semibold'
                     )}
                   >
-                    <Checks size={14} className={roleGroup === 'pc' ? 'text-white' : 'text-amber-600'} weight="bold" />
                     <span>Program Coordinators</span>
                   </button>
 
