@@ -49,6 +49,8 @@ export interface SurveyAnalyticsData {
   quotaRequired: number;
   completionRate: number;
   averageTimeMinutes: number;
+  villagesCovered: number;
+  overallSentimentScore: number;
   questionsAnalytics: QuestionAnalytics[];
 }
 
@@ -568,12 +570,26 @@ export function getSurveyAnalytics(
     };
   });
 
+  let villagesCovered = 20;
+  if (locationFilter?.village) villagesCovered = 1;
+  else if (locationFilter?.gramPanchayat) villagesCovered = 3;
+  else if (locationFilter?.block) villagesCovered = 6;
+  else if (locationFilter?.district) villagesCovered = 10;
+  else if (locationFilter?.division) villagesCovered = 14;
+
+  const likertQs = questionsAnalytics.filter(q => q.likertScore !== undefined);
+  const overallSentimentScore = likertQs.length > 0
+    ? parseFloat((likertQs.reduce((acc, q) => acc + (q.likertScore || 0), 0) / likertQs.length).toFixed(1))
+    : 4.2;
+
   return {
     survey,
     totalInterviewed,
     quotaRequired,
     completionRate,
     averageTimeMinutes: 6.4,
+    villagesCovered,
+    overallSentimentScore,
     questionsAnalytics,
   };
 }

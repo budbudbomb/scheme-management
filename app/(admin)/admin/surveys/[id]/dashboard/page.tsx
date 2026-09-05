@@ -13,6 +13,7 @@ import {
   Funnel,
   Sparkle,
   TreeStructure,
+  MapPin,
   DownloadSimple,
   Sliders,
   ChatCircleText,
@@ -280,23 +281,36 @@ export default function SurveyDashboardPage({ params }: SurveyDashboardPageProps
           <p className="text-[11px] text-slate-400 mt-1">High respondent engagement</p>
         </div>
 
-        {/* Hierarchy Submission Status */}
+        {/* Geographic Coverage / Field Reach */}
         <div className="card p-4 sm:p-5 border border-slate-200/90 shadow-2xs bg-white">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Hierarchy Trail
+              Villages Covered
             </span>
             <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
-              <TreeStructure size={18} weight="bold" />
+              <MapPin size={18} weight="bold" />
             </div>
           </div>
-          <div className="text-base sm:text-lg font-extrabold text-purple-900 mt-2">
-            {survey.feedbacks && survey.feedbacks.length > 0
-              ? `${survey.feedbacks.length} Multi-tier Reviews`
-              : 'Field Draft'}
+          <div className="flex items-baseline gap-2 mt-2">
+            <span className="text-2xl sm:text-3xl font-black text-slate-900">
+              {analyticsData.villagesCovered}
+            </span>
+            <span className="text-xs text-purple-600 font-bold uppercase">
+              Villages
+            </span>
           </div>
-          <p className="text-[11px] text-slate-500 mt-1">
-            Interns → Fellows → PC → CPM/SPM
+          <p className="text-[11px] text-slate-400 mt-1 truncate">
+            {locationFilter?.village
+              ? `Village: ${locationFilter.village}`
+              : locationFilter?.gramPanchayat
+              ? `GP: ${locationFilter.gramPanchayat}`
+              : locationFilter?.block
+              ? `Block: ${locationFilter.block}`
+              : locationFilter?.district
+              ? `District: ${locationFilter.district}`
+              : locationFilter?.division
+              ? `Division: ${locationFilter.division}`
+              : 'Statewide MP Field Coverage'}
           </p>
         </div>
       </div>
