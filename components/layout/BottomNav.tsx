@@ -14,6 +14,7 @@ import {
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils/formatters';
 import type { UserRole } from '@/types/models';
+import { useVirtualKeyboard } from '@/lib/hooks/useVirtualKeyboard';
 
 interface BottomNavItem {
   href: string;
@@ -62,9 +63,10 @@ function getPrimaryNav(role: UserRole): BottomNavItem[] {
 
 export default function BottomNav({ role }: { role: UserRole }) {
   const pathname = usePathname();
+  const isKeyboardOpen = useVirtualKeyboard();
   const items = getPrimaryNav(role);
 
-  if (!items.length) return null;
+  if (!items.length || isKeyboardOpen) return null;
 
   return (
     <nav

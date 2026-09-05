@@ -31,6 +31,7 @@ import type { Survey, SurveyQuestion, QuestionMediaAnswer } from '@/types/models
 import { surveysApi } from '@/lib/api/surveys';
 import { cn, formatDate } from '@/lib/utils/formatters';
 import { toast } from 'sonner';
+import { useVirtualKeyboard } from '@/lib/hooks/useVirtualKeyboard';
 
 interface SurveyFillFormProps {
   survey: Survey;
@@ -41,6 +42,7 @@ interface SurveyFillFormProps {
 export default function SurveyFillForm({ survey, backHref = '/surveys', onSuccess }: SurveyFillFormProps) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const isKeyboardOpen = useVirtualKeyboard();
 
   useEffect(() => {
     setMounted(true);
@@ -503,8 +505,8 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
             </button>
           </div>
 
-          {/* Frozen Floating Bottom Navigation on Mobile for Step 0 */}
-          {mounted && createPortal(
+          {/* Frozen Floating Bottom Navigation on Mobile for Step 0 (Hidden when virtual keyboard is open) */}
+          {mounted && !isKeyboardOpen && createPortal(
             <div className="sm:hidden fixed bottom-[calc(72px+env(safe-area-inset-bottom,0px))] left-3 right-3 max-w-lg mx-auto z-50 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-2xl p-2.5 shadow-xl">
               <div className="flex items-center gap-2.5">
                 {/* Light red circular X button */}
@@ -963,9 +965,9 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
           </div>
 
           {/* ══════════════════════════════════════════════════════════════════
-              FROZEN FLOATING BOTTOM NAVIGATION ON MOBILE (ABOVE FLOATING TAB BAR)
+              FROZEN FLOATING BOTTOM NAVIGATION ON MOBILE (ABOVE FLOATING TAB BAR, HIDDEN ON KEYBOARD OPEN)
              ══════════════════════════════════════════════════════════════════ */}
-          {mounted && createPortal(
+          {mounted && !isKeyboardOpen && createPortal(
             <div className="sm:hidden fixed bottom-[calc(72px+env(safe-area-inset-bottom,0px))] left-3 right-3 max-w-lg mx-auto z-50 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-2xl p-2.5 shadow-xl">
               <div className="flex items-center gap-2.5">
                 <button

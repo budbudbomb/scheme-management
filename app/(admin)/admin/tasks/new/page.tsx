@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense, useMemo } from 'react';
+import { useState, useEffect, Suspense, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,6 +14,7 @@ import { surveysApi } from '@/lib/api/surveys';
 import type { User, Survey, Division, District, Block, GramPanchayat, Village } from '@/types/models';
 import { cn, roleLabel } from '@/lib/utils/formatters';
 import { toast } from 'sonner';
+import { useVirtualKeyboard } from '@/lib/hooks/useVirtualKeyboard';
 
 const schema = z.object({
   name: z.string().min(2, 'Task name required'),
@@ -46,6 +47,8 @@ function NewTaskForm() {
 
   const [step, setStep] = useState<number>(0);
   const [mounted, setMounted] = useState(false);
+  const isKeyboardOpen = useVirtualKeyboard();
+  const lastStepChangeTime = useRef<number>(Date.now());
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [surveys, setSurveys] = useState<Survey[]>([]);
@@ -87,6 +90,10 @@ function NewTaskForm() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    lastStepChangeTime.current = Date.now();
+  }, [step]);
 
   const {
     handleSubmit,
@@ -625,6 +632,10 @@ function NewTaskForm() {
   };
 
   const onSubmit = async (data: FormData) => {
+    // Guard against touch event bleed-through immediately upon entering Step 3
+    if (Date.now() - lastStepChangeTime.current < 450) {
+      return;
+    }
     try {
       if (assignmentMode === 'role' && (!data.assignedToIds || data.assignedToIds.length === 0)) {
         toast.error('Assign to at least one user');
@@ -803,7 +814,16 @@ function NewTaskForm() {
         })}
       </div>
 
-      <form id="create-task-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
+      <form
+        id="create-task-form"
+        onSubmit={handleSubmit(onSubmit)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+            e.preventDefault();
+          }
+        }}
+        className="space-y-4 sm:space-y-6"
+      >
         {/* STEP 0: Task Type */}
         {step === 0 && (
           <div className="card p-3.5 sm:p-8 space-y-3 sm:space-y-6 border border-slate-200/80 shadow-xs bg-white animate-in fade-in duration-200">
@@ -2089,8 +2109,8 @@ function NewTaskForm() {
           </div>
         )}
 
-        {/* Frozen Floating Bottom Navigation on Mobile (Above Floating Tab Bar) */}
-        {mounted && createPortal(
+        {/* Frozen Floating Bottom Navigation on Mobile (Above Floating Tab Bar, Hidden when Virtual Keyboard is Up) */}
+        {mounted && !isKeyboardOpen && createPortal(
           <div className="lg:hidden fixed bottom-[calc(90px+env(safe-area-inset-bottom,0px))] left-4 right-4 max-w-lg mx-auto z-50 pointer-events-none">
             <div className="flex items-center gap-2.5 pointer-events-auto">
               {step > 0 && (
@@ -2106,10 +2126,14 @@ function NewTaskForm() {
 
               {step === 3 ? (
                 <button
-                  type="submit"
-                  form="create-task-form"
+                  type="button"
                   id="mobile-create-task-submit"
                   disabled={isSubmitting}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (Date.now() - lastStepChangeTime.current < 450) return;
+                    handleSubmit(onSubmit)();
+                  }}
                   className="flex-1 h-12 px-6 rounded-full bg-indigo-600 text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/35 hover:bg-indigo-700 btn-press transition-all disabled:opacity-60 cursor-pointer"
                 >
                   {isSubmitting ? 'Saving...' : cameFromSurvey || isSurveyTask ? 'Deploy Survey Task' : 'Save & Assign Task'}

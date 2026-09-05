@@ -41,6 +41,7 @@ import { cn } from '@/lib/utils/formatters';
 import { surveysApi } from '@/lib/api/surveys';
 import type { QuestionType, SurveyQuestion, LikertConfig, SurveyDocument } from '@/types/models';
 import { toast } from 'sonner';
+import { useVirtualKeyboard } from '@/lib/hooks/useVirtualKeyboard';
 
 // ── Question Types Metadata ──────────────────────────────────────────────────
 interface QuestionTypeDef {
@@ -193,6 +194,7 @@ export default function AdminNewSurveyPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const isKeyboardOpen = useVirtualKeyboard();
 
   useEffect(() => {
     setMounted(true);
@@ -1391,8 +1393,8 @@ export default function AdminNewSurveyPage() {
         </div>
       )}
 
-      {/* ── Mobile Frozen Bottom Action Bar (Portalled directly to document.body, sitting safely above BottomNav) ── */}
-      {mounted && createPortal(
+      {/* ── Mobile Frozen Bottom Action Bar (Portalled directly to document.body, sitting safely above BottomNav, hidden when keyboard open) ── */}
+      {mounted && !isKeyboardOpen && createPortal(
         <div className="sm:hidden fixed bottom-[calc(52px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-3 py-2.5 shadow-lg">
           {currentStep === 1 ? (
             <div className="flex items-center gap-2 max-w-lg mx-auto">
