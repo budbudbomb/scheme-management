@@ -202,6 +202,18 @@ export default function AdminNewSurveyPage() {
     setMounted(true);
   }, []);
 
+  // Lock body scroll when preview modal is open so the background page cannot scroll
+  useEffect(() => {
+    if (previewOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [previewOpen]);
+
   // ── Step 1: General Details ─────────────────────────────────────────────────
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -1399,7 +1411,7 @@ export default function AdminNewSurveyPage() {
       )}
 
       {/* ── Mobile Frozen Floating Bottom Actions (Lifting above BottomNav with NO background card) ── */}
-      {mounted && !isKeyboardOpen && createPortal(
+      {mounted && !isKeyboardOpen && !previewOpen && createPortal(
         <div className="sm:hidden fixed bottom-[calc(98px+env(safe-area-inset-bottom,0px))] left-4 right-4 max-w-lg mx-auto z-50 pointer-events-none">
           {currentStep === 1 ? (
             <div className="flex items-center gap-2.5 pointer-events-auto">
@@ -1466,51 +1478,58 @@ export default function AdminNewSurveyPage() {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════
-          LIVE RESPONDENT PREVIEW MODAL
+          LIVE RESPONDENT PREVIEW MODAL (Portalled to document.body, centered & scroll-locked)
          ══════════════════════════════════════════════════════════════════════ */}
-      {previewOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden border border-slate-200">
-            {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-                <h3 className="font-bold text-slate-900 text-sm sm:text-base">Respondent Live Preview</h3>
-                <span className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-semibold border border-indigo-100">
+      {previewOpen && mounted && createPortal(
+        <div
+          className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-hidden animate-in fade-in duration-150"
+          onClick={() => setPreviewOpen(false)}
+        >
+          <div
+            className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80dvh] sm:max-h-[85vh] flex flex-col overflow-hidden border border-slate-200/90 my-auto animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header (Frozen at top) */}
+            <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 shrink-0 sticky top-0 z-10">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                <h3 className="font-bold text-slate-900 text-sm sm:text-base truncate">Respondent Live Preview</h3>
+                <span className="text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-semibold border border-indigo-100 shrink-0">
                   Fellow / Intern View
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => setPreviewOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors"
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 transition-colors cursor-pointer shrink-0"
+                aria-label="Close preview"
               >
                 <X size={18} weight="bold" />
               </button>
             </div>
 
             {/* Modal Scrollable Content */}
-            <div className="p-6 overflow-y-auto space-y-6">
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 sm:space-y-6 [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent]">
               {/* Survey Header Banner */}
-              <div className="p-5 rounded-2xl bg-gradient-to-r from-indigo-900 to-indigo-800 text-white space-y-2 shadow-md">
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-indigo-900 to-indigo-800 text-white space-y-2 shadow-md">
                 <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-300">
                   Madhya Pradesh Youth Program Field Survey
                 </span>
-                <h2 className="text-xl font-bold leading-snug">{title || 'Untitled Survey'}</h2>
+                <h2 className="text-lg sm:text-xl font-bold leading-snug">{title || 'Untitled Survey'}</h2>
                 {description && <p className="text-xs text-indigo-200 leading-relaxed">{description}</p>}
-                <div className="flex items-center gap-4 text-xs text-indigo-300 pt-2 border-t border-indigo-700/60">
+                <div className="flex items-center gap-3 sm:gap-4 text-[11px] sm:text-xs text-indigo-300 pt-2 border-t border-indigo-700/60 flex-wrap">
                   <span>📅 Active: {startDate} → {endDate}</span>
                   <span>🎯 Target: {participantsRequired} responses</span>
                 </div>
               </div>
 
               {/* Questions List */}
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {questions.map((q, idx) => (
-                  <div key={q.id} className="p-4 rounded-xl border border-slate-200 bg-white space-y-3">
+                  <div key={q.id} className="p-3.5 sm:p-4 rounded-xl border border-slate-200 bg-white space-y-2.5 sm:space-y-3 shadow-2xs">
                     <div className="flex items-start gap-2">
-                      <span className="text-sm font-bold text-indigo-600">{idx + 1}.</span>
-                      <div className="font-semibold text-slate-800 text-sm leading-snug flex-1">
+                      <span className="text-xs sm:text-sm font-bold text-indigo-600">{idx + 1}.</span>
+                      <div className="font-semibold text-slate-800 text-xs sm:text-sm leading-snug flex-1">
                         {q.question || `Untitled Question ${idx + 1}`}
                         {q.required && <span className="text-rose-500 ml-1">*</span>}
                       </div>
@@ -1518,7 +1537,7 @@ export default function AdminNewSurveyPage() {
 
                     {/* Single choice preview */}
                     {q.type === 'single_choice' && (
-                      <div className="space-y-1.5 pl-5">
+                      <div className="space-y-1.5 pl-4 sm:pl-5">
                         {(q.options ?? []).map((opt, oIdx) => (
                           <label key={oIdx} className="flex items-center gap-2.5 text-xs text-slate-700 cursor-pointer p-1.5 rounded-lg hover:bg-slate-50">
                             <input type="radio" name={`preview-${q.id}`} className="text-indigo-600 focus:ring-indigo-500" />
@@ -1530,7 +1549,7 @@ export default function AdminNewSurveyPage() {
 
                     {/* Multiple choice preview */}
                     {q.type === 'multiple_choice' && (
-                      <div className="space-y-1.5 pl-5">
+                      <div className="space-y-1.5 pl-4 sm:pl-5">
                         {(q.options ?? []).map((opt, oIdx) => (
                           <label key={oIdx} className="flex items-center gap-2.5 text-xs text-slate-700 cursor-pointer p-1.5 rounded-lg hover:bg-slate-50">
                             <input type="checkbox" className="rounded text-emerald-600 focus:ring-emerald-500" />
@@ -1550,16 +1569,16 @@ export default function AdminNewSurveyPage() {
                         q.likertConfig?.highLabel || 'Very Satisfied',
                       ];
                       return (
-                        <div className="pl-5 space-y-1.5">
-                          <div className="grid grid-cols-5 gap-1.5 text-center">
+                        <div className="pl-2 sm:pl-5 space-y-1.5">
+                          <div className="grid grid-cols-5 gap-1 sm:gap-1.5 text-center">
                             {[1, 2, 3, 4, 5].map(pt => (
                               <button
                                 key={pt}
                                 type="button"
-                                className="py-2 px-1 rounded-xl border border-purple-200 text-purple-700 hover:bg-purple-600 hover:text-white transition-colors flex flex-col items-center gap-1 group"
+                                className="py-1.5 sm:py-2 px-0.5 sm:px-1 rounded-xl border border-purple-200 text-purple-700 hover:bg-purple-600 hover:text-white transition-colors flex flex-col items-center gap-0.5 sm:gap-1 group"
                               >
-                                <span className="text-xs font-bold">{pt}</span>
-                                <span className="text-[10px] font-medium leading-tight line-clamp-2 text-slate-500 group-hover:text-white">
+                                <span className="text-[10px] sm:text-xs font-bold">{pt}</span>
+                                <span className="text-[9px] sm:text-[10px] font-medium leading-tight line-clamp-2 text-slate-500 group-hover:text-white">
                                   {labels[pt - 1]}
                                 </span>
                               </button>
@@ -1571,7 +1590,7 @@ export default function AdminNewSurveyPage() {
 
                     {/* Dichotomous preview */}
                     {q.type === 'dichotomous' && (
-                      <div className="pl-5 flex items-center gap-2">
+                      <div className="pl-4 sm:pl-5 flex items-center gap-2">
                         <button type="button" className="px-4 py-1.5 rounded-xl border border-amber-300 text-xs font-bold text-amber-800 hover:bg-amber-500 hover:text-white transition-colors">
                           {q.dichotomousLabels?.[0] || 'Yes'}
                         </button>
@@ -1583,7 +1602,7 @@ export default function AdminNewSurveyPage() {
 
                     {/* Descriptive preview */}
                     {q.type === 'descriptive' && (
-                      <div className="pl-5">
+                      <div className="pl-4 sm:pl-5">
                         <textarea
                           rows={2}
                           placeholder={q.placeholder || 'Write response here…'}
@@ -1596,18 +1615,22 @@ export default function AdminNewSurveyPage() {
               </div>
             </div>
 
-            {/* Modal Footer */}
-            <div className="px-6 py-3 border-t border-slate-100 flex items-center justify-end bg-slate-50">
+            {/* Modal Footer (Frozen at bottom) */}
+            <div className="px-4 sm:px-6 py-3 border-t border-slate-100 flex items-center justify-between bg-slate-50 shrink-0 sticky bottom-0 z-10">
+              <span className="text-[11px] text-slate-400">
+                {questions.length} question{questions.length !== 1 ? 's' : ''} in survey
+              </span>
               <button
                 type="button"
                 onClick={() => setPreviewOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors"
+                className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 active:scale-95 transition-all cursor-pointer shadow-xs"
               >
                 Close Preview
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
