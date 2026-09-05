@@ -1371,7 +1371,7 @@ export default function AdminNewSurveyPage() {
 
       {/* ── Mobile Frozen Floating Bottom Actions (Lifting above BottomNav with NO background card) ── */}
       {mounted && !isKeyboardOpen && createPortal(
-        <div className="sm:hidden fixed bottom-[calc(86px+env(safe-area-inset-bottom,0px))] left-4 right-4 max-w-lg mx-auto z-50 pointer-events-none">
+        <div className="sm:hidden fixed bottom-[calc(98px+env(safe-area-inset-bottom,0px))] left-4 right-4 max-w-lg mx-auto z-50 pointer-events-none">
           {currentStep === 1 ? (
             <div className="flex items-center gap-2.5 pointer-events-auto">
               <Link
