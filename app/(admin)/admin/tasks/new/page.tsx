@@ -565,7 +565,8 @@ function NewTaskForm() {
   const pcCount = users.filter(u => u.role === 'pc').length;
 
 
-  return (    <div className="max-w-4xl mx-auto space-y-3 sm:space-y-6 pb-36 lg:pb-12">
+  return (
+    <div className="max-w-4xl mx-auto space-y-3 sm:space-y-6 pb-24 lg:pb-12">
       {/* Header Container */}
       <div className="sticky top-0 z-20 bg-[hsl(var(--color-bg))] backdrop-blur-md pt-0.5 pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:static lg:bg-transparent lg:p-0 lg:m-0 border-b border-slate-200/70 lg:border-none shadow-2xs lg:shadow-none">
         <div className="flex items-center gap-2.5 sm:gap-3">
@@ -962,7 +963,7 @@ function NewTaskForm() {
 
         {/* STEP 3: ASSIGN USERS */}
         {step === 3 && (
-          <div className="space-y-3 sm:space-y-6 sm:card sm:p-8 sm:border sm:border-slate-200/80 sm:shadow-xs sm:bg-white animate-in fade-in duration-200 pb-28 sm:pb-8">
+          <div className="space-y-3 sm:space-y-6 sm:card sm:p-8 sm:border sm:border-slate-200/80 sm:shadow-xs sm:bg-white animate-in fade-in duration-200 pb-2 sm:pb-8">
 
             <div className="border-b border-slate-200/80 sm:border-slate-100 pb-2 sm:pb-4 flex items-center justify-between flex-wrap gap-2 px-0.5 sm:px-0">
               <div>
@@ -1493,7 +1494,7 @@ function NewTaskForm() {
                     </div>
 
                     {/* Hierarchy List Body: Clean rows with checkboxes ONLY */}
-                    <div className="max-h-[320px] overflow-y-auto divide-y divide-slate-100">
+                    <div className="max-h-[min(55vh,440px)] sm:max-h-[340px] overflow-y-auto divide-y divide-slate-100">
                       {/* Level 1: Divisions */}
                       {areaStep === 'division' && divisions.map(d => {
                         const isChecked = checkedAreaItem === d.id;
@@ -1865,7 +1866,7 @@ function NewTaskForm() {
 
         {/* Frozen Floating Bottom Navigation on Mobile (Above Floating Tab Bar) */}
         {mounted && createPortal(
-          <div className="lg:hidden fixed bottom-[calc(86px+env(safe-area-inset-bottom,0px))] left-4 right-4 max-w-lg mx-auto z-50 pointer-events-none">
+          <div className="lg:hidden fixed bottom-[calc(90px+env(safe-area-inset-bottom,0px))] left-4 right-4 max-w-lg mx-auto z-50 pointer-events-none">
             <div className="flex items-center gap-2.5 pointer-events-auto">
               {step > 0 && (
                 <button
