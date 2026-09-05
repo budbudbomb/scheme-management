@@ -933,9 +933,9 @@ function NewTaskForm() {
 
         {/* STEP 3: ASSIGN USERS */}
         {step === 3 && (
-          <div className="card p-4 sm:p-8 space-y-4 sm:space-y-6 border border-slate-200/80 shadow-xs bg-white animate-in fade-in duration-200 pb-28 sm:pb-8">
+          <div className="space-y-3 sm:space-y-6 sm:card sm:p-8 sm:border sm:border-slate-200/80 sm:shadow-xs sm:bg-white animate-in fade-in duration-200 pb-28 sm:pb-8">
 
-            <div className="border-b border-slate-100 pb-2.5 sm:pb-4 flex items-center justify-between flex-wrap gap-2">
+            <div className="border-b border-slate-200/80 sm:border-slate-100 pb-2 sm:pb-4 flex items-center justify-between flex-wrap gap-2 px-0.5 sm:px-0">
               <div>
                 <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
                   {cameFromSurvey || isSurveyTask ? 'Step 2: Select Assignees' : 'Step 4: Select Assignees'}
@@ -944,68 +944,67 @@ function NewTaskForm() {
                   Assign this task role-wise or geographically by division, district, block, gram panchayat, village, or a specific person
                 </p>
               </div>
-              <span className="hidden sm:inline-flex text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+              <span className="inline-flex text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs">
                 {selectedUsers.length} Selected
               </span>
             </div>
 
-            {/* ── ASSIGNMENT MODE SELECTOR: ROLE-WISE vs AREA-WISE (Phone & Desktop optimized) ── */}
-            <div className="bg-slate-100/90 p-1 sm:p-1.5 rounded-2xl border border-slate-200/90 grid grid-cols-2 gap-1.5">
-              {/* Tab 1: Role-Wise */}
-              <button
-                type="button"
-                onClick={() => {
-                  setAssignmentMode('role');
-                  if (!roleGroup) setRoleGroup('intern');
-                }}
-                className={cn(
-                  'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer select-none',
-                  assignmentMode === 'role'
-                    ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 ring-1 ring-slate-900/5'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
-                )}
-              >
-                <div className={cn(
-                  'w-6 h-6 rounded-lg flex items-center justify-center shrink-0',
-                  assignmentMode === 'role' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200/70 text-slate-600'
-                )}>
-                  <Users size={14} weight="bold" />
-                </div>
-                <span>Role-Wise</span>
-              </button>
+            {/* ── CARD 1 (MOBILE): FILTERS CARD ── */}
+            <div className="card p-3 sm:p-0 sm:border-0 sm:shadow-none sm:bg-transparent bg-white border border-slate-200/80 shadow-xs rounded-2xl space-y-3 sm:space-y-4">
+              {/* Assignment Mode Selector: Role-Wise vs Area-Wise */}
+              <div className="bg-slate-100/90 p-1 sm:p-1.5 rounded-2xl border border-slate-200/90 grid grid-cols-2 gap-1.5">
+                {/* Tab 1: Role-Wise */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAssignmentMode('role');
+                    if (!roleGroup) setRoleGroup('intern');
+                  }}
+                  className={cn(
+                    'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer select-none',
+                    assignmentMode === 'role'
+                      ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 ring-1 ring-slate-900/5'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+                  )}
+                >
+                  <div className={cn(
+                    'w-6 h-6 rounded-lg flex items-center justify-center shrink-0',
+                    assignmentMode === 'role' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200/70 text-slate-600'
+                  )}>
+                    <Users size={14} weight="bold" />
+                  </div>
+                  <span>Role-Wise</span>
+                </button>
 
-              {/* Tab 2: Area-Wise */}
-              <button
-                type="button"
-                onClick={() => {
-                  setAssignmentMode('area');
-                  if (areaStep !== 'completed' && !selectedDivision) {
-                    setAreaStep('division');
-                    setCheckedAreaItem(null);
-                  }
-                }}
-                className={cn(
-                  'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer select-none',
-                  assignmentMode === 'area'
-                    ? 'bg-white text-emerald-700 shadow-sm border border-slate-200/80 ring-1 ring-slate-900/5'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
-                )}
-              >
-                <div className={cn(
-                  'w-6 h-6 rounded-lg flex items-center justify-center shrink-0',
-                  assignmentMode === 'area' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200/70 text-slate-600'
-                )}>
-                  <MapPin size={14} weight="bold" />
-                </div>
-                <span>Area-Wise</span>
-              </button>
-            </div>
+                {/* Tab 2: Area-Wise */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAssignmentMode('area');
+                    if (areaStep !== 'completed' && !selectedDivision) {
+                      setAreaStep('division');
+                      setCheckedAreaItem(null);
+                    }
+                  }}
+                  className={cn(
+                    'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer select-none',
+                    assignmentMode === 'area'
+                      ? 'bg-white text-emerald-700 shadow-sm border border-slate-200/80 ring-1 ring-slate-900/5'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+                  )}
+                >
+                  <div className={cn(
+                    'w-6 h-6 rounded-lg flex items-center justify-center shrink-0',
+                    assignmentMode === 'area' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200/70 text-slate-600'
+                  )}>
+                    <MapPin size={14} weight="bold" />
+                  </div>
+                  <span>Area-Wise</span>
+                </button>
+              </div>
 
-            {/* ── MODE 1: ROLE-WISE CONTROLS ── */}
-            {assignmentMode === 'role' && (
-              <div className="space-y-3 pt-0.5 animate-in fade-in duration-200">
-                {/* Role Filter Pills (Interns, Fellows, PCs) - NO "All" */}
-                {/* Role Filter Pills (Interns, Fellows, PCs) - Centered below Role-Wise / Area-Wise Switch */}
+              {/* Role Filter Pills (Interns, Fellows, PCs) - when Role-Wise */}
+              {assignmentMode === 'role' && (
                 <div className="flex items-center justify-center gap-2 sm:gap-2.5 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1">
                   {/* Interns Button */}
                   <button
@@ -1066,8 +1065,12 @@ function NewTaskForm() {
                     </button>
                   )}
                 </div>
+              )}
+            </div>
 
-                {/* Expanded Search Bar + Icon-Only Filter Dropdown */}
+            {/* ── CARD 2 (MOBILE): SEARCH BAR CARD ── */}
+            {assignmentMode === 'role' && (
+              <div className="card p-2.5 sm:p-0 sm:border-0 sm:shadow-none sm:bg-transparent bg-white border border-slate-200/80 shadow-xs rounded-2xl">
                 <div className="flex items-center gap-2">
                   <div className="relative flex-1 min-w-0">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -1118,80 +1121,83 @@ function NewTaskForm() {
                     </select>
                   </div>
                 </div>
+              </div>
+            )}
 
-                {/* Role Group Candidates List Banner & Selection List */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50/80 border border-slate-200 text-xs">
-                    <span className="font-semibold text-slate-700">
-                      Showing {filteredUsers.length} {roleGroup === 'intern' ? 'Interns' : roleGroup === 'fellow' ? 'Fellows' : roleGroup === 'pc' ? 'Program Coordinators' : 'Candidates'}
-                    </span>
-                    {filteredUsers.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={isAllCurrentGroupSelected ? deselectCurrentGroup : selectAllCurrentGroup}
-                        className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors cursor-pointer shadow-2xs active:scale-95"
-                      >
-                        {isAllCurrentGroupSelected
-                          ? `Deselect (${filteredUsers.length})`
-                          : `+ Assign ${roleGroup === 'intern' ? 'Interns' : roleGroup === 'fellow' ? 'Fellows' : roleGroup === 'pc' ? 'PCs' : 'All'} (${filteredUsers.length})`}
-                      </button>
-                    )}
-                  </div>
+            {/* ── CARD 3 (MOBILE): CANDIDATES LIST CARD ── */}
+            {assignmentMode === 'role' && (
+              <div className="card p-2.5 sm:p-0 sm:border-0 sm:shadow-none sm:bg-transparent bg-white border border-slate-200/80 shadow-xs rounded-2xl space-y-2.5 sm:space-y-3">
+                {/* Role Group Candidates List Banner */}
+                <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50/80 border border-slate-200 text-xs">
+                  <span className="font-semibold text-slate-700">
+                    Showing {filteredUsers.length} {roleGroup === 'intern' ? 'Interns' : roleGroup === 'fellow' ? 'Fellows' : roleGroup === 'pc' ? 'Program Coordinators' : 'Candidates'}
+                  </span>
+                  {filteredUsers.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={isAllCurrentGroupSelected ? deselectCurrentGroup : selectAllCurrentGroup}
+                      className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors cursor-pointer shadow-2xs active:scale-95"
+                    >
+                      {isAllCurrentGroupSelected
+                        ? `Deselect (${filteredUsers.length})`
+                        : `+ Assign ${roleGroup === 'intern' ? 'Interns' : roleGroup === 'fellow' ? 'Fellows' : roleGroup === 'pc' ? 'PCs' : 'All'} (${filteredUsers.length})`}
+                    </button>
+                  )}
+                </div>
 
-                  {/* Assignee list with Checkboxes */}
-                  <div className="max-h-[340px] overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-white shadow-2xs">
-                    {filteredUsers.length === 0 ? (
-                      <div className="p-8 text-center text-slate-400 text-xs">
-                        No assignees match your current selection or search filter
-                      </div>
-                    ) : (
-                      filteredUsers.slice(0, 50).map(u => {
-                        const isAdded = !!selectedUsers.find(s => s.id === u.id);
-                        return (
-                          <label
-                            key={u.id}
-                            className={cn(
-                              'w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors cursor-pointer select-none',
-                              isAdded ? 'bg-indigo-50/70 text-indigo-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
-                            )}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isAdded}
-                              onChange={() => toggleUser(u)}
-                              className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
-                            />
-                            <div className={cn(
-                              'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0',
-                              isAdded ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-600'
-                            )}>
-                              {u.name.slice(0, 1).toUpperCase()}
+                {/* Assignee list with Checkboxes */}
+                <div className="max-h-[340px] overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-white shadow-2xs">
+                  {filteredUsers.length === 0 ? (
+                    <div className="p-8 text-center text-slate-400 text-xs">
+                      No assignees match your current selection or search filter
+                    </div>
+                  ) : (
+                    filteredUsers.slice(0, 50).map(u => {
+                      const isAdded = !!selectedUsers.find(s => s.id === u.id);
+                      return (
+                        <label
+                          key={u.id}
+                          className={cn(
+                            'w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors cursor-pointer select-none',
+                            isAdded ? 'bg-indigo-50/70 text-indigo-950 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                          )}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isAdded}
+                            onChange={() => toggleUser(u)}
+                            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
+                          />
+                          <div className={cn(
+                            'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0',
+                            isAdded ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-600'
+                          )}>
+                            {u.name.slice(0, 1).toUpperCase()}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="font-semibold truncate text-slate-900 leading-snug">{u.name}</div>
+                            <div className="text-xs text-slate-400 truncate">{u.email}</div>
+                            <div className="flex items-center gap-1 text-[11px] text-slate-500 mt-0.5 truncate">
+                              <MapPin size={11} className="text-indigo-500 shrink-0" weight="bold" />
+                              <span className="truncate">{getUserLocationText(u)}</span>
                             </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="font-semibold truncate text-slate-900 leading-snug">{u.name}</div>
-                              <div className="text-xs text-slate-400 truncate">{u.email}</div>
-                              <div className="flex items-center gap-1 text-[11px] text-slate-500 mt-0.5 truncate">
-                                <MapPin size={11} className="text-indigo-500 shrink-0" weight="bold" />
-                                <span className="truncate">{getUserLocationText(u)}</span>
-                              </div>
-                            </div>
-                            <span className={cn(
-                              'px-2.5 py-0.5 rounded-full text-[11px] font-semibold shrink-0 border capitalize',
-                              u.role === 'intern'
-                                ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                                : u.role === 'fellow'
-                                ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                : u.role === 'pc'
-                                ? 'bg-amber-50 text-amber-800 border-amber-200'
-                                : 'bg-slate-50 text-slate-700 border-slate-200'
-                            )}>
-                              {roleLabel(u.role)}
-                            </span>
-                          </label>
-                        );
-                      })
-                    )}
-                  </div>
+                          </div>
+                          <span className={cn(
+                            'px-2.5 py-0.5 rounded-full text-[11px] font-semibold shrink-0 border capitalize',
+                            u.role === 'intern'
+                              ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                              : u.role === 'fellow'
+                              ? 'bg-purple-50 text-purple-700 border-purple-200'
+                              : u.role === 'pc'
+                              ? 'bg-amber-50 text-amber-800 border-amber-200'
+                              : 'bg-slate-50 text-slate-700 border-slate-200'
+                          )}>
+                            {roleLabel(u.role)}
+                          </span>
+                        </label>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             )}
