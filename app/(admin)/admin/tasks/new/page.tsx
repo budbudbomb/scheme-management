@@ -560,7 +560,7 @@ function NewTaskForm() {
         </div>
 
         {/* Mobile Stepper UI - Frozen right under header */}
-        <div className="block lg:hidden pt-0.5">
+        <div className="block lg:hidden pt-2">
           <div className="flex items-center justify-between gap-1.5 px-0.5">
             {(cameFromSurvey || (step === 0 && isSurveyToggle)
               ? [{ key: 0 }, { key: 3 }]
@@ -581,72 +581,72 @@ function NewTaskForm() {
             })}
           </div>
         </div>
+      </div>
 
-        {/* Desktop Stepper UI - Clean Segmented Cards matching Survey Builder */}
-        <div
-          className="hidden lg:grid gap-3"
-          style={{
-            gridTemplateColumns: (cameFromSurvey || (step === 0 && isSurveyToggle))
-              ? 'repeat(2, minmax(0, 1fr))'
-              : 'repeat(4, minmax(0, 1fr))'
-          }}
-        >
-          {(cameFromSurvey || (step === 0 && isSurveyToggle)
-            ? [
-                { key: 0, num: 1, label: 'Survey Link', desc: watchName ? `Survey: ${watchName}` : 'Attach survey' },
-                { key: 3, num: 2, label: 'Select Assignees', desc: `${selectedUsers.length} selected` },
-              ]
-            : [
-                { key: 0, num: 1, label: 'Task Type', desc: isSurveyToggle ? 'Survey Task' : 'Standard Task' },
-                { key: 1, num: 2, label: 'Task Details', desc: watchName || 'Name & context' },
-                { key: 2, num: 3, label: 'Schedule', desc: watchStartDate && watchEndDate ? `${watchStartDate} – ${watchEndDate}` : 'Dates & priority' },
-                { key: 3, num: 4, label: 'Select Assignees', desc: `${selectedUsers.length} selected` },
-              ]
-          ).map((s) => {
-            const isCompleted = step > s.key || (cameFromSurvey && step === 3 && s.key === 0);
-            const isActive = step === s.key;
-            const isClickable = isCompleted || isActive;
+      {/* Desktop Stepper UI - Clean Segmented Cards with distinct gap */}
+      <div
+        className="hidden lg:grid gap-3.5 mb-8"
+        style={{
+          gridTemplateColumns: (cameFromSurvey || (step === 0 && isSurveyToggle))
+            ? 'repeat(2, minmax(0, 1fr))'
+            : 'repeat(4, minmax(0, 1fr))'
+        }}
+      >
+        {(cameFromSurvey || (step === 0 && isSurveyToggle)
+          ? [
+              { key: 0, num: 1, label: 'Survey Link', desc: watchName ? `Survey: ${watchName}` : 'Attach survey' },
+              { key: 3, num: 2, label: 'Select Assignees', desc: `${selectedUsers.length} selected` },
+            ]
+          : [
+              { key: 0, num: 1, label: 'Task Type', desc: isSurveyToggle ? 'Survey Task' : 'Standard Task' },
+              { key: 1, num: 2, label: 'Task Details', desc: watchName || 'Name & context' },
+              { key: 2, num: 3, label: 'Schedule', desc: watchStartDate && watchEndDate ? `${watchStartDate} – ${watchEndDate}` : 'Dates & priority' },
+              { key: 3, num: 4, label: 'Select Assignees', desc: `${selectedUsers.length} selected` },
+            ]
+        ).map((s) => {
+          const isCompleted = step > s.key || (cameFromSurvey && step === 3 && s.key === 0);
+          const isActive = step === s.key;
+          const isClickable = isCompleted || isActive;
 
-            return (
-              <button
-                key={s.key}
-                type="button"
-                disabled={!isClickable}
-                onClick={() => {
-                  if (isClickable) setStep(s.key as any);
-                }}
+          return (
+            <button
+              key={s.key}
+              type="button"
+              disabled={!isClickable}
+              onClick={() => {
+                if (isClickable) setStep(s.key as any);
+              }}
+              className={cn(
+                'flex items-center gap-3 p-3.5 rounded-xl text-left transition-all border shadow-xs',
+                isActive
+                  ? 'bg-indigo-50/70 border-indigo-300 text-indigo-950 font-semibold ring-1 ring-indigo-200'
+                  : isCompleted
+                  ? 'bg-white border-slate-200 hover:border-slate-300 text-slate-800 cursor-pointer hover:bg-slate-50/50'
+                  : 'bg-slate-50/60 border-slate-100 text-slate-400 opacity-60 cursor-not-allowed'
+              )}
+            >
+              <div
                 className={cn(
-                  'flex items-center gap-3 p-3.5 rounded-xl text-left transition-all border shadow-xs',
+                  'w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 transition-colors',
                   isActive
-                    ? 'bg-indigo-50/70 border-indigo-300 text-indigo-950 font-semibold ring-1 ring-indigo-200'
+                    ? 'bg-indigo-600 text-white shadow-xs'
                     : isCompleted
-                    ? 'bg-white border-slate-200 hover:border-slate-300 text-slate-800 cursor-pointer hover:bg-slate-50/50'
-                    : 'bg-slate-50/60 border-slate-100 text-slate-400 opacity-60 cursor-not-allowed'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-slate-200 text-slate-500'
                 )}
               >
-                <div
-                  className={cn(
-                    'w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 transition-colors',
-                    isActive
-                      ? 'bg-indigo-600 text-white shadow-xs'
-                      : isCompleted
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'bg-slate-200 text-slate-500'
-                  )}
-                >
-                  {isCompleted ? <Check size={14} weight="bold" /> : s.num}
+                {isCompleted ? <Check size={14} weight="bold" /> : s.num}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-bold truncate flex items-center gap-1.5 text-slate-900">
+                  <span>{s.label}</span>
+                  {isCompleted && <CheckCircle size={13} className="text-emerald-600 shrink-0" weight="fill" />}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold truncate flex items-center gap-1.5 text-slate-900">
-                    <span>{s.label}</span>
-                    {isCompleted && <CheckCircle size={13} className="text-emerald-600 shrink-0" weight="fill" />}
-                  </div>
-                  <p className="text-[11px] text-slate-400 truncate mt-0.5">{s.desc}</p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+                <p className="text-[11px] text-slate-400 truncate mt-0.5">{s.desc}</p>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       <form id="create-task-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -1848,13 +1848,13 @@ function NewTaskForm() {
 
         {/* Frozen Floating Bottom Navigation on Mobile (Above Floating Tab Bar) */}
         {mounted && createPortal(
-          <div className="lg:hidden fixed bottom-[calc(72px+env(safe-area-inset-bottom,0px))] left-3 right-3 max-w-lg mx-auto z-50 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-2xl p-2.5 shadow-xl">
-            <div className="flex items-center gap-2.5">
+          <div className="lg:hidden fixed bottom-[calc(86px+env(safe-area-inset-bottom,0px))] left-4 right-4 max-w-lg mx-auto z-50 pointer-events-none">
+            <div className="flex items-center gap-2.5 pointer-events-auto">
               {step > 0 && (
                 <button
                   type="button"
                   onClick={handleBack}
-                  className="w-11 h-11 rounded-full border border-slate-200 bg-white text-slate-700 flex items-center justify-center shrink-0 shadow-xs hover:bg-slate-50 cursor-pointer active:scale-95 transition-transform"
+                  className="w-12 h-12 rounded-full border border-slate-200/90 bg-white text-slate-700 flex items-center justify-center shrink-0 shadow-lg shadow-slate-900/10 hover:bg-slate-50 cursor-pointer active:scale-95 transition-transform"
                   aria-label="Previous step"
                 >
                   <ArrowLeft size={18} weight="bold" />
@@ -1867,7 +1867,7 @@ function NewTaskForm() {
                   form="create-task-form"
                   id="mobile-create-task-submit"
                   disabled={isSubmitting}
-                  className="flex-1 h-11 px-6 rounded-full bg-indigo-600 text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-md hover:bg-indigo-700 btn-press transition-colors disabled:opacity-60 cursor-pointer"
+                  className="flex-1 h-12 px-6 rounded-full bg-indigo-600 text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/35 hover:bg-indigo-700 btn-press transition-all disabled:opacity-60 cursor-pointer"
                 >
                   {isSubmitting ? 'Saving...' : cameFromSurvey || isSurveyTask ? 'Deploy Survey Task' : 'Save & Assign Task'}
                   <Check size={16} weight="bold" />
@@ -1876,7 +1876,7 @@ function NewTaskForm() {
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="flex-1 h-11 px-6 rounded-full bg-indigo-600 text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-md hover:bg-indigo-700 btn-press transition-colors cursor-pointer"
+                  className="flex-1 h-12 px-6 rounded-full bg-indigo-600 text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/35 hover:bg-indigo-700 btn-press transition-all cursor-pointer"
                 >
                   <span>Next Step</span>
                   <ArrowRight size={16} weight="bold" />

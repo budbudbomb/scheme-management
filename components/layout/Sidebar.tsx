@@ -106,8 +106,16 @@ export default function Sidebar({
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 h-16 border-b border-slate-800/80 shrink-0">
-        <div className="w-8 h-8 rounded-xl bg-white p-1 flex items-center justify-center shrink-0 shadow-sm border border-slate-700/40">
-          <Image src="/logo.png" alt="CMYP Logo" width={26} height={26} className="object-contain" />
+        <div className="w-9 h-9 rounded-xl bg-white p-1 flex items-center justify-center shrink-0 shadow-sm border border-slate-700/40 overflow-hidden">
+          <Image
+            src="/logo.png"
+            alt="CMYP Logo"
+            width={28}
+            height={28}
+            unoptimized
+            priority
+            className="w-full h-full object-contain"
+          />
         </div>
         {open && (
           <div className="min-w-0">

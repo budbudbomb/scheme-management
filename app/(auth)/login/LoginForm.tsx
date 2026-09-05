@@ -110,6 +110,7 @@ export default function LoginForm() {
             alt="CMYP Logo"
             width={52}
             height={52}
+            unoptimized
             className="object-contain"
             priority
           />
