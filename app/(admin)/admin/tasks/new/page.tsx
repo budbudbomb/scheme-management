@@ -1391,42 +1391,42 @@ function NewTaskForm() {
                 {areaStep !== 'completed' && (
                   <div className="border border-emerald-200 rounded-xl bg-white shadow-2xs overflow-hidden">
                       {/* Navigation, Breadcrumb & Action Buttons Header - RESPONSIVE CLEAN ROW */}
-                      <div className="py-2 px-2.5 sm:py-2.5 sm:px-3.5 bg-gradient-to-r from-emerald-50/90 to-teal-50/60 border-b border-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        {/* Left: Back button & Breadcrumb Info */}
-                        <div className="flex items-center gap-1.5 min-w-0 w-full sm:w-auto">
-                          {areaStep !== 'division' && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (areaStep === 'district') {
-                                  setAreaStep('division');
-                                  setCheckedAreaItems(selectedDivisions);
-                                  setSelectedDivisions([]);
-                                } else if (areaStep === 'block') {
-                                  setAreaStep('district');
-                                  setCheckedAreaItems(selectedDistricts);
-                                  setSelectedDistricts([]);
-                                } else if (areaStep === 'gp') {
-                                  setAreaStep('block');
-                                  setCheckedAreaItems(selectedBlocks);
-                                  setSelectedBlocks([]);
-                                } else if (areaStep === 'village') {
-                                  setAreaStep('gp');
-                                  setCheckedAreaItems(selectedGPs);
-                                  setSelectedGPs([]);
-                                } else if (areaStep === 'person') {
-                                  setAreaStep('village');
-                                  setCheckedAreaItems(selectedVillages);
-                                  setSelectedVillages([]);
-                                }
-                              }}
-                              className="p-1 rounded-md bg-white hover:bg-slate-50 text-slate-700 border border-emerald-200/70 transition-colors cursor-pointer flex items-center shrink-0 shadow-2xs"
-                              aria-label="Back"
-                            >
-                              <ArrowLeft size={13} weight="bold" />
-                            </button>
-                          )}
-                          <div className="min-w-0 flex items-center gap-2 flex-1">
+                      <div className="py-2.5 px-3 sm:py-2.5 sm:px-3.5 bg-gradient-to-r from-emerald-50/90 to-teal-50/60 border-b border-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+                        {/* Top row on mobile / Left column on desktop: Back button, Title & Select All */}
+                        <div className="flex items-center justify-between gap-2 w-full sm:w-auto flex-1 min-w-0">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            {areaStep !== 'division' && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (areaStep === 'district') {
+                                    setAreaStep('division');
+                                    setCheckedAreaItems(selectedDivisions);
+                                    setSelectedDivisions([]);
+                                  } else if (areaStep === 'block') {
+                                    setAreaStep('district');
+                                    setCheckedAreaItems(selectedDistricts);
+                                    setSelectedDistricts([]);
+                                  } else if (areaStep === 'gp') {
+                                    setAreaStep('block');
+                                    setCheckedAreaItems(selectedBlocks);
+                                    setSelectedBlocks([]);
+                                  } else if (areaStep === 'village') {
+                                    setAreaStep('gp');
+                                    setCheckedAreaItems(selectedGPs);
+                                    setSelectedGPs([]);
+                                  } else if (areaStep === 'person') {
+                                    setAreaStep('village');
+                                    setCheckedAreaItems(selectedVillages);
+                                    setSelectedVillages([]);
+                                  }
+                                }}
+                                className="w-7 h-7 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-emerald-200/90 transition-colors cursor-pointer flex items-center justify-center shrink-0 shadow-2xs active:scale-95"
+                                aria-label="Back"
+                              >
+                                <ArrowLeft size={14} weight="bold" />
+                              </button>
+                            )}
                             <h3 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
                               {areaStep === 'division' && (checkedAreaItems.length > 0 ? `Select Division (${checkedAreaItems.length})` : 'Select Division')}
                               {areaStep === 'district' && (
@@ -1459,21 +1459,21 @@ function NewTaskForm() {
                                   : `Persons in ${selectedVillages.length} Villages`
                               )}
                             </h3>
-
-                            {currentAreaItemIds.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => toggleSelectAllCurrent(currentAreaItemIds)}
-                                className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-100/70 hover:bg-emerald-100 px-2 py-0.5 rounded-md transition-colors cursor-pointer shrink-0"
-                              >
-                                {isAllCurrentAreaChecked ? 'Deselect All' : `Select All (${currentAreaItemIds.length})`}
-                              </button>
-                            )}
                           </div>
+
+                          {currentAreaItemIds.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => toggleSelectAllCurrent(currentAreaItemIds)}
+                              className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 bg-white/90 hover:bg-white border border-emerald-200/80 px-2.5 py-1 rounded-lg transition-colors cursor-pointer shrink-0 shadow-2xs active:scale-95"
+                            >
+                              {isAllCurrentAreaChecked ? 'Deselect All' : `Select All (${currentAreaItemIds.length})`}
+                            </button>
+                          )}
                         </div>
 
-                        {/* Right: Action Buttons in the Header (enabled when an item checkbox is checked) */}
-                        <div className="flex items-center gap-1.5 shrink-0 justify-end w-full sm:w-auto">
+                        {/* Bottom row on mobile (full-width 2-column grid) / Right on desktop: Clean balanced action buttons */}
+                        <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:items-center sm:gap-2 sm:w-auto sm:justify-end pt-1 sm:pt-0 border-t border-emerald-100/60 sm:border-t-0">
                           {areaStep === 'division' && (
                             <>
                               <button
@@ -1481,10 +1481,10 @@ function NewTaskForm() {
                                 disabled={checkedAreaItems.length === 0}
                                 onClick={() => handleSelectEntireDivisions(checkedAreaItems)}
                                 className={cn(
-                                  'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer shadow-2xs',
+                                  'w-full sm:w-auto h-8 px-3 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer shadow-2xs text-center',
                                   checkedAreaItems.length > 0
-                                    ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
-                                    : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                                    ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold active:scale-95 shadow-xs'
+                                    : 'bg-white/60 text-slate-400 border border-slate-200/70 cursor-not-allowed opacity-75'
                                 )}
                               >
                                 {checkedAreaItems.length <= 1 ? 'Entire Division' : `Entire (${checkedAreaItems.length}) Divisions`}
@@ -1494,14 +1494,14 @@ function NewTaskForm() {
                                 disabled={checkedAreaItems.length === 0}
                                 onClick={() => handleDrillDownDivisions(checkedAreaItems)}
                                 className={cn(
-                                  'px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
+                                  'w-full sm:w-auto h-8 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer shadow-2xs text-center',
                                   checkedAreaItems.length > 0
-                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
-                                    : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
+                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-xs shadow-emerald-600/30 active:scale-95'
+                                    : 'bg-emerald-50 text-emerald-300 border border-emerald-100 cursor-not-allowed'
                                 )}
                               >
                                 <span>{checkedAreaItems.length <= 1 ? 'Select District' : `Select Districts (${checkedAreaItems.length})`}</span>
-                                <CaretRight size={12} weight="bold" />
+                                <CaretRight size={13} weight="bold" />
                               </button>
                             </>
                           )}
@@ -1513,10 +1513,10 @@ function NewTaskForm() {
                                 disabled={checkedAreaItems.length === 0}
                                 onClick={() => handleSelectEntireDistricts(checkedAreaItems)}
                                 className={cn(
-                                  'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer shadow-2xs',
+                                  'w-full sm:w-auto h-8 px-3 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer shadow-2xs text-center',
                                   checkedAreaItems.length > 0
-                                    ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
-                                    : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                                    ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold active:scale-95 shadow-xs'
+                                    : 'bg-white/60 text-slate-400 border border-slate-200/70 cursor-not-allowed opacity-75'
                                 )}
                               >
                                 {checkedAreaItems.length <= 1 ? 'Entire District' : `Entire (${checkedAreaItems.length}) Districts`}
@@ -1526,14 +1526,14 @@ function NewTaskForm() {
                                 disabled={checkedAreaItems.length === 0}
                                 onClick={() => handleDrillDownDistricts(checkedAreaItems)}
                                 className={cn(
-                                  'px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
+                                  'w-full sm:w-auto h-8 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer shadow-2xs text-center',
                                   checkedAreaItems.length > 0
-                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
-                                    : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
+                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-xs shadow-emerald-600/30 active:scale-95'
+                                    : 'bg-emerald-50 text-emerald-300 border border-emerald-100 cursor-not-allowed'
                                 )}
                               >
                                 <span>{checkedAreaItems.length <= 1 ? 'Select Block' : `Select Blocks (${checkedAreaItems.length})`}</span>
-                                <CaretRight size={12} weight="bold" />
+                                <CaretRight size={13} weight="bold" />
                               </button>
                             </>
                           )}
@@ -1545,10 +1545,10 @@ function NewTaskForm() {
                                 disabled={checkedAreaItems.length === 0}
                                 onClick={() => handleSelectEntireBlocks(checkedAreaItems)}
                                 className={cn(
-                                  'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer shadow-2xs',
+                                  'w-full sm:w-auto h-8 px-3 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer shadow-2xs text-center',
                                   checkedAreaItems.length > 0
-                                    ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
-                                    : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                                    ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold active:scale-95 shadow-xs'
+                                    : 'bg-white/60 text-slate-400 border border-slate-200/70 cursor-not-allowed opacity-75'
                                 )}
                               >
                                 {checkedAreaItems.length <= 1 ? 'Entire Block' : `Entire (${checkedAreaItems.length}) Blocks`}
@@ -1558,14 +1558,14 @@ function NewTaskForm() {
                                 disabled={checkedAreaItems.length === 0}
                                 onClick={() => handleDrillDownBlocks(checkedAreaItems)}
                                 className={cn(
-                                  'px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
+                                  'w-full sm:w-auto h-8 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer shadow-2xs text-center',
                                   checkedAreaItems.length > 0
-                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
-                                    : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
+                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-xs shadow-emerald-600/30 active:scale-95'
+                                    : 'bg-emerald-50 text-emerald-300 border border-emerald-100 cursor-not-allowed'
                                 )}
                               >
                                 <span>{checkedAreaItems.length <= 1 ? 'Select GP' : `Select GPs (${checkedAreaItems.length})`}</span>
-                                <CaretRight size={12} weight="bold" />
+                                <CaretRight size={13} weight="bold" />
                               </button>
                             </>
                           )}
@@ -1577,10 +1577,10 @@ function NewTaskForm() {
                                 disabled={checkedAreaItems.length === 0}
                                 onClick={() => handleSelectEntireGPs(checkedAreaItems)}
                                 className={cn(
-                                  'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer shadow-2xs',
+                                  'w-full sm:w-auto h-8 px-3 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer shadow-2xs text-center',
                                   checkedAreaItems.length > 0
-                                    ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
-                                    : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                                    ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold active:scale-95 shadow-xs'
+                                    : 'bg-white/60 text-slate-400 border border-slate-200/70 cursor-not-allowed opacity-75'
                                 )}
                               >
                                 {checkedAreaItems.length <= 1 ? 'Entire GP' : `Entire (${checkedAreaItems.length}) GPs`}
@@ -1590,14 +1590,14 @@ function NewTaskForm() {
                                 disabled={checkedAreaItems.length === 0}
                                 onClick={() => handleDrillDownGPs(checkedAreaItems)}
                                 className={cn(
-                                  'px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
+                                  'w-full sm:w-auto h-8 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer shadow-2xs text-center',
                                   checkedAreaItems.length > 0
-                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
-                                    : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
+                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-xs shadow-emerald-600/30 active:scale-95'
+                                    : 'bg-emerald-50 text-emerald-300 border border-emerald-100 cursor-not-allowed'
                                 )}
                               >
                                 <span>{checkedAreaItems.length <= 1 ? 'Select Village' : `Select Villages (${checkedAreaItems.length})`}</span>
-                                <CaretRight size={12} weight="bold" />
+                                <CaretRight size={13} weight="bold" />
                               </button>
                             </>
                           )}
@@ -1609,10 +1609,10 @@ function NewTaskForm() {
                                 disabled={checkedAreaItems.length === 0}
                                 onClick={() => handleSelectEntireVillages(checkedAreaItems)}
                                 className={cn(
-                                  'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer shadow-2xs',
+                                  'w-full sm:w-auto h-8 px-3 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer shadow-2xs text-center',
                                   checkedAreaItems.length > 0
-                                    ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
-                                    : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                                    ? 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold active:scale-95 shadow-xs'
+                                    : 'bg-white/60 text-slate-400 border border-slate-200/70 cursor-not-allowed opacity-75'
                                 )}
                               >
                                 {checkedAreaItems.length <= 1 ? 'Entire Village' : `Entire (${checkedAreaItems.length}) Villages`}
@@ -1622,14 +1622,14 @@ function NewTaskForm() {
                                 disabled={checkedAreaItems.length === 0}
                                 onClick={() => handleDrillDownVillages(checkedAreaItems)}
                                 className={cn(
-                                  'px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs',
+                                  'w-full sm:w-auto h-8 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer shadow-2xs text-center',
                                   checkedAreaItems.length > 0
-                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
-                                    : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
+                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-xs shadow-emerald-600/30 active:scale-95'
+                                    : 'bg-emerald-50 text-emerald-300 border border-emerald-100 cursor-not-allowed'
                                 )}
                               >
                                 <span>{checkedAreaItems.length <= 1 ? 'Select Person' : `Select Persons (${checkedAreaItems.length})`}</span>
-                                <CaretRight size={12} weight="bold" />
+                                <CaretRight size={13} weight="bold" />
                               </button>
                             </>
                           )}
@@ -1640,10 +1640,10 @@ function NewTaskForm() {
                               disabled={checkedAreaItems.length === 0}
                               onClick={() => handleSelectPersons(checkedAreaItems)}
                               className={cn(
-                                'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs flex items-center gap-1',
+                                'col-span-2 sm:col-span-1 w-full sm:w-auto h-8 px-4 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs flex items-center justify-center gap-1.5',
                                 checkedAreaItems.length > 0
-                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 active:scale-95'
-                                  : 'bg-emerald-200 text-white/90 cursor-not-allowed opacity-60'
+                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-xs shadow-emerald-600/30 active:scale-95'
+                                  : 'bg-emerald-50 text-emerald-300 border border-emerald-100 cursor-not-allowed'
                               )}
                             >
                               <UserCheck size={14} weight="bold" />
@@ -2121,7 +2121,7 @@ function NewTaskForm() {
 
         {/* Frozen Floating Bottom Navigation on Mobile (Above Floating Tab Bar, Hidden when Virtual Keyboard is Up) */}
         {mounted && !isKeyboardOpen && createPortal(
-          <div className="lg:hidden fixed bottom-[calc(90px+env(safe-area-inset-bottom,0px))] left-4 right-4 max-w-lg mx-auto z-50 pointer-events-none">
+          <div className="lg:hidden fixed bottom-[calc(90px+env(safe-area-inset-bottom,0px))] left-4 right-4 max-w-lg mx-auto z-50 pointer-events-none mobile-floating-nav">
             <div className="flex items-center gap-2.5 pointer-events-auto">
               {step > 0 && (
                 <button

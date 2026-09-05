@@ -51,10 +51,11 @@ function checkKeyboard() {
 
   const activeEl = document.activeElement;
 
-  // If focus is inside a date picker, select, or dropdown, it is NOT an on-screen text keyboard
+  // 1. If focus is inside a date picker, select, or dropdown, it is NOT an on-screen text keyboard
   const isPickerOrDropdown =
     activeEl instanceof HTMLSelectElement ||
-    (activeEl instanceof HTMLInputElement && ['date', 'datetime-local', 'time', 'month', 'week'].includes(activeEl.type.toLowerCase())) ||
+    (activeEl instanceof HTMLInputElement &&
+      ['date', 'datetime-local', 'time', 'month', 'week', 'color', 'file', 'checkbox', 'radio', 'range', 'button', 'submit'].includes(activeEl.type.toLowerCase())) ||
     !!activeEl?.closest('[data-no-keyboard="true"], [data-picker="true"], [data-dropdown="true"]');
 
   if (isPickerOrDropdown) {
@@ -62,29 +63,14 @@ function checkKeyboard() {
     return;
   }
 
-  const isInput = isEditableElement(activeEl);
-
-  const vv = window.visualViewport;
-  if (vv) {
-    const heightDiff = window.innerHeight - vv.height;
-    // On mobile, keyboard is at least 100px tall and only active when an actual text input is focused
-    if (heightDiff > 100 && isInput) {
-      setKeyboardState(true);
-      return;
-    }
-    // If viewport height is almost full (diff < 50) or no text input is focused, keyboard is closed
-    if (heightDiff < 50 || !isInput) {
-      setKeyboardState(false);
-      return;
-    }
-  }
-
-  // If editable text element is focused on mobile screen, keyboard is open/opening
-  if (isInput) {
+  // 2. If user is focused on an editable input or textarea on mobile, they are actively typing -> hide buttons/tab bar
+  const isTyping = isEditableElement(activeEl);
+  if (isTyping) {
     setKeyboardState(true);
     return;
   }
 
+  // 3. Otherwise, not typing -> show buttons/tab bar
   setKeyboardState(false);
 }
 

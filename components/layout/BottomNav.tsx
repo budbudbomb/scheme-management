@@ -70,7 +70,7 @@ export default function BottomNav({ role }: { role: UserRole }) {
 
   return (
     <nav
-      className="lg:hidden fixed bottom-3 sm:bottom-4 left-3 right-3 sm:left-1/2 sm:-translate-x-1/2 sm:w-[440px] z-40 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-2xl shadow-[0_10px_35px_-5px_rgba(0,0,0,0.14),0_4px_12px_rgba(0,0,0,0.06)] px-2 py-1.5"
+      className="lg:hidden fixed bottom-3 sm:bottom-4 left-3 right-3 sm:left-1/2 sm:-translate-x-1/2 sm:w-[440px] z-40 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-2xl shadow-[0_10px_35px_-5px_rgba(0,0,0,0.14),0_4px_12px_rgba(0,0,0,0.06)] px-2 py-1.5 mobile-bottom-nav"
       aria-label="Mobile navigation"
     >
       <ul className="flex items-center justify-around gap-1">
