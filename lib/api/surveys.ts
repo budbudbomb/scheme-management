@@ -98,4 +98,81 @@ export const surveysApi = {
 
   getResponses: (surveyId: string, params?: { respondentId?: string; page?: number }) =>
     get<{ items: SurveyResponse[]; total: number }>(`/surveys/${surveyId}/responses`, params as Record<string, unknown>),
+
+  saveDraftResponse: async (
+    surveyId: string,
+    data: { stakeholder: StakeholderDetails; answers: Record<string, string | string[] | number> } | FormData
+  ): Promise<{ response: SurveyResponse; responsesCount: number }> => {
+    const survey = MOCK_SURVEYS.find(s => s.id === surveyId || s.id.replace(/^survey-/, 'surv-') === surveyId);
+    if (survey) {
+      survey.responsesCount = (survey.responsesCount || 0) + 1;
+    }
+    const isFormData = data instanceof FormData;
+    const stakeholder: StakeholderDetails = isFormData ? {
+      fullName: data.get('stakeholderFullName')?.toString() || 'Respondent',
+      contactInfo: data.get('stakeholderContactInfo')?.toString() || undefined,
+    } : data.stakeholder;
+
+    const answers = isFormData ? {} : data.answers;
+
+    const response: SurveyResponse = {
+      id: `resp-${Date.now()}`,
+      surveyId,
+      respondent: { id: 'u-curr-01', name: 'Field Officer', role: 'intern' },
+      stakeholder,
+      answers,
+      submittedAt: new Date().toISOString(),
+    };
+
+    return { response, responsesCount: survey ? survey.responsesCount || 1 : 1 };
+  },
+
+  submitHierarchySurvey: async (
+    surveyId: string,
+    params: {
+      submittedBy: import('@/types/models').AssigneeRef;
+      role: 'intern' | 'fellow' | 'pc';
+      feedbackText: string;
+      challengesFaced?: string;
+      recommendations?: string;
+    }
+  ): Promise<{ survey: Survey; feedback: import('@/types/models').SurveyFeedback }> => {
+    const survey = MOCK_SURVEYS.find(s => s.id === surveyId || s.id.replace(/^survey-/, 'surv-') === surveyId) || MOCK_SURVEYS[0];
+    
+    let nextStatus: import('@/types/models').SurveySubmissionStatus = 'submitted_by_intern';
+    let targetRole: 'fellow' | 'pc' | 'spm_cpm' = 'fellow';
+
+    if (params.role === 'intern') {
+      nextStatus = 'submitted_by_intern';
+      targetRole = 'fellow';
+    } else if (params.role === 'fellow') {
+      nextStatus = 'submitted_by_fellow';
+      targetRole = 'pc';
+    } else if (params.role === 'pc') {
+      nextStatus = 'submitted_by_pc';
+      targetRole = 'spm_cpm';
+    }
+
+    survey.submissionStatus = nextStatus;
+    if (!survey.feedbacks) {
+      survey.feedbacks = [];
+    }
+
+    const newFeedback: import('@/types/models').SurveyFeedback = {
+      id: `fb-${Date.now()}`,
+      surveyId: survey.id,
+      submittedBy: params.submittedBy,
+      role: params.role,
+      submittedToRole: targetRole,
+      feedbackText: params.feedbackText,
+      challengesFaced: params.challengesFaced,
+      recommendations: params.recommendations,
+      stakeholdersInterviewedCount: survey.responsesCount || 0,
+      createdAt: new Date().toISOString(),
+    };
+
+    survey.feedbacks.push(newFeedback);
+    return { survey, feedback: newFeedback };
+  },
 };
+

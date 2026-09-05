@@ -26,12 +26,15 @@ import {
   Stop,
   X,
   UploadSimple,
+  FloppyDisk,
+  ChatText,
 } from '@phosphor-icons/react';
 import type { Survey, SurveyQuestion, QuestionMediaAnswer } from '@/types/models';
 import { surveysApi } from '@/lib/api/surveys';
 import { cn, formatDate } from '@/lib/utils/formatters';
 import { toast } from 'sonner';
 import { useVirtualKeyboard } from '@/lib/hooks/useVirtualKeyboard';
+import { useAuth } from '@/lib/auth/context';
 
 interface SurveyFillFormProps {
   survey: Survey;
@@ -41,6 +44,9 @@ interface SurveyFillFormProps {
 
 export default function SurveyFillForm({ survey, backHref = '/surveys', onSuccess }: SurveyFillFormProps) {
   const router = useRouter();
+  const { user } = useAuth();
+  const currentRole = (user?.role as 'intern' | 'fellow' | 'pc') || 'intern';
+
   const [mounted, setMounted] = useState(false);
   const isKeyboardOpen = useVirtualKeyboard();
 
@@ -65,6 +71,19 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
   const [currentError, setCurrentError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
+
+  // ── Multi-Stakeholder Saving & Hierarchy Submission State ──
+  const [savedResponsesCount, setSavedResponsesCount] = useState<number>(survey.responsesCount || 0);
+  const [isHierarchyModalOpen, setIsHierarchyModalOpen] = useState(false);
+  const [isSavePromptModalOpen, setIsSavePromptModalOpen] = useState(false);
+  const [justSavedStakeholder, setJustSavedStakeholder] = useState('');
+  const [hierarchySubmittedTo, setHierarchySubmittedTo] = useState<string>('');
+
+  // ── Feedback State ──
+  const [feedbackText, setFeedbackText] = useState('');
+  const [challengesFaced, setChallengesFaced] = useState('');
+  const [recommendations, setRecommendations] = useState('');
+  const [feedbackError, setFeedbackError] = useState('');
 
   // ── Live Voice Recording Simulation State ──
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
@@ -198,6 +217,12 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
     return true;
   };
 
+  const nextSupervisorInfo = {
+    roleName: currentRole === 'intern' ? 'Fellow' : currentRole === 'fellow' ? 'Program Coordinator' : 'Senior & Chief Program Managers',
+    personName: currentRole === 'intern' ? 'District Fellow (Vikram Singh)' : currentRole === 'fellow' ? 'Divisional PC (Anjali Verma)' : 'State Leadership (SPM & CPM)',
+    targetRole: currentRole === 'intern' ? ('fellow' as const) : currentRole === 'fellow' ? ('pc' as const) : ('spm_cpm' as const),
+  };
+
   const handleNextQuestion = () => {
     if (!validateCurrentQuestion()) return;
 
@@ -205,7 +230,7 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
       setCurrentStepIndex(prev => prev + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      handleSubmitSurvey();
+      setIsHierarchyModalOpen(true);
     }
   };
 
@@ -217,12 +242,12 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
     }
   };
 
-  const handleSubmitSurvey = async () => {
+  // Option 1: Save Response Only (For sequential/batch interviewing)
+  const handleSaveResponseOnly = async () => {
     if (!validateCurrentQuestion()) return;
-
     setIsSubmitting(true);
     try {
-      await surveysApi.submitResponse(survey.id, {
+      const res = await surveysApi.saveDraftResponse(survey.id, {
         stakeholder: {
           fullName: stakeholderName.trim(),
           contactInfo: stakeholderContact.trim() || undefined,
@@ -231,8 +256,57 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
         answers,
       });
 
-      toast.success('Survey response submitted successfully!');
+      setSavedResponsesCount(res.responsesCount);
+      const nameSaved = stakeholderName.trim() || 'Participant';
+      setJustSavedStakeholder(nameSaved);
+      toast.success(`Response for "${nameSaved}" saved successfully!`);
+      setIsSavePromptModalOpen(true);
+      if (onSuccess) onSuccess();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save response');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Option 2: Hierarchical Submission with Feedback
+  const handleConfirmHierarchySubmit = async () => {
+    if (!feedbackText.trim()) {
+      setFeedbackError(`Please provide field feedback & observations for the ${nextSupervisorInfo.roleName}.`);
+      return;
+    }
+    setFeedbackError('');
+    setIsSubmitting(true);
+
+    try {
+      // If current form has filled answers not yet saved, save it first
+      if (stakeholderName.trim() && Object.keys(answers).length > 0) {
+        await surveysApi.saveDraftResponse(survey.id, {
+          stakeholder: {
+            fullName: stakeholderName.trim(),
+            contactInfo: stakeholderContact.trim() || undefined,
+            district: stakeholderLocation.trim() || undefined,
+          },
+          answers,
+        });
+      }
+
+      const currentUserRef = user
+        ? { id: user.id, name: user.name, role: user.role }
+        : { id: 'u-curr-01', name: 'Field Officer', role: currentRole };
+
+      await surveysApi.submitHierarchySurvey(survey.id, {
+        submittedBy: currentUserRef,
+        role: currentRole,
+        feedbackText: feedbackText.trim(),
+        challengesFaced: challengesFaced.trim() || undefined,
+        recommendations: recommendations.trim() || undefined,
+      });
+
+      setHierarchySubmittedTo(nextSupervisorInfo.personName);
+      setIsHierarchyModalOpen(false);
       setSubmittedSuccess(true);
+      toast.success(`Survey batch and feedback submitted to ${nextSupervisorInfo.roleName}!`);
       if (onSuccess) onSuccess();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to submit survey');
@@ -249,6 +323,7 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
     setMediaAnswers({});
     setCurrentError(null);
     setStakeholderErrors({});
+    setIsSavePromptModalOpen(false);
     setCurrentStepIndex(0);
     setSubmittedSuccess(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -262,9 +337,19 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
           <CheckCircle size={36} weight="fill" />
         </div>
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Survey Response Submitted!</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
+            {hierarchySubmittedTo ? 'Survey Batch Submitted with Feedback!' : 'Survey Response Recorded!'}
+          </h2>
           <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">
-            Response for stakeholder <span className="font-semibold text-slate-800">"{stakeholderName}"</span> has been recorded for <span className="font-semibold text-slate-800">"{survey.title}"</span>.
+            {hierarchySubmittedTo ? (
+              <>
+                All responses and field observations for <strong className="text-slate-800">"{survey.title}"</strong> have been submitted to <strong className="text-indigo-700">{hierarchySubmittedTo}</strong>.
+              </>
+            ) : (
+              <>
+                Response for stakeholder <strong className="text-slate-800">"{stakeholderName || justSavedStakeholder}"</strong> has been recorded for <strong className="text-slate-800">"{survey.title}"</strong>.
+              </>
+            )}
           </p>
         </div>
 
@@ -275,13 +360,13 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
             className="px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 shadow-sm transition-all flex items-center gap-2 cursor-pointer btn-press"
           >
             <Plus size={16} weight="bold" />
-            <span>Interview Next Stakeholder</span>
+            <span>Interview Another Stakeholder</span>
           </button>
           <Link
             href={backHref}
             className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors shadow-2xs"
           >
-            Back to Surveys
+            Back to Tasks &amp; Surveys
           </Link>
         </div>
       </div>
@@ -477,8 +562,8 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
             </div>
           </div>
 
-          {/* Desktop Inline Action Bar for Step 0 */}
-          <div className="hidden sm:flex items-center gap-3 pt-3 border-t border-slate-100">
+          {/* Action Bar for Step 0 (Inline on all devices, NO floating card over tab bar) */}
+          <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
             <button
               type="button"
               onClick={() => {
@@ -498,47 +583,12 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
             <button
               type="button"
               onClick={handleStartSurvey}
-              className="flex-1 py-3 px-6 rounded-full bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer btn-press active:scale-98"
+              className="flex-1 py-3 px-6 rounded-xl bg-[#1e3a8a] text-white text-sm font-bold hover:bg-[#172554] active:bg-[#1e40af] shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer btn-press active:scale-98"
             >
               <span>Start Survey</span>
               <ArrowRight size={17} weight="bold" />
             </button>
           </div>
-
-          {/* Frozen Floating Bottom Navigation on Mobile for Step 0 (Hidden when virtual keyboard is open) */}
-          {mounted && !isKeyboardOpen && createPortal(
-            <div className="sm:hidden fixed bottom-[calc(72px+env(safe-area-inset-bottom,0px))] left-3 right-3 max-w-lg mx-auto z-50 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-2xl p-2.5 shadow-xl">
-              <div className="flex items-center gap-2.5">
-                {/* Light red circular X button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (typeof window !== 'undefined' && window.history.length > 1) {
-                      router.back();
-                    } else {
-                      router.push(backHref);
-                    }
-                  }}
-                  className="w-11 h-11 rounded-full bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 flex items-center justify-center shrink-0 shadow-xs cursor-pointer active:scale-95 transition-transform"
-                  aria-label="Cancel"
-                  title="Cancel"
-                >
-                  <X size={18} weight="bold" />
-                </button>
-
-                {/* Elongated full-width Start Survey button */}
-                <button
-                  type="button"
-                  onClick={handleStartSurvey}
-                  className="flex-1 py-3 px-5 rounded-full bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 shadow-md flex items-center justify-center gap-2 cursor-pointer btn-press active:scale-98 transition-all"
-                >
-                  <span>Start Survey</span>
-                  <ArrowRight size={16} weight="bold" />
-                </button>
-              </div>
-            </div>,
-            document.body
-          )}
         </div>
       )}
 
@@ -547,8 +597,8 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
          ══════════════════════════════════════════════════════════════════════ */}
       {currentStepIndex > 0 && currentQuestion && (
         <div className="space-y-6 animate-in fade-in duration-200">
-          {/* Main Question Card */}
-          <div className="card p-5 sm:p-8 border border-slate-200/90 shadow-sm bg-white min-h-[360px] flex flex-col justify-between space-y-6">
+          {/* Main Question Card - Dynamic height as per content */}
+          <div className="card p-5 sm:p-7 border border-slate-200/90 shadow-sm bg-white space-y-5 rounded-2xl transition-all">
             <div className="space-y-5">
               {/* Clean Question Header: Only Question No and Question */}
               <div>
@@ -939,27 +989,36 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
                 <button
                   type="button"
                   onClick={handleNextQuestion}
-                  className="py-3 px-8 rounded-full bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 shadow-md transition-all flex items-center gap-2 cursor-pointer btn-press active:scale-98"
+                  className="py-2.5 px-7 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 shadow-md transition-all flex items-center gap-2 cursor-pointer btn-press active:scale-98"
                 >
                   <span>Next Question</span>
                   <ArrowRight size={16} weight="bold" />
                 </button>
               ) : (
-                <button
-                  type="button"
-                  onClick={handleSubmitSurvey}
-                  disabled={isSubmitting}
-                  className="py-3 px-8 rounded-full bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 shadow-md transition-all flex items-center gap-2 cursor-pointer btn-press active:scale-98 disabled:opacity-60"
-                >
-                  {isSubmitting ? (
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <span>Submit Survey Response</span>
-                      <Check size={16} weight="bold" />
-                    </>
-                  )}
-                </button>
+                <div className="flex items-center gap-3">
+                  {/* Option to Save Only (For Sequential / Batch Interviewing) */}
+                  <button
+                    type="button"
+                    onClick={handleSaveResponseOnly}
+                    disabled={isSubmitting}
+                    className="py-2.5 px-5 rounded-xl border border-indigo-200 bg-indigo-50/80 text-indigo-700 hover:bg-indigo-100 text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer btn-press active:scale-98 shadow-2xs"
+                    title="Save this participant's response and interview more"
+                  >
+                    <FloppyDisk size={16} weight="bold" />
+                    <span>Save Response</span>
+                  </button>
+
+                  {/* Option to Submit Survey up the hierarchy */}
+                  <button
+                    type="button"
+                    onClick={() => setIsHierarchyModalOpen(true)}
+                    disabled={isSubmitting}
+                    className="py-2.5 px-6 rounded-xl bg-emerald-600 text-white text-xs sm:text-sm font-bold hover:bg-emerald-700 shadow-md transition-all flex items-center gap-2 cursor-pointer btn-press active:scale-98 disabled:opacity-60"
+                  >
+                    <span>Submit Survey</span>
+                    <Check size={16} weight="bold" />
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -969,46 +1028,245 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
              ══════════════════════════════════════════════════════════════════ */}
           {mounted && !isKeyboardOpen && createPortal(
             <div className="sm:hidden fixed bottom-[calc(72px+env(safe-area-inset-bottom,0px))] left-3 right-3 max-w-lg mx-auto z-50 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-2xl p-2.5 shadow-xl">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={handlePrevQuestion}
-                  className="w-11 h-11 rounded-full border border-slate-200 bg-white text-slate-700 flex items-center justify-center shrink-0 shadow-xs hover:bg-slate-50 cursor-pointer active:scale-95 transition-transform"
+                  className="w-10 h-10 rounded-full border border-slate-200 bg-white text-slate-700 flex items-center justify-center shrink-0 shadow-xs hover:bg-slate-50 cursor-pointer active:scale-95 transition-transform"
                   aria-label="Previous question"
                 >
-                  <ArrowLeft size={18} weight="bold" />
+                  <ArrowLeft size={16} weight="bold" />
                 </button>
 
                 {currentStepIndex < totalQuestions ? (
                   <button
                     type="button"
                     onClick={handleNextQuestion}
-                    className="flex-1 py-3 px-5 rounded-full bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 shadow-md flex items-center justify-center gap-2 cursor-pointer btn-press active:scale-98 transition-all"
+                    className="flex-1 py-2.5 px-4 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 shadow-md flex items-center justify-center gap-2 cursor-pointer btn-press active:scale-98 transition-all"
                   >
                     <span>Next Question</span>
                     <ArrowRight size={16} weight="bold" />
                   </button>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={handleSubmitSurvey}
-                    disabled={isSubmitting}
-                    className="flex-1 py-3 px-5 rounded-full bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 shadow-md flex items-center justify-center gap-2 cursor-pointer btn-press active:scale-98 transition-all disabled:opacity-60"
-                  >
-                    {isSubmitting ? (
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        <span>Submit Survey</span>
-                        <Check size={16} weight="bold" />
-                      </>
-                    )}
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleSaveResponseOnly}
+                      disabled={isSubmitting}
+                      className="flex-1 py-2.5 px-3 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-2xs"
+                    >
+                      <FloppyDisk size={14} weight="bold" />
+                      <span>Save</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsHierarchyModalOpen(true)}
+                      disabled={isSubmitting}
+                      className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 shadow-md flex items-center justify-center gap-1.5 cursor-pointer btn-press active:scale-98 transition-all disabled:opacity-60"
+                    >
+                      <Check size={14} weight="bold" />
+                      <span>Submit</span>
+                    </button>
+                  </>
                 )}
               </div>
             </div>,
             document.body
           )}
+        </div>
+      )}
+
+      {/* ── Dialog 1: Response Saved Prompt (Batch Interviewing) ── */}
+      {isSavePromptModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="card p-6 max-w-sm w-full space-y-4 shadow-2xl text-center bg-white rounded-2xl border border-slate-200">
+            <div className="w-14 h-14 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto shadow-xs border border-indigo-100">
+              <FloppyDisk size={28} weight="bold" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Participant Response Saved!</h3>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Interview for <strong className="text-slate-800">"{justSavedStakeholder}"</strong> has been saved.
+              </p>
+              <div className="mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 text-xs text-slate-700">
+                <span className="font-semibold text-slate-500">Total Interviewed: </span>
+                <span className="font-black text-indigo-700 text-sm ml-1">{savedResponsesCount}</span>
+                <span className="text-slate-400 font-medium"> / {survey.participantsRequired || 50}</span>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <button
+                type="button"
+                onClick={resetForNextStakeholder}
+                className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer btn-press"
+              >
+                <Plus size={15} weight="bold" />
+                <span>Interview Next Participant</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSavePromptModalOpen(false);
+                  setIsHierarchyModalOpen(true);
+                }}
+                className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer btn-press"
+              >
+                <Check size={15} weight="bold" />
+                <span>Submit Survey to {nextSupervisorInfo.roleName}</span>
+              </button>
+
+              <Link
+                href={backHref}
+                className="block w-full py-2 px-4 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 text-xs font-semibold transition-colors"
+              >
+                Return to Tasks
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Dialog 2: Hierarchical Submission & Feedback Modal ── */}
+      {isHierarchyModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="card p-5 sm:p-7 max-w-lg w-full max-h-[88dvh] overflow-y-auto space-y-4 shadow-2xl bg-white rounded-2xl border border-slate-200">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                  Hierarchy Submission
+                </span>
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 mt-1">
+                  Submit Survey to {nextSupervisorInfo.roleName}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Submitting to: <strong className="text-slate-800">{nextSupervisorInfo.personName}</strong>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsHierarchyModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer"
+              >
+                <X size={18} weight="bold" />
+              </button>
+            </div>
+
+            {/* Hierarchy Progress Strip */}
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+              <div className="text-[10px] font-bold uppercase text-slate-500 tracking-wider mb-2">
+                Approval Hierarchy
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 overflow-x-auto no-scrollbar">
+                <span className={cn('px-2 py-0.5 rounded-md', currentRole === 'intern' ? 'bg-indigo-600 text-white' : 'bg-emerald-100 text-emerald-800')}>
+                  Intern
+                </span>
+                <span className="text-slate-400 font-normal">→</span>
+                <span className={cn('px-2 py-0.5 rounded-md', currentRole === 'fellow' ? 'bg-indigo-600 text-white' : currentRole === 'pc' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700')}>
+                  Fellow
+                </span>
+                <span className="text-slate-400 font-normal">→</span>
+                <span className={cn('px-2 py-0.5 rounded-md', currentRole === 'pc' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700')}>
+                  Program Coordinator
+                </span>
+                <span className="text-slate-400 font-normal">→</span>
+                <span className="px-2 py-0.5 rounded-md bg-slate-200 text-slate-700">
+                  SPM / CPM
+                </span>
+              </div>
+            </div>
+
+            {/* Quota & Stakeholders Interviewed KPI */}
+            <div className="p-3 rounded-xl bg-indigo-50/50 border border-indigo-100 flex items-center justify-between">
+              <div>
+                <div className="text-xs font-semibold text-slate-700">Stakeholders Interviewed</div>
+                <div className="text-[11px] text-slate-500 mt-0.5">
+                  Flexible submission enabled (submit anytime)
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-lg font-black text-indigo-900">{savedResponsesCount || 1}</span>
+                <span className="text-xs text-slate-400 font-medium"> / {survey.participantsRequired || 50}</span>
+              </div>
+            </div>
+
+            {/* Field Feedback Inputs */}
+            <div className="space-y-3 pt-1">
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1">
+                  Field Observations &amp; Feedback for {nextSupervisorInfo.roleName} <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={feedbackText}
+                  onChange={(e) => {
+                    setFeedbackText(e.target.value);
+                    if (feedbackError) setFeedbackError('');
+                  }}
+                  placeholder="Summarize key takeaways, community sentiment, scheme reach, and overall observations from the field..."
+                  className={cn(
+                    'w-full p-3 rounded-xl border text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all leading-relaxed',
+                    feedbackError ? 'border-rose-400 ring-1 ring-rose-200 bg-rose-50/20' : 'border-slate-200 bg-white'
+                  )}
+                />
+                {feedbackError && <p className="text-[11px] text-rose-500 font-semibold mt-1">{feedbackError}</p>}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Key Challenges Faced (optional)
+                </label>
+                <input
+                  type="text"
+                  value={challengesFaced}
+                  onChange={(e) => setChallengesFaced(e.target.value)}
+                  placeholder="e.g. Medicine stockouts at PHC, transport delays, connectivity issues..."
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Recommendations for Program Leadership (optional)
+                </label>
+                <input
+                  type="text"
+                  value={recommendations}
+                  onChange={(e) => setRecommendations(e.target.value)}
+                  placeholder="e.g. Conduct monthly review with BDO, supply additional testing kits..."
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex gap-2.5 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsHierarchyModalOpen(false)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-semibold cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmHierarchySubmit}
+                disabled={isSubmitting}
+                className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer btn-press disabled:opacity-60"
+              >
+                {isSubmitting ? (
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <span>Submit to {nextSupervisorInfo.roleName}</span>
+                    <ArrowRight size={14} weight="bold" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

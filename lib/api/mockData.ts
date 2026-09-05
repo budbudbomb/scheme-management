@@ -125,6 +125,7 @@ export const MOCK_PAGINATED_USERS = {
 const me = { id: 'u-pc-01', name: 'Anjali Verma', role: 'pc' as const };
 const fellow1 = { id: 'u-fellow-01', name: 'Vikram Singh', role: 'fellow' as const };
 const intern1 = { id: 'u-intern-01', name: 'Priya Patel', role: 'intern' as const };
+const intern2 = { id: 'u-intern-02', name: 'Rohit Yadav', role: 'intern' as const };
 
 export const MOCK_TASKS: Task[] = [
   {
@@ -303,9 +304,48 @@ export const MOCK_SURVEYS: Survey[] = [
     participantsRequired: 150,
     responsesCount: 112,
     status: 'active',
+    submissionStatus: 'submitted_by_pc',
     createdBy: me,
     isAllocatedAsTask: true,
     createdAt: '2026-08-01T00:00:00Z',
+    feedbacks: [
+      {
+        id: 'fb-01',
+        surveyId: 'survey-01',
+        submittedBy: intern1,
+        role: 'intern',
+        submittedToRole: 'fellow',
+        feedbackText: 'High participation from self-help group members. Many households requested dedicated training on poultry farming and tailoring.',
+        challengesFaced: 'Network connectivity was weak in 3 remote gram panchayats.',
+        recommendations: 'Provide offline sync capability and distribute regional flyers.',
+        stakeholdersInterviewedCount: 45,
+        createdAt: '2026-08-25T14:30:00Z',
+      },
+      {
+        id: 'fb-02',
+        surveyId: 'survey-01',
+        submittedBy: fellow1,
+        role: 'fellow',
+        submittedToRole: 'pc',
+        feedbackText: 'Reviewed field responses across Ujjain district. Data quality is verified. Interns showed strong community engagement.',
+        challengesFaced: 'Heavy monsoon rains delayed visits to 2 panchayats.',
+        recommendations: 'Recommend coordinating with Block Development Officer for SHG linkage.',
+        stakeholdersInterviewedCount: 88,
+        createdAt: '2026-08-28T16:00:00Z',
+      },
+      {
+        id: 'fb-03',
+        surveyId: 'survey-01',
+        submittedBy: me,
+        role: 'pc',
+        submittedToRole: 'spm_cpm',
+        feedbackText: 'Divisional compilation complete with 112 verified responses. Key livelihood trends highlighted for policy team review.',
+        challengesFaced: 'None at divisional level; cross-verified with district data.',
+        recommendations: 'Fast-track scheme allocation for SHG enterprise loans in Q4.',
+        stakeholdersInterviewedCount: 112,
+        createdAt: '2026-09-02T11:00:00Z',
+      },
+    ],
     questions: [
       { id: 'q1', type: 'single_choice', question: 'What is the primary source of household income?', options: ['Agriculture', 'Daily Wage Labor', 'Small Business / Shop', 'Government / Private Job'], required: true, allowImage: true },
       { id: 'q2', type: 'likert_scale', question: 'How satisfied is the community with current road connectivity?', likertConfig: { points: 5, lowLabel: 'Very Dissatisfied', highLabel: 'Very Satisfied', midLabel: 'Neutral' }, required: true },
@@ -323,9 +363,36 @@ export const MOCK_SURVEYS: Survey[] = [
     participantsRequired: 200,
     responsesCount: 84,
     status: 'active',
+    submissionStatus: 'submitted_by_fellow',
     createdBy: me,
     isAllocatedAsTask: true,
     createdAt: '2026-08-15T00:00:00Z',
+    feedbacks: [
+      {
+        id: 'fb-04',
+        surveyId: 'survey-02',
+        submittedBy: intern2,
+        role: 'intern',
+        submittedToRole: 'fellow',
+        feedbackText: 'Interviewed 84 youth across 6 colleges and youth clubs. High appetite for coding and digital marketing training.',
+        challengesFaced: 'Access to computer labs was limited in 2 colleges.',
+        recommendations: 'Establish mobile digital literacy vans.',
+        stakeholdersInterviewedCount: 84,
+        createdAt: '2026-09-01T15:00:00Z',
+      },
+      {
+        id: 'fb-05',
+        surveyId: 'survey-02',
+        submittedBy: fellow1,
+        role: 'fellow',
+        submittedToRole: 'pc',
+        feedbackText: 'Validated youth responses. 72% expressed interest in state government digital certificate courses.',
+        challengesFaced: 'Need coordination with Technical Education department.',
+        recommendations: 'Align curriculum with MP Rozgar portal requirements.',
+        stakeholdersInterviewedCount: 84,
+        createdAt: '2026-09-03T17:30:00Z',
+      },
+    ],
     questions: [
       { id: 'q1', type: 'dichotomous', question: 'Does the candidate have personal access to a smartphone or computer?', dichotomousLabels: ['Yes', 'No'], required: true, allowImage: true },
       { id: 'q2', type: 'multiple_choice', question: 'Which digital skills are you interested in learning?', options: ['Basic Computer Operations', 'Digital Payments & Banking', 'Graphic Design & Media', 'Online Government Services (MP e-District)', 'Coding & Programming'], required: true },
@@ -342,9 +409,11 @@ export const MOCK_SURVEYS: Survey[] = [
     participantsRequired: 75,
     responsesCount: 29,
     status: 'active',
+    submissionStatus: 'draft',
     createdBy: fellow1,
     isAllocatedAsTask: true,
     createdAt: '2026-09-01T00:00:00Z',
+    feedbacks: [],
     questions: [
       { id: 'q1', type: 'single_choice', question: 'Distance of the village from the nearest PHC / CHC?', options: ['Under 2 km', '2–5 km', '5–10 km', 'More than 10 km'], required: true },
       { id: 'q2', type: 'likert_scale', question: 'Quality of service received during the last visit to the health center:', likertConfig: { points: 5, lowLabel: 'Very Poor', highLabel: 'Excellent', midLabel: 'Average' }, required: true },

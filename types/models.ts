@@ -244,6 +244,26 @@ export interface SurveyDocument {
   uploadedAt?: string;
 }
 
+export type SurveySubmissionStatus =
+  | 'draft'
+  | 'submitted_by_intern'
+  | 'submitted_by_fellow'
+  | 'submitted_by_pc'
+  | 'approved';
+
+export interface SurveyFeedback {
+  id: string;
+  surveyId: string;
+  submittedBy: AssigneeRef;
+  role: 'intern' | 'fellow' | 'pc';
+  submittedToRole: 'fellow' | 'pc' | 'spm_cpm';
+  feedbackText: string;
+  challengesFaced?: string;
+  recommendations?: string;
+  stakeholdersInterviewedCount: number;
+  createdAt: string;
+}
+
 export interface Survey {
   id: string;
   title: string;
@@ -253,6 +273,8 @@ export interface Survey {
   participantsRequired?: number;
   responsesCount?: number;
   status?: 'draft' | 'active' | 'closed';
+  submissionStatus?: SurveySubmissionStatus;
+  feedbacks?: SurveyFeedback[];
   questions?: SurveyQuestion[];
   documents?: SurveyDocument[];
   createdBy: AssigneeRef;
