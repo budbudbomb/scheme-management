@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -162,6 +163,23 @@ export default function AdminTasksPage() {
   // Modals
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (selectedTask || taskToDelete) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [selectedTask, taskToDelete]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -929,18 +947,18 @@ export default function AdminTasksPage() {
         </div>
       )}
 
-      {/* Task Details Modal */}
-      {selectedTask && (
+      {/* Task Details Modal — Portalled to document.body for true viewport centering and frozen header/footer with scrollbar */}
+      {selectedTask && mounted && typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200"
+          className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto"
           onClick={() => setSelectedTask(null)}
         >
           <div
-            className="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] sm:max-h-[90vh] flex flex-col shadow-2xl border border-slate-200/90 animate-in zoom-in-95 duration-200 overflow-hidden"
+            className="relative bg-white rounded-2xl max-w-lg w-full max-h-[85dvh] sm:max-h-[88vh] flex flex-col shadow-2xl border border-slate-200/90 animate-in zoom-in-95 duration-200 overflow-hidden my-auto"
             onClick={e => e.stopPropagation()}
           >
-            {/* Modal Header */}
-            <div className="flex items-start justify-between gap-3 p-4 sm:p-5 border-b border-slate-100 bg-white shrink-0">
+            {/* Frozen Modal Header */}
+            <div className="flex items-start justify-between gap-3 p-4 sm:p-5 border-b border-slate-100 bg-white shrink-0 sticky top-0 z-10">
               <div className="flex items-center gap-2.5 flex-1 min-w-0">
                 <span className={cn('w-3 h-3 rounded-full shrink-0', priorityBarColor(selectedTask.priority))} />
                 <h3 className="font-bold text-slate-900 text-base sm:text-lg leading-snug line-clamp-2">{selectedTask.name}</h3>
@@ -956,7 +974,7 @@ export default function AdminTasksPage() {
             </div>
 
             {/* Modal Scrollable Body with Visible Scrollbar */}
-            <div className="overflow-y-auto p-4 sm:p-6 space-y-4 flex-1 [scrollbar-width:thin] [scrollbar-color:#cbd5e1_#f8fafc]">
+            <div className="overflow-y-auto p-4 sm:p-6 space-y-4 flex-1 min-h-0 [scrollbar-width:thin] [scrollbar-color:#94a3b8_#f1f5f9] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-slate-100/70 [&::-webkit-scrollbar-thumb]:bg-slate-300 hover:[&::-webkit-scrollbar-thumb]:bg-slate-400 [&::-webkit-scrollbar-thumb]:rounded-full">
               {/* Badges */}
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full border', statusBadge(selectedTask.status))}>
@@ -1039,8 +1057,8 @@ export default function AdminTasksPage() {
               </div>
             </div>
 
-            {/* Modal Actions Footer */}
-            <div className="flex items-center justify-between p-4 bg-slate-50/90 border-t border-slate-100 shrink-0">
+            {/* Frozen Modal Actions Footer */}
+            <div className="flex items-center justify-between p-3.5 sm:p-4 bg-slate-50/95 border-t border-slate-100 shrink-0 sticky bottom-0 z-10 backdrop-blur-xs">
               <button
                 type="button"
                 onClick={() => {
@@ -1074,13 +1092,14 @@ export default function AdminTasksPage() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Delete Confirmation Modal */}
-      {taskToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="card p-6 max-w-sm w-full space-y-4 shadow-xl text-center">
+      {/* Delete Confirmation Modal — Portalled to document.body */}
+      {taskToDelete && mounted && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200" onClick={() => setTaskToDelete(null)}>
+          <div className="card p-6 max-w-sm w-full space-y-4 shadow-2xl text-center bg-white border border-slate-200 my-auto animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
               <Warning size={24} weight="bold" />
             </div>
@@ -1107,7 +1126,8 @@ export default function AdminTasksPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
