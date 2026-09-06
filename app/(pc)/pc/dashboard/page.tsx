@@ -2,10 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import type { PCDashboardStats } from '@/types/models';
-import StatCard from '@/components/shared/StatCard';
-import { SkeletonStatGrid } from '@/components/shared/SkeletonCard';
-import ErrorState from '@/components/shared/ErrorState';
-import { Users, CheckSquare, ClipboardText, ArrowCircleUpRight, ShieldCheck, Fingerprint } from '@phosphor-icons/react';
+import { CheckSquare, ArrowCircleUpRight, ShieldCheck, Fingerprint, MapPin } from '@phosphor-icons/react';
 import { get } from '@/lib/api/client';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/context';
@@ -44,28 +41,17 @@ export default function PCDashboardPage() {
   useEffect(() => { load(); }, []);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-2">
       <div>
-        <h1 className="text-xl font-bold text-slate-900">
-          {user?.division?.name ?? 'Division'} Dashboard
+        <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+          <MapPin size={22} className="text-indigo-600 shrink-0" weight="duotone" />
+          <span>{user?.division?.name ?? 'Division'} Dashboard</span>
         </h1>
-        <p className="text-sm text-slate-500 mt-0.5">Program Coordinator overview for your division</p>
+        <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Program Coordinator overview for your division</p>
       </div>
 
-      {loading ? <SkeletonStatGrid count={5} /> : error ? (
-        <ErrorState message={error} onRetry={load} />
-      ) : stats && (
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
-          <StatCard label="Fellows" value={stats.fellowsInDivision} icon={Users} iconColor="text-indigo-600" iconBg="bg-indigo-50" />
-          <StatCard label="Interns" value={stats.internsInDivision} icon={Users} iconColor="text-emerald-600" iconBg="bg-emerald-50" />
-          <StatCard label="Active Tasks" value={stats.activeTasks} icon={CheckSquare} iconColor="text-amber-600" iconBg="bg-amber-50" />
-          <StatCard label="Pending Leave" value={stats.pendingLeaveApprovals} icon={ClipboardText} iconColor="text-rose-600" iconBg="bg-rose-50" />
-          <StatCard label="Pending Exit" value={stats.pendingExitApprovals} icon={ArrowCircleUpRight} iconColor="text-violet-600" iconBg="bg-violet-50" />
-        </div>
-      )}
-
       {/* Division District & Block Intern Task Monitoring */}
-      <div className="pt-2">
+      <div>
         <HierarchicalTaskMonitor
           role="pc"
           divisionId={user?.division?.id}
@@ -75,13 +61,11 @@ export default function PCDashboardPage() {
       {/* Quick actions */}
       <div>
         <h2 className="font-semibold text-slate-900 mb-3">Quick Actions</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { href: '/pc/tasks/new', label: 'Create Task', icon: CheckSquare, color: 'indigo' },
-            { href: '/pc/surveys', label: 'Surveys', icon: ClipboardText, color: 'emerald' },
+            { href: '/pc/tasks', label: 'All Tasks', icon: CheckSquare, color: 'emerald' },
             { href: '/pc/leave', label: 'Review Leave', icon: ShieldCheck, color: 'amber' },
             { href: '/pc/exit', label: 'Review Exit', icon: ArrowCircleUpRight, color: 'rose' },
-            { href: '/pc/training', label: 'Schedule Meeting', icon: Users, color: 'sky' },
             { href: '/pc/attendance', label: 'View Attendance', icon: Fingerprint, color: 'slate' },
           ].map(({ href, label, icon: Icon, color }) => (
             <Link key={href} href={href} className="card card-hover p-4 flex flex-col items-center gap-2 text-center tap-target">

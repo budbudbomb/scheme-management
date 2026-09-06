@@ -1,47 +1,121 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { AdminDashboardStats } from '@/types/models';
-import StatCard from '@/components/shared/StatCard';
 import { SkeletonStatGrid } from '@/components/shared/SkeletonCard';
 import ErrorState from '@/components/shared/ErrorState';
 import {
   Users,
-  Briefcase,
-  CheckSquare,
   ClipboardText,
+  CheckCircle,
+  ChartLine,
   ArrowCircleUpRight,
-  ShieldCheck,
+  CheckSquare,
 } from '@phosphor-icons/react';
-import { get } from '@/lib/api/client';
 import AttendanceTrendChart from '@/components/charts/AttendanceTrendChart';
-import TaskCompletionChart from '@/components/charts/TaskCompletionChart';
-import DivisionBreakdownChart from '@/components/charts/DivisionBreakdownChart';
-import Link from 'next/link';
 
-async function fetchStats(): Promise<AdminDashboardStats> {
-  try {
-    return await get<AdminDashboardStats>('/dashboard/admin');
-  } catch {
-    return {
-      totalFellows: 55,
-      totalInterns: 4695,
-      totalPCs: 10,
-      activeTasks: 142,
-      completedTasks: 1280,
-      pendingLeaveRequests: 14,
-      pendingExitRequests: 4,
-      attendanceToday: 4210,
-      attendanceRate: 89.6,
-      divisionsCount: 10,
-      districtsCount: 55,
-      blocksCount: 313,
-    };
-  }
+import SurveyStatusDonut from '@/components/charts/SurveyStatusDonut';
+import SurveyDistrictChart from '@/components/charts/SurveyDistrictChart';
+import Link from 'next/link';
+import { cn } from '@/lib/utils/formatters';
+
+// ─── Mock KPI data (replace with real API) ──────────────────────────────────
+interface SurveyStats {
+  totalDeployed: number;
+  completed: number;
+  inProgress: number;
+  notStarted: number;
+  completionRate: number;
+  // attendance for rate card
+  attendanceToday: number;
+  attendanceRate: number;
 }
 
+async function fetchStats(): Promise<SurveyStats> {
+  // TODO: hook to real API
+  return {
+    totalDeployed: 4500,
+    completed: 3240,
+    inProgress: 812,
+    notStarted: 448,
+    completionRate: 72,
+    attendanceToday: 4210,
+    attendanceRate: 89.6,
+  };
+}
+
+// ─── Inline KPI Card (more impactful than StatCard for 4-up layout) ──────────
+interface KpiCardProps {
+  label: string;
+  value: string | number;
+  sub?: string;
+  accent: string;         // Tailwind colour prefix e.g. 'indigo'
+  icon: React.ReactNode;
+  trend?: { value: number; positive: boolean; label: string };
+}
+
+function KpiCard({ label, value, sub, icon, trend, accent }: KpiCardProps) {
+  return (
+    <div className={cn('card p-5 card-hover flex flex-col gap-3 border-t-4', `border-t-${accent}-600 border-${accent}-100`)}>
+      <div className="flex items-start justify-between gap-2">
+        <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', `bg-${accent}-50`)}>
+          {icon}
+        </div>
+        {trend && (
+          <span
+            className={cn(
+              'text-[11px] font-bold px-2 py-0.5 rounded-full',
+              trend.positive ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+            )}
+          >
+            {trend.positive ? '▲' : '▼'} {Math.abs(trend.value)}%
+          </span>
+        )}
+      </div>
+      <div>
+        <div className="text-2xl sm:text-3xl font-black text-slate-900 leading-none">
+          {typeof value === 'number' ? value.toLocaleString('en-IN') : value}
+        </div>
+        <div className="text-sm text-slate-500 mt-1 font-medium">{label}</div>
+        {sub && <div className="text-xs text-slate-400 mt-0.5">{sub}</div>}
+        {trend && <div className="text-xs text-slate-400 mt-1">{trend.label}</div>}
+      </div>
+    </div>
+  );
+}
+
+// ─── Chart card wrapper ───────────────────────────────────────────────────────
+function ChartCard({
+  title,
+  subtitle,
+  children,
+  action,
+  className,
+}: {
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+  action?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn('card p-5', className)}>
+      <div className="flex items-start justify-between mb-4 gap-2">
+        <div>
+          <h2 className="font-bold text-slate-900 text-sm">{title}</h2>
+          {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
+        </div>
+        {action}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+
+
+// ─── Page ────────────────────────────────────────────────────────────────────
 export default function AdminDashboardPage() {
-  const [stats, setStats] = useState<AdminDashboardStats | null>(null);
+  const [stats, setStats] = useState<SurveyStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,8 +123,7 @@ export default function AdminDashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchStats();
-      setStats(data);
+      setStats(await fetchStats());
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load dashboard');
     } finally {
@@ -66,101 +139,82 @@ export default function AdminDashboardPage() {
       <div>
         <h1 className="text-xl font-bold text-slate-900">State Dashboard</h1>
         <p className="text-sm text-slate-500 mt-0.5">
-          Overview of CMYPDP &amp; CMYIGGP programs across Madhya Pradesh
+          Survey &amp; attendance overview — CMYPDP &amp; CMYIGGP · Madhya Pradesh
         </p>
       </div>
 
-      {/* Stat cards */}
+      {/* ── 4 KPI Cards ─────────────────────────────────────────────────── */}
       {loading ? (
-        <SkeletonStatGrid count={6} />
+        <SkeletonStatGrid count={4} />
       ) : error ? (
         <ErrorState message={error} onRetry={load} />
       ) : stats ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-          <StatCard
-            label="Total Fellows"
-            value={stats.totalFellows}
-            icon={Users}
-            iconColor="text-indigo-600"
-            iconBg="bg-indigo-50"
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+          <KpiCard
+            label="Survey Completion Rate"
+            value={`${stats.completionRate}%`}
+            sub={`${stats.completed.toLocaleString('en-IN')} of ${stats.totalDeployed.toLocaleString('en-IN')} surveys done`}
+            accent="indigo"
+            icon={<ChartLine size={20} weight="fill" className="text-indigo-600" />}
+            trend={{ value: 6, positive: true, label: 'vs last month' }}
           />
-          <StatCard
-            label="Total Interns"
-            value={stats.totalInterns}
-            icon={Briefcase}
-            iconColor="text-emerald-600"
-            iconBg="bg-emerald-50"
+          <KpiCard
+            label="Total Surveys Deployed"
+            value={stats.totalDeployed}
+            sub="Across all districts & blocks"
+            accent="sky"
+            icon={<ClipboardText size={20} weight="fill" className="text-sky-600" />}
           />
-          <StatCard
-            label="Program Coordinators"
-            value={stats.totalPCs}
-            icon={ShieldCheck}
-            iconColor="text-sky-600"
-            iconBg="bg-sky-50"
+          <KpiCard
+            label="Surveys Completed"
+            value={stats.completed}
+            sub={`${stats.inProgress.toLocaleString('en-IN')} still in progress`}
+            accent="emerald"
+            icon={<CheckCircle size={20} weight="fill" className="text-emerald-600" />}
+            trend={{ value: 12, positive: true, label: 'vs last week' }}
           />
-          <StatCard
-            label="Active Tasks"
-            value={stats.activeTasks}
-            icon={CheckSquare}
-            iconColor="text-amber-600"
-            iconBg="bg-amber-50"
-          />
-          <StatCard
-            label="Pending Leave"
-            value={stats.pendingLeaveRequests}
-            icon={ClipboardText}
-            iconColor="text-rose-600"
-            iconBg="bg-rose-50"
-          />
-          <StatCard
-            label="Pending Exit"
-            value={stats.pendingExitRequests}
-            icon={ArrowCircleUpRight}
-            iconColor="text-violet-600"
-            iconBg="bg-violet-50"
+          <KpiCard
+            label="Today's Attendance Rate"
+            value={`${stats.attendanceRate}%`}
+            sub={`${stats.attendanceToday.toLocaleString('en-IN')} personnel present`}
+            accent="amber"
+            icon={<Users size={20} weight="fill" className="text-amber-600" />}
+            trend={{ value: 2, positive: false, label: 'vs yesterday' }}
           />
         </div>
       ) : null}
 
-      {/* Charts row */}
+      {/* ── Row 1: Drill-Down Chart + Survey Status Donut ────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Attendance trend (takes 2 cols) */}
-        <div className="lg:col-span-2 card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-slate-900">Attendance Trend</h2>
-            <span className="text-xs text-slate-400">Last 30 days</span>
-          </div>
-          <AttendanceTrendChart />
-        </div>
+        <ChartCard
+          title="Survey Progress by Division"
+          subtitle="Division → District → Block · click any bar to drill down"
+          className="lg:col-span-2"
+        >
+          <SurveyDistrictChart />
+        </ChartCard>
 
-        {/* Task completion donut */}
-        <div className="card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-slate-900">Task Status</h2>
-          </div>
-          <TaskCompletionChart />
-        </div>
+        <ChartCard title="Survey Status" subtitle="Overall distribution">
+          <SurveyStatusDonut />
+        </ChartCard>
       </div>
 
-      {/* Division breakdown */}
-      <div className="card p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-slate-900">Division-wise Breakdown</h2>
-          <Link href="/admin/users" className="text-xs text-indigo-600 hover:text-indigo-700 font-medium">
-            View users →
-          </Link>
-        </div>
-        <DivisionBreakdownChart />
-      </div>
+      {/* ── Row 2: Attendance Trend ───────────────────────────────────────── */}
+      <ChartCard
+        title="Attendance Trend"
+        subtitle="Last 30 days · Present vs Absent"
+      >
+        <AttendanceTrendChart />
+      </ChartCard>
 
-      {/* Quick actions */}
+      {/* ── Quick Actions ────────────────────────────────────────────────── */}
       <div>
-        <h2 className="font-semibold text-slate-900 mb-3">Quick Actions</h2>
+        <h2 className="font-semibold text-slate-900 mb-3 text-sm">Quick Actions</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { href: '/admin/users?new=1', label: 'Add User', icon: Users, color: 'indigo' },
             { href: '/admin/tasks/new', label: 'Create Task', icon: CheckSquare, color: 'emerald' },
-            { href: '/admin/leave', label: 'View Leave', icon: ClipboardText, color: 'amber' },
+            { href: '/admin/surveys', label: 'View Surveys', icon: ClipboardText, color: 'sky' },
             { href: '/admin/exit', label: 'Exit Requests', icon: ArrowCircleUpRight, color: 'rose' },
           ].map(({ href, label, icon: Icon, color }) => (
             <Link

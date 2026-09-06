@@ -362,94 +362,81 @@ export default function FellowLeavePage() {
 
   return (
     <div className="space-y-6">
-      {/* ── Page Title & Main Action ── */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Leave Management</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Apply for your leaves and review leave applications submitted by your interns
-          </p>
+      {/* ── FROZEN STICKY HEADER: Title + Description + Tab Switcher (stays frozen while scrolling up/down) ── */}
+      <div className="sticky top-0 z-20 bg-slate-50/95 lg:bg-white/95 backdrop-blur-md -mt-4 sm:-mt-6 lg:-mt-8 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-3.5 pb-3 sm:pt-5 sm:pb-4 border-b border-slate-200/80 shadow-2xs space-y-3 sm:space-y-4">
+        {/* ── Page Header + Top-Right Apply Button ── */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Leave Management</h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+              Apply for your leaves and review leave applications submitted by your interns
+            </p>
+          </div>
+          {activeTab === 'apply' && (
+            <button
+              type="button"
+              onClick={() => setShowApplyModal(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 transition-all shadow-xs cursor-pointer shrink-0"
+            >
+              <Plus size={15} weight="bold" />
+              <span className="whitespace-nowrap">Apply for Leave</span>
+            </button>
+          )}
         </div>
-        {activeTab === 'apply' && (
+
+        {/* ── Sleek Segmented Tab Switch (Placed ABOVE Apply for Leave button) ── */}
+        <div className="w-full max-w-md bg-slate-100/90 p-1 rounded-2xl border border-slate-200/90 grid grid-cols-2 gap-1 shadow-2xs">
+          {/* Tab 1: Apply for Leave */}
           <button
-            onClick={() => setShowApplyModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius)] text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-sm"
-          >
-            <Plus size={16} weight="bold" />
-            Apply for Leave
-          </button>
-        )}
-      </div>
-
-      {/* ── Enhanced Segmented Tab Control (As requested with live red notification dot) ── */}
-      <div className="inline-flex items-center gap-1.5 p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200 shadow-2xs">
-        {/* Tab 1: Apply for Leave (Fellow Self) */}
-        <button
-          onClick={() => setActiveTab('apply')}
-          className={cn(
-            'flex items-center gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 select-none',
-            activeTab === 'apply'
-              ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 ring-1 ring-black/5'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-          )}
-        >
-          <CalendarCheck
-            size={18}
-            weight={activeTab === 'apply' ? 'fill' : 'bold'}
-            className={activeTab === 'apply' ? 'text-indigo-600' : 'text-slate-500'}
-          />
-          <span>Apply for Leave</span>
-          <span
+            type="button"
+            onClick={() => setActiveTab('apply')}
             className={cn(
-              'text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider',
+              'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 select-none cursor-pointer text-center',
               activeTab === 'apply'
-                ? 'bg-indigo-50 text-indigo-700 border border-indigo-100'
-                : 'bg-slate-200/70 text-slate-500'
+                ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 font-bold ring-1 ring-black/5'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
             )}
           >
-            Fellow
-          </span>
-        </button>
+            <CalendarCheck
+              size={16}
+              weight={activeTab === 'apply' ? 'fill' : 'bold'}
+              className={activeTab === 'apply' ? 'text-indigo-600' : 'text-slate-500'}
+            />
+            <span className="truncate">Apply for Leave</span>
+          </button>
 
-        {/* Tab 2: Review Leave Application (Interns Review) */}
-        <button
-          onClick={() => setActiveTab('review')}
-          className={cn(
-            'flex items-center gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 relative select-none',
-            activeTab === 'review'
-              ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 ring-1 ring-black/5'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-          )}
-        >
-          <Users
-            size={18}
-            weight={activeTab === 'review' ? 'fill' : 'bold'}
-            className={activeTab === 'review' ? 'text-indigo-600' : 'text-slate-500'}
-          />
-          <span>Review Leave Application</span>
-          <span
+          {/* Tab 2: Review Leave Application */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('review')}
             className={cn(
-              'text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider',
+              'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 select-none cursor-pointer relative text-center',
               activeTab === 'review'
-                ? 'bg-indigo-50 text-indigo-700 border border-indigo-100'
-                : 'bg-slate-200/70 text-slate-500'
+                ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 font-bold ring-1 ring-black/5'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
             )}
           >
-            Interns
-          </span>
-          {internMetrics.pendingCount > 0 && (
-            <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-black bg-amber-100 text-amber-900 rounded-full border border-amber-300">
-              {internMetrics.pendingCount}
-            </span>
-          )}
-          {/* Pulsing red notification dot (as drawn in user image) */}
-          {internMetrics.pendingCount > 0 && (
-            <span className="absolute -top-1 -right-1 flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-600 border-2 border-white"></span>
-            </span>
-          )}
-        </button>
+            <Users
+              size={16}
+              weight={activeTab === 'review' ? 'fill' : 'bold'}
+              className={activeTab === 'review' ? 'text-indigo-600' : 'text-slate-500'}
+            />
+            <span className="truncate sm:hidden">Review Leaves</span>
+            <span className="hidden sm:inline truncate">Review Leave Applications</span>
+            {internMetrics.pendingCount > 0 && (
+              <span className="flex items-center justify-center min-w-[18px] h-4.5 px-1.5 text-[10px] font-black bg-amber-100 text-amber-900 rounded-full border border-amber-300">
+                {internMetrics.pendingCount}
+              </span>
+            )}
+            {/* Pulsing red notification dot */}
+            {internMetrics.pendingCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600 border-2 border-white"></span>
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* ══════════════════════════════════════════════════════════
@@ -478,29 +465,35 @@ export default function FellowLeavePage() {
                   const StatusIcon = sBadge.icon;
 
                   return (
-                    <div key={app.id} className="p-4 sm:p-5 hover:bg-slate-50/50 transition">
-                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                        <div className="space-y-2 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className={cn('badge border text-xs font-semibold', tBadge.cls)}>
-                              {tBadge.label}
-                            </span>
-                            <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
-                              {app.totalDays} {app.totalDays === 1 ? 'Day' : 'Days'}
-                            </span>
-                            <span className={cn('badge border text-xs flex items-center gap-1', sBadge.cls)}>
-                              <StatusIcon size={12} weight="fill" />
-                              {sBadge.label}
-                            </span>
-                          </div>
+                    <div key={app.id} className="p-4 sm:p-5 hover:bg-slate-50/50 transition space-y-3">
+                      {/* Top Row: Left = Chips (Leave Type + Days), Right = Status Badge on Top Right Corner */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={cn('badge border text-xs font-semibold', tBadge.cls)}>
+                            {tBadge.label}
+                          </span>
+                          <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200/70">
+                            {app.totalDays} {app.totalDays === 1 ? 'Day' : 'Days'}
+                          </span>
+                        </div>
 
-                          <div className="flex items-center gap-2 text-xs text-slate-500">
-                            <Calendar size={14} className="text-slate-400 shrink-0" />
-                            <span>
-                              {formatDate(app.startDate)} &mdash; {formatDate(app.endDate)}
-                            </span>
-                            <span className="text-slate-300">&bull;</span>
-                            <span>Applied on {formatDate(app.appliedAt)}</span>
+                        {/* Status Badge in Top Right Corner */}
+                        <span className={cn('badge border text-xs flex items-center gap-1 font-semibold shrink-0', sBadge.cls)}>
+                          <StatusIcon size={12} weight="fill" />
+                          {sBadge.label}
+                        </span>
+                      </div>
+
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2.5 text-xs text-slate-500">
+                            <div className="flex items-center gap-1.5 font-medium text-slate-700">
+                              <Calendar size={14} className="text-indigo-600 shrink-0" />
+                              <span>
+                                {formatDate(app.startDate)} &mdash; {formatDate(app.endDate)}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-slate-400 sm:before:content-['•'] sm:before:mr-1 sm:before:text-slate-300">
+                              <span>Applied on {formatDate(app.appliedAt)}</span>
+                            </div>
                           </div>
 
                           {/* Action Buttons: Reason for Leave always; Upload Document ONLY if attached */}
@@ -553,8 +546,6 @@ export default function FellowLeavePage() {
                               <strong>Approver Comment:</strong> {app.approverComment}
                             </div>
                           )}
-                        </div>
-                      </div>
                     </div>
                   );
                 })}
@@ -640,119 +631,121 @@ export default function FellowLeavePage() {
                 const isPending = app.status === 'applied';
 
                 return (
-                  <div key={app.id} className="card p-4 sm:p-5 hover:border-slate-300 transition">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                      {/* Left: Details */}
-                      <div className="space-y-2 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center">
-                              {app.internName.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                            </div>
-                            <div>
-                              <span className="font-bold text-slate-900 text-sm">{app.internName}</span>
-                              <span className="text-xs text-slate-400 ml-1.5">({app.internBlock})</span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 ml-auto sm:ml-0 flex-wrap">
-                            <span className={cn('badge border text-xs font-semibold', tBadge.cls)}>
-                              {tBadge.label}
-                            </span>
-                            <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                              {app.totalDays} {app.totalDays === 1 ? 'Day' : 'Days'}
-                            </span>
-                            <span className={cn('badge border text-xs flex items-center gap-1 font-semibold', sBadge.cls)}>
-                              <StatusIcon size={12} weight="fill" />
-                              {sBadge.label}
-                            </span>
-                          </div>
+                  <div key={app.id} className="card p-4 sm:p-5 hover:border-slate-300 transition space-y-3.5">
+                    {/* Header Row: Applicant info + Status badge */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center shrink-0 border border-indigo-200">
+                          {app.internName.split(' ').map(n => n[0]).join('').slice(0, 2)}
                         </div>
-
-                        <div className="flex items-center gap-2 text-xs text-slate-600 pt-0.5">
-                          <Calendar size={14} className="text-indigo-600 shrink-0" />
-                          <span className="font-medium">
-                            Leave Duration: {formatDate(app.startDate)} &mdash; {formatDate(app.endDate)}
-                          </span>
-                          <span className="text-slate-300">&bull;</span>
-                          <span className="text-slate-400">Applied on {formatDate(app.appliedAt)}</span>
+                        <div className="min-w-0">
+                          <h3 className="font-bold text-slate-900 text-sm truncate">{app.internName}</h3>
+                          <span className="text-xs text-slate-400">({app.internBlock})</span>
                         </div>
-
-                        {/* Action Buttons: Reason for Leave always; Upload Document ONLY if attached */}
-                        <div className="flex flex-wrap items-center gap-2.5 pt-2">
-                          {/* 1. Reason for Leave Heading & View Button */}
-                          <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 shadow-2xs">
-                            <span className="text-xs font-semibold text-slate-700">
-                              Reason for Leave
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setViewReasonModal({
-                                  applicant: app.internName,
-                                  role: `Intern (${app.internBlock})`,
-                                  leaveType: tBadge.label,
-                                  duration: `${formatDate(app.startDate)} — ${formatDate(app.endDate)} (${app.totalDays} ${app.totalDays === 1 ? 'Day' : 'Days'})`,
-                                  reason: app.reason,
-                                  documentName: app.documentName,
-                                })
-                              }
-                              className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200/80 px-2.5 py-0.5 rounded transition shadow-2xs"
-                            >
-                              <Eye size={13} weight="bold" />
-                              View
-                            </button>
-                          </div>
-
-                          {/* 2. Upload Document - ONLY SHOW IF DOCUMENT WAS ACTUALLY UPLOADED */}
-                          {app.documentName && (
-                            <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 shadow-2xs">
-                              <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5 truncate max-w-[200px]">
-                                <FileText size={15} className="text-indigo-600 shrink-0" />
-                                <span className="truncate">{app.documentName}</span>
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => setViewDocName(app.documentName || 'Document')}
-                                className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200/80 px-2.5 py-0.5 rounded transition shadow-2xs"
-                              >
-                                <Eye size={13} weight="bold" />
-                                View
-                              </button>
-                            </div>
-                          )}
-                        </div>
-
-                        {app.approverComment && (
-                          <div className="text-xs text-slate-600 bg-amber-50/70 border border-amber-200/60 rounded px-3 py-2 mt-1">
-                            <strong>Approver Comment:</strong> {app.approverComment}
-                          </div>
-                        )}
                       </div>
 
-                      {/* Right: Review Action Buttons (Approve / Reject) */}
-                      {isPending && (
-                        <div className="flex sm:flex-col gap-2 shrink-0 pt-2 sm:pt-0">
-                          <button
-                            type="button"
-                            onClick={() => handleApproveIntern(app.id)}
-                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-[var(--radius)] text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition active:scale-95"
-                          >
-                            <Check size={14} weight="bold" />
-                            Approve
-                          </button>
+                      <span className={cn('badge border text-xs flex items-center gap-1 font-semibold shrink-0', sBadge.cls)}>
+                        <StatusIcon size={12} weight="fill" />
+                        {sBadge.label}
+                      </span>
+                    </div>
 
+                    {/* Chips Row: Leave type + Days */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={cn('badge border text-xs font-semibold', tBadge.cls)}>
+                        {tBadge.label}
+                      </span>
+                      <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+                        {app.totalDays} {app.totalDays === 1 ? 'Day' : 'Days'}
+                      </span>
+                    </div>
+
+                    {/* Duration & Applied Dates */}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2.5 text-xs text-slate-600">
+                      <div className="flex items-center gap-1.5 font-medium text-slate-700">
+                        <Calendar size={14} className="text-indigo-600 shrink-0" />
+                        <span>
+                          Leave Duration: {formatDate(app.startDate)} &mdash; {formatDate(app.endDate)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-slate-400 sm:before:content-['•'] sm:before:mr-1 sm:before:text-slate-300">
+                        <span>Applied on {formatDate(app.appliedAt)}</span>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons: Reason for Leave & Uploaded Document */}
+                    <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                      {/* 1. Reason for Leave */}
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 shadow-2xs">
+                        <span className="text-xs font-semibold text-slate-700">
+                          Reason for Leave
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setViewReasonModal({
+                              applicant: app.internName,
+                              role: `Intern (${app.internBlock})`,
+                              leaveType: tBadge.label,
+                              duration: `${formatDate(app.startDate)} — ${formatDate(app.endDate)} (${app.totalDays} ${app.totalDays === 1 ? 'Day' : 'Days'})`,
+                              reason: app.reason,
+                              documentName: app.documentName,
+                            })
+                          }
+                          className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-lg transition shadow-2xs cursor-pointer"
+                        >
+                          <Eye size={13} weight="bold" />
+                          <span>View</span>
+                        </button>
+                      </div>
+
+                      {/* 2. Upload Document - ONLY IF ATTACHED */}
+                      {app.documentName && (
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 shadow-2xs">
+                          <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5 truncate max-w-[200px]">
+                            <FileText size={14} className="text-indigo-600 shrink-0" />
+                            <span className="truncate">{app.documentName}</span>
+                          </span>
                           <button
                             type="button"
-                            onClick={() => openRejectModal(app.id)}
-                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-[var(--radius)] text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition active:scale-95"
+                            onClick={() => setViewDocName(app.documentName || 'Document')}
+                            className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-lg transition shadow-2xs cursor-pointer"
                           >
-                            <X size={14} weight="bold" />
-                            Reject
+                            <Eye size={13} weight="bold" />
+                            <span>View</span>
                           </button>
                         </div>
                       )}
                     </div>
+
+                    {app.approverComment && (
+                      <div className="text-xs text-slate-600 bg-amber-50/70 border border-amber-200/60 rounded-xl px-3 py-2">
+                        <strong>Approver Comment:</strong> {app.approverComment}
+                      </div>
+                    )}
+
+                    {/* Bottom Action Buttons: Approve / Reject 50-50 Grid */}
+                    {isPending && (
+                      <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
+                        <button
+                          type="button"
+                          onClick={() => handleApproveIntern(app.id)}
+                          className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition active:scale-95 cursor-pointer"
+                        >
+                          <Check size={16} weight="bold" />
+                          <span>Approve</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => openRejectModal(app.id)}
+                          className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition active:scale-95 cursor-pointer"
+                        >
+                          <X size={16} weight="bold" />
+                          <span>Reject</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })

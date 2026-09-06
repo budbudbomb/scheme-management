@@ -49,8 +49,14 @@ export default function FellowTasksPage() {
         tasksApi.list({ page: 1, limit: 50 }),
         tasksApi.getAssignedByPc({ page: 1, limit: 50 }),
       ]);
-      const pcTasks = byPc.items.map((t) => ({ ...t, assignedByPc: true }));
-      setMyTasks([...own.items, ...pcTasks]);
+      const taskMap = new Map<string, Task>();
+      own.items.forEach(t => taskMap.set(t.id, t));
+      byPc.items.forEach(t => {
+        if (!taskMap.has(t.id)) {
+          taskMap.set(t.id, { ...t, assignedByPc: true });
+        }
+      });
+      setMyTasks(Array.from(taskMap.values()));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load tasks');
     } finally {
@@ -184,7 +190,7 @@ export default function FellowTasksPage() {
       {/* 2. FROZEN STICKY HEADER: KPIs + Filter Controls (stays frozen while scrolling up/down) */}
       <div className="sticky top-0 z-20 bg-slate-100/95 lg:bg-white/95 backdrop-blur-md -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-2.5 pb-2.5 sm:pt-3 sm:pb-3 border-b border-slate-200/80 shadow-xs space-y-2.5 sm:space-y-3">
         {/* Phone View: Horizontally Scrollable Circular Cards */}
-        <div className="flex sm:hidden items-center gap-2.5 overflow-x-auto no-scrollbar py-1 px-0.5 scroll-smooth snap-x">
+        <div className="flex sm:hidden items-center gap-2.5 overflow-x-auto no-scrollbar py-1.5 px-2.5 scroll-smooth snap-x">
           {kpiItems.map((item) => {
             const Icon = item.icon;
             const isSelected = statusFilter === item.key;
@@ -346,19 +352,8 @@ export default function FellowTasksPage() {
             )}
           </div>
 
-          {/* Right: Calendar / List toggle + Clear Filter button for mobile if filtered */}
+          {/* Right: Calendar / List toggle */}
           <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-            {statusFilter !== 'all' && (
-              <button
-                type="button"
-                onClick={() => setStatusFilter('all')}
-                className="md:hidden flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-200 cursor-pointer"
-                title="Clear status filter"
-              >
-                <span>Clear</span>
-                <span className="text-indigo-400 font-normal">✕</span>
-              </button>
-            )}
 
             <div className="flex items-center bg-slate-200/60 rounded-xl p-0.5 border border-slate-200/80 shrink-0">
               <button

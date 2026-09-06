@@ -12,7 +12,7 @@ interface FillSurveyPageContainerProps {
   backHref?: string;
 }
 
-export default function FillSurveyPageContainer({ backHref = '/intern/surveys' }: FillSurveyPageContainerProps) {
+export default function FillSurveyPageContainer({ backHref = '/intern/tasks' }: FillSurveyPageContainerProps) {
   const params = useParams();
   const id = (params?.id as string) || '';
 

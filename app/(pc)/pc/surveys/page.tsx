@@ -1,5 +1,5 @@
-'use client';
-import SurveysListPage from '@/components/shared/SurveysListPage';
+import { redirect } from 'next/navigation';
+
 export default function PCSurveysPage() {
-  return <SurveysListPage canCreate createPath="/pc/surveys/new" fillPathPrefix="/pc/surveys" />;
+  redirect('/pc/tasks');
 }

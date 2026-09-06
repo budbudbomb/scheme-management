@@ -94,32 +94,26 @@ export default function AdminSurveysPage() {
   };
 
   return (
-    <div className="space-y-6 pb-20">
-      {/* ── Page Header & Primary Actions ── */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <span>Survey Management</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-purple-50 text-purple-700 border border-purple-200">
-              Admin Portal
-            </span>
+    <div className="space-y-4 sm:space-y-5 pb-20">
+      {/* ── Frozen Sticky Header & Full-Width Subheader ── */}
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md pt-2.5 pb-3 -mx-4 sm:-mx-6 px-4 sm:px-6 border-b border-slate-100 shadow-2xs space-y-1.5">
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            Survey Management
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Create structured field questionnaires, review hierarchical submissions and supervisor feedbacks, and allocate field surveys.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5">
           <Link
             href="/admin/surveys/new"
             id="create-survey-btn"
             style={{ backgroundColor: '#1e3a8a' }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white bg-blue-900 hover:bg-blue-800 shadow-md shadow-blue-900/20 active:scale-95 transition-all cursor-pointer btn-press"
+            className="shrink-0 inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold text-white bg-blue-900 hover:bg-blue-800 shadow-md shadow-blue-900/20 active:scale-95 transition-all cursor-pointer btn-press"
           >
             <Plus size={16} weight="bold" />
             <span>Create Survey</span>
           </Link>
         </div>
+        <p className="text-xs sm:text-sm text-slate-500 w-full leading-relaxed">
+          Create structured field questionnaires, review hierarchical submissions and supervisor feedbacks, and allocate field surveys.
+        </p>
       </div>
 
       {/* ── Executive KPI Metric Strip ── */}

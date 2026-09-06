@@ -93,9 +93,9 @@ const INITIAL_PC_LEAVES: PCLeaveApp[] = [
   },
 ];
 
-const INITIAL_TEAM_LEAVES: TeamLeaveApp[] = [
+const INITIAL_FELLOW_LEAVES: TeamLeaveApp[] = [
   {
-    id: 'tl-1',
+    id: 'fl-1',
     applicantId: 'fel-1',
     applicantName: 'Vikram Singh',
     applicantRole: 'fellow',
@@ -110,7 +110,7 @@ const INITIAL_TEAM_LEAVES: TeamLeaveApp[] = [
     appliedAt: '2026-09-02T10:00:00Z',
   },
   {
-    id: 'tl-2',
+    id: 'fl-2',
     applicantId: 'fel-2',
     applicantName: 'Anita Deshmukh',
     applicantRole: 'fellow',
@@ -124,36 +124,7 @@ const INITIAL_TEAM_LEAVES: TeamLeaveApp[] = [
     appliedAt: '2026-09-03T09:15:00Z',
   },
   {
-    id: 'tl-3',
-    applicantId: 'int-1',
-    applicantName: 'Divya Sharma',
-    applicantRole: 'intern',
-    assignedLocation: 'Indore Block A',
-    leaveType: 'casual',
-    startDate: '2026-09-04',
-    endDate: '2026-09-05',
-    totalDays: 2,
-    reason: 'Need to attend urgent university certificate verification in college.',
-    status: 'applied',
-    appliedAt: '2026-09-02T14:30:00Z',
-  },
-  {
-    id: 'tl-4',
-    applicantId: 'int-2',
-    applicantName: 'Karan Malhotra',
-    applicantRole: 'intern',
-    assignedLocation: 'Sanwer Block',
-    leaveType: 'casual',
-    startDate: '2026-09-03',
-    endDate: '2026-09-04',
-    totalDays: 2,
-    reason: 'Severe viral fever and doctor advice for bed rest.',
-    documentName: 'Doctor_Certificate.pdf',
-    status: 'applied',
-    appliedAt: '2026-09-03T08:15:00Z',
-  },
-  {
-    id: 'tl-5',
+    id: 'fl-3',
     applicantId: 'fel-3',
     applicantName: 'Rajesh Mehra',
     applicantRole: 'fellow',
@@ -168,75 +139,52 @@ const INITIAL_TEAM_LEAVES: TeamLeaveApp[] = [
     approverComment: 'Approved. Ensure tasks are aligned.',
   },
   {
-    id: 'tl-6',
-    applicantId: 'int-3',
-    applicantName: 'Rohit Yadav',
-    applicantRole: 'intern',
-    assignedLocation: 'Depalpur Block',
+    id: 'fl-4',
+    applicantId: 'fel-4',
+    applicantName: 'Priya Sen',
+    applicantRole: 'fellow',
+    assignedLocation: 'Dhar District',
     leaveType: 'casual',
-    startDate: '2026-09-03',
-    endDate: '2026-09-03',
-    totalDays: 1,
-    reason: 'Brother marriage ceremony preparations.',
+    startDate: '2026-08-25',
+    endDate: '2026-08-26',
+    totalDays: 2,
+    reason: 'Personal leave for family ceremony.',
     status: 'approved',
-    appliedAt: '2026-08-30T16:00:00Z',
-    approverComment: 'Approved. Handover tasks.',
+    appliedAt: '2026-08-20T11:00:00Z',
+    approverComment: 'Approved.',
   },
   {
-    id: 'tl-7',
-    applicantId: 'int-4',
-    applicantName: 'Riya Gupta',
-    applicantRole: 'intern',
-    assignedLocation: 'Sanwer Block',
+    id: 'fl-5',
+    applicantId: 'fel-5',
+    applicantName: 'Alok Verma',
+    applicantRole: 'fellow',
+    assignedLocation: 'Khargone District',
     leaveType: 'casual',
-    startDate: '2026-08-18',
-    endDate: '2026-08-19',
+    startDate: '2026-07-15',
+    endDate: '2026-07-16',
     totalDays: 2,
-    reason: 'Fever and cold.',
+    reason: 'Out of station for competitive examination.',
     status: 'rejected',
-    appliedAt: '2026-08-17T12:00:00Z',
-    approverComment: 'Survey submission deadline week; leave not approved.',
+    appliedAt: '2026-07-12T10:00:00Z',
+    approverComment: 'Division monthly review meeting scheduled on this day.',
   },
 ];
 
+// Helper: Calculate days between dates (inclusive)
 function calcDays(start: string, end: string): number {
-  if (!start || !end) return 1;
+  if (!start || !end) return 0;
   const s = new Date(start);
   const e = new Date(end);
-  const diff = Math.ceil((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-  return diff > 0 ? diff : 1;
-}
-
-function leaveTypeBadge(type: string) {
-  switch (type) {
-    case 'casual':
-    case 'medical':
-      return { label: 'Casual Leave (CL)', cls: 'bg-indigo-50 text-indigo-700 border-indigo-200' };
-    case 'unplanned':
-      return { label: 'Unplanned Leave', cls: 'bg-amber-50 text-amber-700 border-amber-200' };
-    case 'earned':
-      return { label: 'Earned Leave (EL)', cls: 'bg-sky-50 text-sky-700 border-sky-200' };
-    default:
-      return { label: type, cls: 'bg-slate-100 text-slate-700 border-slate-200' };
-  }
-}
-
-function statusBadge(status: 'applied' | 'approved' | 'rejected') {
-  switch (status) {
-    case 'approved':
-      return { label: 'Approved', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: CheckCircle };
-    case 'rejected':
-      return { label: 'Rejected', cls: 'bg-rose-50 text-rose-600 border-rose-200', icon: XCircle };
-    case 'applied':
-    default:
-      return { label: 'Pending', cls: 'bg-amber-50 text-amber-700 border-amber-200', icon: Clock };
-  }
+  const diffTime = e.getTime() - s.getTime();
+  if (diffTime < 0) return 0;
+  return Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
 }
 
 export default function PCLeavePage() {
-  const [activeTab, setActiveTab] = useState<'apply' | 'review'>('review');
+  // Active Tab: 'apply' (Coordinator's Own Leave) or 'review' (Review Fellows' Leave)
+  const [activeTab, setActiveTab] = useState<'apply' | 'review'>('apply');
 
-  // ── Tab 1: PC's own leaves state ──
+  // ── Tab 1: PC's own leave state ──
   const [pcLeaves, setPcLeaves] = useState<PCLeaveApp[]>(INITIAL_PC_LEAVES);
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [formType, setFormType] = useState<LeaveTypeOption>('casual');
@@ -258,9 +206,8 @@ export default function PCLeavePage() {
     documentName?: string;
   } | null>(null);
 
-  // ── Tab 2: Team leave review state ──
-  const [teamLeaves, setTeamLeaves] = useState<TeamLeaveApp[]>(INITIAL_TEAM_LEAVES);
-  const [roleFilter, setRoleFilter] = useState<'all' | 'fellow' | 'intern'>('all');
+  // ── Tab 2: Fellow leave review state ──
+  const [fellowLeaves, setFellowLeaves] = useState<TeamLeaveApp[]>(INITIAL_FELLOW_LEAVES);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Rejection modal
@@ -327,10 +274,10 @@ export default function PCLeavePage() {
 
   // ── Tab 2 Handlers (Approve / Reject) ──
   function handleApprove(id: string) {
-    setTeamLeaves(prev =>
+    setFellowLeaves(prev =>
       prev.map(app => (app.id === id ? { ...app, status: 'approved' } : app))
     );
-    toast.success('Leave request approved successfully');
+    toast.success('Fellow leave request approved successfully');
   }
 
   function openRejectModal(id: string) {
@@ -344,290 +291,158 @@ export default function PCLeavePage() {
       return;
     }
     if (rejectModalAppId) {
-      setTeamLeaves(prev =>
+      setFellowLeaves(prev =>
         prev.map(app =>
           app.id === rejectModalAppId
             ? { ...app, status: 'rejected', approverComment: rejectionReason.trim() }
             : app
         )
       );
-      toast.success('Leave request declined');
+      toast.success('Fellow leave request declined');
     }
     setRejectModalAppId(null);
     setRejectionReason('');
   }
 
-  // ── Filtered Team Requests ──
-  const filteredTeamLeaves = useMemo(() => {
-    return teamLeaves.filter(app => {
-      const matchRole = roleFilter === 'all' || app.applicantRole === roleFilter;
+  // ── Filtered Fellow Requests ──
+  const filteredFellowLeaves = useMemo(() => {
+    return fellowLeaves.filter(app => {
       const matchSearch =
         searchQuery === '' ||
         app.applicantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         app.assignedLocation.toLowerCase().includes(searchQuery.toLowerCase()) ||
         app.reason.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchRole && matchSearch;
+      return matchSearch;
     });
-  }, [teamLeaves, roleFilter, searchQuery]);
+  }, [fellowLeaves, searchQuery]);
 
-  // ── Summary Metrics for Division ──
-  const teamMetrics = useMemo(() => {
-    const totalFellows = 8;
-    const totalInterns = 24;
-    const pendingCount = teamLeaves.filter(a => a.status === 'applied').length;
-    const pendingFellows = teamLeaves.filter(a => a.status === 'applied' && a.applicantRole === 'fellow').length;
-    const pendingInterns = teamLeaves.filter(a => a.status === 'applied' && a.applicantRole === 'intern').length;
-
-    // Today's active leaves
-    const onLeaveToday = teamLeaves.filter(
-      a =>
-        a.status === 'approved' &&
-        a.startDate <= '2026-09-04' &&
-        a.endDate >= '2026-09-03'
+  // ── Summary Metrics for Fellows in Division ──
+  const fellowMetrics = useMemo(() => {
+    const activeCount = 8;
+    const pendingCount = fellowLeaves.filter(a => a.status === 'applied').length;
+    const todayStr = '2026-09-03';
+    const onLeaveToday = fellowLeaves.filter(
+      a => a.status === 'approved' && a.startDate <= todayStr && a.endDate >= todayStr
     );
-
     return {
-      totalFellows,
-      totalInterns,
-      totalTeam: totalFellows + totalInterns,
+      activeCount,
       pendingCount,
-      pendingFellows,
-      pendingInterns,
       onLeaveTodayCount: onLeaveToday.length,
-      onLeaveTodayNames: onLeaveToday.map(a => `${a.applicantName} (${a.applicantRole === 'fellow' ? 'Fellow' : 'Intern'})`),
+      onLeaveTodayNames: onLeaveToday.map(a => a.applicantName),
     };
-  }, [teamLeaves]);
+  }, [fellowLeaves]);
 
-  // PC's own metrics
-  const pcMetrics = useMemo(() => {
-    const totalEntitlement = 12; // 1 CL / Month
-    const usedDays = pcLeaves
-      .filter(l => l.status === 'approved')
-      .reduce((acc, curr) => acc + curr.totalDays, 0);
-    const pendingDays = pcLeaves
-      .filter(l => l.status === 'applied')
-      .reduce((acc, curr) => acc + curr.totalDays, 0);
-    const remainingDays = Math.max(0, totalEntitlement - usedDays);
+  // Badge helpers
+  function leaveTypeBadge(type: string) {
+    switch (type) {
+      case 'casual':
+        return { label: 'Casual Leave (CL)', cls: 'bg-indigo-50 text-indigo-700 border-indigo-200' };
+      case 'unplanned':
+        return { label: 'Unplanned Leave', cls: 'bg-amber-50 text-amber-700 border-amber-200' };
+      case 'earned':
+        return { label: 'Earned Leave (EL)', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+      default:
+        return { label: type, cls: 'bg-slate-100 text-slate-700 border-slate-200' };
+    }
+  }
 
-    return { totalEntitlement, usedDays, pendingDays, remainingDays };
-  }, [pcLeaves]);
+  function statusBadge(status: string) {
+    switch (status) {
+      case 'applied':
+        return { label: 'Pending', cls: 'bg-amber-50 text-amber-700 border-amber-200', icon: Clock };
+      case 'approved':
+        return { label: 'Approved', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: CheckCircle };
+      case 'rejected':
+        return { label: 'Rejected', cls: 'bg-rose-50 text-rose-700 border-rose-200', icon: XCircle };
+      default:
+        return { label: status, cls: 'bg-slate-100 text-slate-700 border-slate-200', icon: Clock };
+    }
+  }
 
   return (
     <div className="space-y-6">
-      {/* ── Page Header ────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1 border-b border-slate-200/60">
-        <div>
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-indigo-50 border border-indigo-100 text-[11px] font-semibold text-indigo-700 mb-1.5">
-            <span>Indore Division</span>
-            <span className="text-indigo-300">&bull;</span>
-            <span>Program Coordinator Leave Desk</span>
+      {/* ── FROZEN STICKY HEADER: Title + Description + Tab Switcher (stays frozen while scrolling up/down) ── */}
+      <div className="sticky top-0 z-20 bg-slate-50/95 lg:bg-white/95 backdrop-blur-md -mt-4 sm:-mt-6 lg:-mt-8 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-3.5 pb-3 sm:pt-5 sm:pb-4 border-b border-slate-200/80 shadow-2xs space-y-3 sm:space-y-4">
+        {/* ── Page Header + Top-Right Apply Button ── */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Leave Management</h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+              Apply for your leaves and review leave applications submitted by your fellows
+            </p>
           </div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Leave Management</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Monitor and review leave requests for your division fellows &amp; interns, or apply for your own leaves.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {activeTab === 'apply' ? (
+          {activeTab === 'apply' && (
             <button
+              type="button"
               onClick={() => setShowApplyModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition active:scale-98"
+              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 transition-all shadow-xs cursor-pointer shrink-0"
             >
-              <Plus size={16} weight="bold" />
-              Apply for Leave
+              <Plus size={15} weight="bold" />
+              <span className="whitespace-nowrap">Apply for Leave</span>
             </button>
-          ) : (
-            <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200/80 rounded-xl text-xs font-semibold text-amber-800">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-              </span>
-              <span>{teamMetrics.pendingCount} Pending Requests Awaiting Action</span>
-            </div>
           )}
         </div>
-      </div>
 
-      {/* ── Tab Navigation ─── */}
-      <div className="flex items-stretch border-b border-slate-200 gap-0">
-        {/* Tab 1: Apply for Leave */}
-        <button
-          onClick={() => setActiveTab('apply')}
-          className={cn(
-            'group flex items-center gap-2.5 px-5 py-3 text-sm font-semibold transition-all duration-200 relative select-none border-b-2 -mb-px',
-            activeTab === 'apply'
-              ? 'border-indigo-600 text-indigo-700'
-              : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
-          )}
-        >
-          <div className={cn(
-            'w-7 h-7 rounded-lg flex items-center justify-center transition-colors',
-            activeTab === 'apply' ? 'bg-indigo-50' : 'bg-slate-100 group-hover:bg-slate-200'
-          )}>
-            <Calendar
-              size={15}
-              weight="fill"
-              className={activeTab === 'apply' ? 'text-indigo-600' : 'text-slate-400'}
+        {/* ── Sleek Segmented Tab Switch (Placed ABOVE Apply for Leave button) ── */}
+        <div className="w-full max-w-md bg-slate-100/90 p-1 rounded-2xl border border-slate-200/90 grid grid-cols-2 gap-1 shadow-2xs">
+          {/* Tab 1: Apply for Leave */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('apply')}
+            className={cn(
+              'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 select-none cursor-pointer text-center',
+              activeTab === 'apply'
+                ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 font-bold ring-1 ring-black/5'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+            )}
+          >
+            <CalendarCheck
+              size={16}
+              weight={activeTab === 'apply' ? 'fill' : 'bold'}
+              className={activeTab === 'apply' ? 'text-indigo-600' : 'text-slate-500'}
             />
-          </div>
-          <span>Apply for Leave</span>
-          <span className={cn(
-            'text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider',
-            activeTab === 'apply'
-              ? 'bg-indigo-50 text-indigo-600 border border-indigo-100'
-              : 'bg-slate-100 text-slate-400'
-          )}>
-            Coordinator
-          </span>
-        </button>
+            <span className="truncate">Apply for Leave</span>
+          </button>
 
-        {/* Tab 2: Review Leave Applications */}
-        <button
-          onClick={() => setActiveTab('review')}
-          className={cn(
-            'group flex items-center gap-2.5 px-5 py-3 text-sm font-semibold transition-all duration-200 relative select-none border-b-2 -mb-px',
-            activeTab === 'review'
-              ? 'border-indigo-600 text-indigo-700'
-              : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
-          )}
-        >
-          <div className={cn(
-            'w-7 h-7 rounded-lg flex items-center justify-center transition-colors',
-            activeTab === 'review' ? 'bg-indigo-50' : 'bg-slate-100 group-hover:bg-slate-200'
-          )}>
-            <Users
-              size={15}
-              weight="fill"
-              className={activeTab === 'review' ? 'text-indigo-600' : 'text-slate-400'}
-            />
-          </div>
-          <span>Review Leave Applications</span>
-          <span className={cn(
-            'text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider',
-            activeTab === 'review'
-              ? 'bg-indigo-50 text-indigo-600 border border-indigo-100'
-              : 'bg-slate-100 text-slate-400'
-          )}>
-            Fellows &amp; Interns
-          </span>
-
-          {/* Pending count badge */}
-          {teamMetrics.pendingCount > 0 && (
-            <span className={cn(
-              'flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-black rounded-full border transition-colors',
+          {/* Tab 2: Review Leave Applications */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('review')}
+            className={cn(
+              'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 select-none cursor-pointer relative text-center',
               activeTab === 'review'
-                ? 'bg-amber-100 text-amber-900 border-amber-300'
-                : 'bg-slate-100 text-slate-600 border-slate-200'
-            )}>
-              {teamMetrics.pendingCount}
-            </span>
-          )}
-
-          {/* Pulsing notification dot */}
-          {teamMetrics.pendingCount > 0 && activeTab !== 'review' && (
-            <span className="absolute top-2 right-2 flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
-            </span>
-          )}
-        </button>
+                ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 font-bold ring-1 ring-black/5'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+            )}
+          >
+            <Users
+              size={16}
+              weight={activeTab === 'review' ? 'fill' : 'bold'}
+              className={activeTab === 'review' ? 'text-indigo-600' : 'text-slate-500'}
+            />
+            <span className="truncate sm:hidden">Review Leaves</span>
+            <span className="hidden sm:inline truncate">Review Leave Applications</span>
+            {fellowMetrics.pendingCount > 0 && (
+              <span className="flex items-center justify-center min-w-[18px] h-4.5 px-1.5 text-[10px] font-black bg-amber-100 text-amber-900 rounded-full border border-amber-300">
+                {fellowMetrics.pendingCount}
+              </span>
+            )}
+            {/* Pulsing notification dot */}
+            {fellowMetrics.pendingCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600 border-2 border-white"></span>
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* ══════════════════════════════════════════════════════════
-          TAB 1: APPLY FOR LEAVE (PC Self Leave)
+          TAB 1: PC APPLY FOR LEAVE
       ══════════════════════════════════════════════════════════ */}
       {activeTab === 'apply' && (
-        <div className="space-y-5">
-          {/* Summary Balance Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="card p-4 hover:shadow-sm transition">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Entitlement</span>
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-                  <Calendar size={18} weight="fill" />
-                </div>
-              </div>
-              <div className="text-2xl font-bold text-slate-900 mt-2">
-                {pcMetrics.totalEntitlement} <span className="text-xs font-medium text-slate-400">Days / Yr</span>
-              </div>
-              <div className="text-[11px] text-slate-400 mt-1">1 CL accrued each month</div>
-            </div>
-
-            <div className="card p-4 hover:shadow-sm transition">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Remaining Balance</span>
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
-                  <CheckCircle size={18} weight="fill" />
-                </div>
-              </div>
-              <div className="text-2xl font-bold text-emerald-600 mt-2">
-                {pcMetrics.remainingDays} <span className="text-xs font-medium text-slate-400">Days</span>
-              </div>
-              <div className="text-[11px] text-emerald-600/90 font-medium mt-1">Available to apply</div>
-            </div>
-
-            <div className="card p-4 hover:shadow-sm transition">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Leaves Taken</span>
-                <div className="w-8 h-8 rounded-lg bg-sky-50 flex items-center justify-center text-sky-600">
-                  <CalendarCheck size={18} weight="fill" />
-                </div>
-              </div>
-              <div className="text-2xl font-bold text-sky-700 mt-2">
-                {pcMetrics.usedDays} <span className="text-xs font-medium text-slate-400">Days</span>
-              </div>
-              <div className="text-[11px] text-slate-400 mt-1">Approved in 2026</div>
-            </div>
-
-            <div className="card p-4 hover:shadow-sm transition">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Pending Approval</span>
-                <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
-                  <Clock size={18} weight="fill" />
-                </div>
-              </div>
-              <div className="text-2xl font-bold text-amber-600 mt-2">
-                {pcMetrics.pendingDays} <span className="text-xs font-medium text-slate-400">Days</span>
-              </div>
-              <div className="text-[11px] text-amber-700/80 font-medium mt-1">Under CPM review</div>
-            </div>
-          </div>
-
-          {/* Visual Progress Meter */}
-          <div className="card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="text-xs font-semibold text-slate-700">Casual Leave (CL) Quota Utilization</div>
-              <div className="text-xs text-slate-500">
-                You have utilized <strong>{pcMetrics.usedDays} days</strong> out of your <strong>{pcMetrics.totalEntitlement} days</strong> annual allowance.
-              </div>
-            </div>
-            <div className="w-full sm:w-64 space-y-1.5">
-              <div className="flex justify-between text-[11px] font-semibold text-slate-600">
-                <span>{pcMetrics.remainingDays} Days Available</span>
-                <span>{Math.round((pcMetrics.remainingDays / pcMetrics.totalEntitlement) * 100)}% Balance</span>
-              </div>
-              <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden flex">
-                <div
-                  style={{ width: `${(pcMetrics.usedDays / pcMetrics.totalEntitlement) * 100}%` }}
-                  className="bg-sky-500 h-full"
-                  title="Used Leaves"
-                />
-                <div
-                  style={{ width: `${(pcMetrics.pendingDays / pcMetrics.totalEntitlement) * 100}%` }}
-                  className="bg-amber-400 h-full"
-                  title="Pending Leaves"
-                />
-                <div
-                  style={{ width: `${(pcMetrics.remainingDays / pcMetrics.totalEntitlement) * 100}%` }}
-                  className="bg-emerald-500 h-full"
-                  title="Remaining Leaves"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* PC Leave History List */}
+        <div className="space-y-4">
           <div className="card overflow-hidden">
             <div className="px-5 py-3.5 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -647,32 +462,37 @@ export default function PCLeavePage() {
                   const tBadge = leaveTypeBadge(app.leaveType);
                   const sBadge = statusBadge(app.status);
                   const StatusIcon = sBadge.icon;
-
                   return (
-                    <div key={app.id} className="p-4 sm:p-5 hover:bg-slate-50/50 transition">
-                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                        <div className="space-y-2 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className={cn('badge border text-xs font-semibold', tBadge.cls)}>
-                              {tBadge.label}
-                            </span>
-                            <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/70">
-                              {app.totalDays} {app.totalDays === 1 ? 'Day' : 'Days'}
-                            </span>
-                            <span className={cn('badge border text-xs flex items-center gap-1 font-semibold', sBadge.cls)}>
-                              <StatusIcon size={12} weight="fill" />
-                              {sBadge.label}
-                            </span>
-                          </div>
+                    <div key={app.id} className="p-4 sm:p-5 hover:bg-slate-50/50 transition space-y-3">
+                      {/* Top Row: Left = Chips (Leave Type + Days), Right = Status Badge on Top Right Corner */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={cn('badge border text-xs font-semibold', tBadge.cls)}>
+                            {tBadge.label}
+                          </span>
+                          <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200/70">
+                            {app.totalDays} {app.totalDays === 1 ? 'Day' : 'Days'}
+                          </span>
+                        </div>
 
-                          <div className="flex items-center gap-2 text-xs text-slate-600">
-                            <Calendar size={14} className="text-indigo-600 shrink-0" />
-                            <span className="font-medium">
-                              {formatDate(app.startDate)} &mdash; {formatDate(app.endDate)}
-                            </span>
-                            <span className="text-slate-300">&bull;</span>
-                            <span className="text-slate-400">Applied on {formatDate(app.appliedAt)}</span>
-                          </div>
+                        {/* Status Badge in Top Right Corner */}
+                        <span className={cn('badge border text-xs flex items-center gap-1 font-semibold shrink-0', sBadge.cls)}>
+                          <StatusIcon size={12} weight="fill" />
+                          {sBadge.label}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2.5 text-xs text-slate-500">
+                        <div className="flex items-center gap-1.5 font-medium text-slate-700">
+                          <Calendar size={14} className="text-indigo-600 shrink-0" />
+                          <span>
+                            {formatDate(app.startDate)} &mdash; {formatDate(app.endDate)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-slate-400 sm:before:content-['•'] sm:before:mr-1 sm:before:text-slate-300">
+                          <span>Applied on {formatDate(app.appliedAt)}</span>
+                        </div>
+                      </div>
 
                           {/* Action Buttons */}
                           <div className="flex flex-wrap items-center gap-2.5 pt-2">
@@ -686,14 +506,14 @@ export default function PCLeavePage() {
                                 onClick={() =>
                                   setViewReasonModal({
                                     applicant: 'You (Coordinator)',
-                                    role: 'Program Co-ordinator',
+                                    role: 'Program Coordinator',
                                     leaveType: tBadge.label,
                                     duration: `${formatDate(app.startDate)} — ${formatDate(app.endDate)} (${app.totalDays} ${app.totalDays === 1 ? 'Day' : 'Days'})`,
                                     reason: app.reason,
                                     documentName: app.documentName,
                                   })
                                 }
-                                className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200/80 px-2.5 py-0.5 rounded transition shadow-2xs"
+                                className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200/80 px-2.5 py-0.5 rounded transition shadow-2xs cursor-pointer"
                               >
                                 <Eye size={13} weight="bold" />
                                 View
@@ -710,7 +530,7 @@ export default function PCLeavePage() {
                                 <button
                                   type="button"
                                   onClick={() => setViewDocName(app.documentName || 'Document')}
-                                  className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200/80 px-2.5 py-0.5 rounded transition shadow-2xs"
+                                  className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200/80 px-2.5 py-0.5 rounded transition shadow-2xs cursor-pointer"
                                 >
                                   <Eye size={13} weight="bold" />
                                   View
@@ -718,14 +538,6 @@ export default function PCLeavePage() {
                               </div>
                             )}
                           </div>
-
-                          {app.approverComment && (
-                            <div className="text-xs text-slate-600 bg-amber-50/70 border border-amber-200/60 rounded px-3 py-2 mt-2">
-                              <strong>Approver Comment:</strong> {app.approverComment}
-                            </div>
-                          )}
-                        </div>
-                      </div>
                     </div>
                   );
                 })}
@@ -736,348 +548,196 @@ export default function PCLeavePage() {
       )}
 
       {/* ══════════════════════════════════════════════════════════
-          TAB 2: REVIEW LEAVE APPLICATION (FELLOWS & INTERNS)
+          TAB 2: REVIEW LEAVE APPLICATION (FELLOWS)
       ══════════════════════════════════════════════════════════ */}
       {activeTab === 'review' && (
         <div className="space-y-5">
-          {/* ── Review Tab KPI Cards ── */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-
-            {/* Card 1: Division Strength */}
-            <div className="card card-hover relative overflow-hidden p-5">
-              <div className="absolute top-0 left-0 right-0 h-[3px] bg-indigo-500 rounded-t-[var(--radius-lg)]" />
-              <div className="flex items-start justify-between gap-2 mb-3 mt-1">
-                <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
-                  <Users size={18} weight="fill" className="text-indigo-600" />
-                </div>
-                <div className="text-right">
-                  <div className="text-3xl font-bold text-slate-900 tracking-tight tabular-nums leading-none">
-                    {teamMetrics.totalTeam}
-                  </div>
-                </div>
+          {/* Summary View (Exactly matching Fellow's 3 cards) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="card p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
+                <Users size={20} weight="fill" className="text-purple-600" />
               </div>
-              <div className="text-sm font-semibold text-slate-700">Division Strength</div>
-              <div className="flex items-center gap-1.5 mt-1">
-                <span className="text-[11px] font-semibold text-purple-700">{teamMetrics.totalFellows} Fellows</span>
-                <span className="text-slate-300 text-xs">·</span>
-                <span className="text-[11px] font-semibold text-emerald-700">{teamMetrics.totalInterns} Interns</span>
+              <div>
+                <div className="text-2xl font-bold text-slate-900">{fellowMetrics.activeCount}</div>
+                <div className="text-xs text-slate-500 font-medium">Active Fellows Count</div>
               </div>
             </div>
 
-            {/* Card 2: On Leave Today */}
-            <div className="card card-hover relative overflow-hidden p-5">
-              <div className="absolute top-0 left-0 right-0 h-[3px] bg-emerald-500 rounded-t-[var(--radius-lg)]" />
-              <div className="flex items-start justify-between gap-2 mb-3 mt-1">
-                <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
-                  <CalendarCheck size={18} weight="fill" className="text-emerald-600" />
-                </div>
-                <div className="text-right">
-                  <div className="text-3xl font-bold text-slate-900 tracking-tight tabular-nums leading-none">
-                    {teamMetrics.onLeaveTodayCount}
-                  </div>
-                </div>
+            <div className="card p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+                <CalendarCheck size={20} weight="fill" className="text-emerald-600" />
               </div>
-              <div className="text-sm font-semibold text-slate-700">On Leave Today</div>
-              <div className="text-[11px] text-slate-400 mt-1">
-                {teamMetrics.onLeaveTodayCount === 0 ? 'All members present' : 'Members absent today'}
+              <div>
+                <div className="text-2xl font-bold text-slate-900">{fellowMetrics.onLeaveTodayCount}</div>
+                <div className="text-xs text-slate-500 font-medium">
+                  On Leave Today
+                  {fellowMetrics.onLeaveTodayNames.length > 0 && (
+                    <span className="text-purple-600 font-semibold block text-[11px] truncate max-w-[180px]">
+                      ({fellowMetrics.onLeaveTodayNames.join(', ')})
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Card 3: Pending Fellow Approvals */}
-            <div className="card card-hover relative overflow-hidden p-5">
-              <div className={cn(
-                'absolute top-0 left-0 right-0 h-[3px] rounded-t-[var(--radius-lg)]',
-                teamMetrics.pendingFellows > 0 ? 'bg-amber-500' : 'bg-slate-300'
-              )} />
-              <div className="flex items-start justify-between gap-2 mb-3 mt-1">
-                <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
-                  <Clock size={18} weight="fill" className="text-amber-600" />
-                </div>
-                <div className="text-right">
-                  <div className={cn(
-                    'text-3xl font-bold tracking-tight tabular-nums leading-none',
-                    teamMetrics.pendingFellows > 0 ? 'text-amber-600' : 'text-slate-900'
-                  )}>
-                    {teamMetrics.pendingFellows}
-                  </div>
-                </div>
+            <div className="card p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
+                <Clock size={20} weight="fill" className="text-amber-600" />
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-slate-700">Fellow Approvals</span>
-                {teamMetrics.pendingFellows > 0 && (
-                  <span className="text-[9px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-md leading-none">
-                    pending
-                  </span>
-                )}
-              </div>
-              <div className="text-[11px] text-slate-400 mt-1">
-                {teamMetrics.pendingFellows > 0 ? 'Action required by you' : 'All caught up!'}
+              <div>
+                <div className="text-2xl font-bold text-slate-900">{fellowMetrics.pendingCount}</div>
+                <div className="text-xs text-slate-500 font-medium">Pending Approvals Count</div>
               </div>
             </div>
-
-            {/* Card 4: Approved YTD */}
-            <div className="card card-hover relative overflow-hidden p-5">
-              <div className="absolute top-0 left-0 right-0 h-[3px] bg-sky-500 rounded-t-[var(--radius-lg)]" />
-              <div className="flex items-start justify-between gap-2 mb-3 mt-1">
-                <div className="w-9 h-9 rounded-xl bg-sky-50 flex items-center justify-center shrink-0">
-                  <CheckCircle size={18} weight="fill" className="text-sky-600" />
-                </div>
-                <div className="text-right">
-                  <div className="text-3xl font-bold text-slate-900 tracking-tight tabular-nums leading-none">
-                    {teamLeaves.filter(a => a.status === 'approved').length}
-                  </div>
-                </div>
-              </div>
-              <div className="text-sm font-semibold text-slate-700">Approved (YTD)</div>
-              <div className="text-[11px] text-slate-400 mt-1">Processed this term</div>
-            </div>
-
           </div>
 
-          {/* Role Filter & Search Bar */}
-          <div className="card p-3.5 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              {/* Role filter buttons */}
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-xs font-semibold text-slate-500 mr-1">Filter Role:</span>
-                <button
-                  type="button"
-                  onClick={() => setRoleFilter('all')}
-                  className={cn(
-                    'px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all duration-150',
-                    roleFilter === 'all'
-                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                  )}
-                >
-                  All Applications ({teamLeaves.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRoleFilter('fellow')}
-                  className={cn(
-                    'px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all duration-150',
-                    roleFilter === 'fellow'
-                      ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
-                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                  )}
-                >
-                  Fellows ({teamLeaves.filter(a => a.applicantRole === 'fellow').length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRoleFilter('intern')}
-                  className={cn(
-                    'px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all duration-150',
-                    roleFilter === 'intern'
-                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                  )}
-                >
-                  Interns ({teamLeaves.filter(a => a.applicantRole === 'intern').length})
-                </button>
-              </div>
-
-              {/* Status counter chips */}
-              <div className="text-xs text-slate-500 flex items-center gap-2">
-                <span className="inline-flex items-center gap-1 text-amber-700 font-semibold">
-                  <span className="w-2 h-2 rounded-full bg-amber-500" />
-                  {teamMetrics.pendingCount} Pending
-                </span>
-                <span className="text-slate-300">&bull;</span>
-                <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  {teamLeaves.filter(a => a.status === 'approved').length} Approved
-                </span>
-              </div>
-            </div>
-
-            {/* Search Input */}
+          {/* ── Search Filter ── */}
+          <div className="card p-3.5">
             <div className="relative">
-              <MagnifyingGlass size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search by fellow or intern name, district, or reason…"
-                className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50/50 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition"
+                placeholder="Search by fellow name, district, or reason…"
+                className="w-full text-sm rounded-xl border border-slate-200 bg-white pl-9 pr-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 placeholder:text-slate-400"
               />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
-                >
-                  <X size={14} />
-                </button>
-              )}
+              <MagnifyingGlass
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+              />
             </div>
           </div>
 
-          {/* Cards List */}
+          {/* ── Fellow Applications List ── */}
           <div className="space-y-3.5">
-            {filteredTeamLeaves.length === 0 ? (
+            {filteredFellowLeaves.length === 0 ? (
               <div className="card p-10 text-center text-slate-400 text-sm">
-                No leave applications match your search or filter.
+                No fellow leave requests found matching the search.
               </div>
             ) : (
-              filteredTeamLeaves.map(app => {
+              filteredFellowLeaves.map(app => {
                 const tBadge = leaveTypeBadge(app.leaveType);
                 const sBadge = statusBadge(app.status);
                 const StatusIcon = sBadge.icon;
                 const isPending = app.status === 'applied';
-                const isFellow = app.applicantRole === 'fellow';
-                // PC can only Approve/Reject Fellow leaves; Interns are monitor-only
-                const canActOnLeave = isPending && isFellow;
 
                 return (
-                  <div
-                    key={app.id}
-                    className={cn(
-                      'card transition-all duration-200 p-5 hover:shadow-sm',
-                      canActOnLeave ? 'border-amber-200/80 hover:border-amber-300' : 'hover:border-slate-300'
-                    )}
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                      {/* Left: Details */}
-                      <div className="space-y-2.5 flex-1">
-                        <div className="flex items-center gap-2.5 flex-wrap">
-                          <div className="flex items-center gap-2.5">
-                            <div
-                              className={cn(
-                                'w-9 h-9 rounded-full font-bold text-xs flex items-center justify-center shadow-inner',
-                                isFellow ? 'bg-purple-100 text-purple-700 border border-purple-200' : 'bg-indigo-100 text-indigo-700 border border-indigo-200'
-                              )}
-                            >
-                              {app.applicantName.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-slate-900 text-sm">{app.applicantName}</span>
-                                <span
-                                  className={cn(
-                                    'text-[10px] font-bold uppercase px-2 py-0.5 rounded-md',
-                                    isFellow
-                                      ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                                      : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                  )}
-                                >
-                                  {isFellow ? 'CM Fellow' : 'Intern'}
-                                </span>
-                              </div>
-                              <span className="text-xs text-slate-500">{app.assignedLocation}</span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 ml-auto sm:ml-0 flex-wrap">
-                            <span className={cn('badge border text-xs font-semibold', tBadge.cls)}>
-                              {tBadge.label}
-                            </span>
-                            <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                              {app.totalDays} {app.totalDays === 1 ? 'Day' : 'Days'}
-                            </span>
-                            <span className={cn('badge border text-xs flex items-center gap-1 font-semibold', sBadge.cls)}>
-                              <StatusIcon size={12} weight="fill" />
-                              {sBadge.label}
-                            </span>
-                          </div>
+                  <div key={app.id} className="card p-4 sm:p-5 hover:border-slate-300 transition space-y-3.5">
+                    {/* Header Row: Applicant info + Status badge */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-9 h-9 rounded-full bg-purple-100 text-purple-700 font-bold text-xs flex items-center justify-center shrink-0 border border-purple-200 shadow-inner">
+                          {app.applicantName.split(' ').map(n => n[0]).join('').slice(0, 2)}
                         </div>
-
-                        <div className="flex items-center gap-2 text-xs text-slate-600">
-                          <Calendar size={14} className="text-indigo-600 shrink-0" />
-                          <span className="font-medium">
-                            Leave Duration: {formatDate(app.startDate)} &mdash; {formatDate(app.endDate)}
-                          </span>
-                          <span className="text-slate-300">&bull;</span>
-                          <span className="text-slate-400">Applied on {formatDate(app.appliedAt)}</span>
+                        <div className="min-w-0">
+                          <h3 className="font-bold text-slate-900 text-sm truncate">{app.applicantName}</h3>
+                          <span className="text-xs text-slate-400">({app.assignedLocation})</span>
                         </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex flex-wrap items-center gap-2.5 pt-1">
-                          {/* 1. Reason for Leave Heading & View Button */}
-                          <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 shadow-2xs">
-                            <span className="text-xs font-semibold text-slate-700">
-                              Reason for Leave
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setViewReasonModal({
-                                  applicant: app.applicantName,
-                                  role: `${isFellow ? 'CM Fellow' : 'Intern'} (${app.assignedLocation})`,
-                                  leaveType: tBadge.label,
-                                  duration: `${formatDate(app.startDate)} — ${formatDate(app.endDate)} (${app.totalDays} ${app.totalDays === 1 ? 'Day' : 'Days'})`,
-                                  reason: app.reason,
-                                  documentName: app.documentName,
-                                })
-                              }
-                              className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200/80 px-2.5 py-0.5 rounded-lg transition shadow-2xs"
-                            >
-                              <Eye size={13} weight="bold" />
-                              View
-                            </button>
-                          </div>
-
-                          {/* 2. Upload Document - ONLY IF ATTACHED */}
-                          {app.documentName && (
-                            <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 shadow-2xs">
-                              <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5 truncate max-w-[200px]">
-                                <FileText size={15} className="text-indigo-600 shrink-0" />
-                                <span className="truncate">{app.documentName}</span>
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => setViewDocName(app.documentName || 'Document')}
-                                className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200/80 px-2.5 py-0.5 rounded-lg transition shadow-2xs"
-                              >
-                                <Eye size={13} weight="bold" />
-                                View
-                              </button>
-                            </div>
-                          )}
-                        </div>
-
-                        {app.approverComment && (
-                          <div className="text-xs text-slate-600 bg-amber-50/70 border border-amber-200/60 rounded-xl px-3 py-2 mt-1">
-                            <strong>Approver Comment:</strong> {app.approverComment}
-                          </div>
-                        )}
                       </div>
 
-                      {/* Right: Review Action Buttons */}
-                      {isPending && isFellow && (
-                        // Fellows: PC can Approve or Reject
-                        <div className="flex sm:flex-col gap-2 shrink-0 pt-2 sm:pt-0">
+                      <span className={cn('badge border text-xs flex items-center gap-1 font-semibold shrink-0', sBadge.cls)}>
+                        <StatusIcon size={12} weight="fill" />
+                        {sBadge.label}
+                      </span>
+                    </div>
+
+                    {/* Chips Row: Leave type + Days */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={cn('badge border text-xs font-semibold', tBadge.cls)}>
+                        {tBadge.label}
+                      </span>
+                      <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+                        {app.totalDays} {app.totalDays === 1 ? 'Day' : 'Days'}
+                      </span>
+                    </div>
+
+                    {/* Duration & Applied Dates */}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2.5 text-xs text-slate-600">
+                      <div className="flex items-center gap-1.5 font-medium text-slate-700">
+                        <Calendar size={14} className="text-indigo-600 shrink-0" />
+                        <span>
+                          Leave Duration: {formatDate(app.startDate)} &mdash; {formatDate(app.endDate)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-slate-400 sm:before:content-['•'] sm:before:mr-1 sm:before:text-slate-300">
+                        <span>Applied on {formatDate(app.appliedAt)}</span>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons: Reason for Leave & Uploaded Document */}
+                    <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                      {/* 1. Reason for Leave */}
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 shadow-2xs">
+                        <span className="text-xs font-semibold text-slate-700">
+                          Reason for Leave
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setViewReasonModal({
+                              applicant: app.applicantName,
+                              role: `CM Fellow (${app.assignedLocation})`,
+                              leaveType: tBadge.label,
+                              duration: `${formatDate(app.startDate)} — ${formatDate(app.endDate)} (${app.totalDays} ${app.totalDays === 1 ? 'Day' : 'Days'})`,
+                              reason: app.reason,
+                              documentName: app.documentName,
+                            })
+                          }
+                          className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-lg transition shadow-2xs cursor-pointer"
+                        >
+                          <Eye size={13} weight="bold" />
+                          <span>View</span>
+                        </button>
+                      </div>
+
+                      {/* 2. Upload Document */}
+                      {app.documentName && (
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 shadow-2xs">
+                          <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5 truncate max-w-[200px]">
+                            <FileText size={14} className="text-indigo-600 shrink-0" />
+                            <span className="truncate">{app.documentName}</span>
+                          </span>
                           <button
                             type="button"
-                            onClick={() => handleApprove(app.id)}
-                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition active:scale-95"
+                            onClick={() => setViewDocName(app.documentName || 'Document')}
+                            className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-lg transition shadow-2xs cursor-pointer"
                           >
-                            <Check size={14} weight="bold" />
-                            Approve
+                            <Eye size={13} weight="bold" />
+                            <span>View</span>
                           </button>
-
-                          <button
-                            type="button"
-                            onClick={() => openRejectModal(app.id)}
-                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition active:scale-95"
-                          >
-                            <X size={14} weight="bold" />
-                            Reject
-                          </button>
-                        </div>
-                      )}
-
-                      {isPending && !isFellow && (
-                        // Interns: PC can only monitor, not approve/reject
-                        <div className="shrink-0 pt-2 sm:pt-0 flex items-center">
-                          <div className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200/80 text-xs font-semibold text-slate-500">
-                            <Eye size={14} className="text-slate-400" />
-                            Monitor Only
-                          </div>
                         </div>
                       )}
                     </div>
+
+                    {app.approverComment && (
+                      <div className="text-xs text-slate-600 bg-amber-50/70 border border-amber-200/60 rounded-xl px-3 py-2">
+                        <strong>Approver Comment:</strong> {app.approverComment}
+                      </div>
+                    )}
+
+                    {/* Bottom Action Buttons: Approve / Reject 50-50 Grid */}
+                    {isPending && (
+                      <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
+                        <button
+                          type="button"
+                          onClick={() => handleApprove(app.id)}
+                          className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition active:scale-95 cursor-pointer"
+                        >
+                          <Check size={16} weight="bold" />
+                          <span>Approve</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => openRejectModal(app.id)}
+                          className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition active:scale-95 cursor-pointer"
+                        >
+                          <X size={16} weight="bold" />
+                          <span>Reject</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })

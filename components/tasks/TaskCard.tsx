@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn, taskStatusColor, taskStatusLabel, taskPriorityColor, taskPriorityLabel, formatDate } from '@/lib/utils/formatters';
 import type { Task, TaskStatus } from '@/types/models';
 import { MOCK_SURVEYS } from '@/lib/api/mockData';
-import { CalendarBlank, User, ClipboardText, PencilSimple, Trash, ArrowRight, ArrowsClockwise, Users, CheckCircle, X } from '@phosphor-icons/react';
+import { CalendarBlank, User, ClipboardText, PencilSimple, Trash, ArrowRight, ArrowsClockwise, Users, CheckCircle, Check, X, Eye, VideoCamera, Clock } from '@phosphor-icons/react';
 import UpdateTaskStatusModal from './UpdateTaskStatusModal';
+import StakeholderResponsesPreviewModal from '@/components/surveys/StakeholderResponsesPreviewModal';
 import { useAuth } from '@/lib/auth/context';
 import { surveysApi } from '@/lib/api/surveys';
 import { toast } from 'sonner';
@@ -19,6 +21,25 @@ interface TaskCardProps {
   onDelete?: (taskId: string) => void;
   showAssignedByPc?: boolean;
   compact?: boolean;
+}
+
+function formatMeetingTime(scheduledAt: string, duration?: number) {
+  const start = new Date(scheduledAt);
+  const timeStr = start.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+  if (duration) {
+    const end = new Date(start.getTime() + duration * 60000);
+    const endTimeStr = end.toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+    return `${timeStr} – ${endTimeStr}`;
+  }
+  return timeStr;
 }
 
 function priorityBarColor(priority: Task['priority']) {
@@ -105,28 +126,32 @@ export default function TaskCard({
   const { user } = useAuth();
   const currentRole = (user?.role as 'intern' | 'fellow' | 'pc') || 'intern';
 
+  const [mounted, setMounted] = useState(false);
   const [isHierarchySubmitModalOpen, setIsHierarchySubmitModalOpen] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
-  const [challengesFaced, setChallengesFaced] = useState('');
-  const [recommendations, setRecommendations] = useState('');
-  const [feedbackError, setFeedbackError] = useState('');
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock body scroll while submission modal is open
+  useEffect(() => {
+    if (isHierarchySubmitModalOpen) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = '';
+      };
+    }
+  }, [isHierarchySubmitModalOpen]);
 
   const interviewedCount = matchedSurvey?.responsesCount ?? 0;
   const quota = matchedSurvey?.participantsRequired ?? 50;
   const quotaPercent = quota > 0 ? Math.min(100, Math.round((interviewedCount / quota) * 100)) : 0;
-
-  const nextSupervisorInfo = {
-    roleName: currentRole === 'intern' ? 'Fellow' : currentRole === 'fellow' ? 'Program Coordinator' : 'Senior & Chief Program Managers',
-    personName: currentRole === 'intern' ? 'District Fellow (Vikram Singh)' : currentRole === 'fellow' ? 'Divisional PC (Anjali Verma)' : 'State Leadership (SPM & CPM)',
-  };
+  const isSurveyStarted = interviewedCount > 0 || computedStatus === 'in_progress' || computedStatus === 'completed';
 
   const handleConfirmTaskSurveySubmit = async () => {
-    if (!feedbackText.trim()) {
-      setFeedbackError(`Please share field observations & feedback for the ${nextSupervisorInfo.roleName}.`);
-      return;
-    }
-    setFeedbackError('');
     setIsSubmittingFeedback(true);
 
     try {
@@ -138,9 +163,7 @@ export default function TaskCard({
       await surveysApi.submitHierarchySurvey(activeSurveyId, {
         submittedBy: currentUserRef,
         role: currentRole,
-        feedbackText: feedbackText.trim(),
-        challengesFaced: challengesFaced.trim() || undefined,
-        recommendations: recommendations.trim() || undefined,
+        feedbackText: feedbackText.trim() || 'Survey batch verified and submitted.',
       });
 
       if (onStatusUpdate) {
@@ -148,7 +171,7 @@ export default function TaskCard({
       }
 
       setIsHierarchySubmitModalOpen(false);
-      toast.success(`Survey batch submitted to ${nextSupervisorInfo.roleName} with feedback!`);
+      toast.success('Survey batch submitted successfully!');
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to submit survey');
     } finally {
@@ -181,8 +204,18 @@ export default function TaskCard({
             )}
           </div>
 
-          {/* Action icons (Edit, Delete) - Update Status is now at bottom of card */}
+          {/* Action icons (Preview, Edit, Delete) - Top Right */}
           <div className="flex items-center gap-1 shrink-0 -mt-0.5">
+            {task.isSurveyTask && (
+              <button
+                type="button"
+                onClick={() => setIsPreviewModalOpen(true)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
+                title="Preview All Stakeholder Survey Responses"
+              >
+                <Eye size={15} />
+              </button>
+            )}
             {onEdit && (
               <button
                 type="button"
@@ -243,22 +276,31 @@ export default function TaskCard({
               )}
             </Link>
           )}
+          {task.isMeetingTask && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-slate-100 text-slate-700 border-slate-200">
+              <VideoCamera size={10} weight="fill" className="text-slate-600" />
+              <span>Online Meeting</span>
+            </span>
+          )}
         </div>
 
-        {/* Stakeholders Interviewed KPI Banner (Requirement 5) */}
+        {/* Stakeholders Interviewed KPI Banner */}
         {task.isSurveyTask && !compact && (
-          <div className="mt-3 p-2.5 rounded-xl bg-slate-50/90 border border-slate-200/80 space-y-1.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
-                <Users size={14} weight="bold" className="text-indigo-600 shrink-0" />
-                <span>Stakeholders Interviewed</span>
+          <div className="mt-3 p-3 rounded-xl bg-slate-50/90 border border-slate-200/80 space-y-2">
+            {/* Top row: Clean title and non-breaking numbers */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 shrink-0">
+                <Users size={15} weight="bold" className="text-indigo-600 shrink-0" />
+                <span className="whitespace-nowrap">Stakeholders Interviewed</span>
               </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-xs font-black text-slate-900">{interviewedCount}</span>
-                <span className="text-[10px] font-medium text-slate-400">/ {quota}</span>
-                <span className="text-[10px] font-bold text-indigo-600 ml-1">({quotaPercent}%)</span>
+              <div className="flex items-baseline gap-1 shrink-0 whitespace-nowrap">
+                <span className="text-xs sm:text-sm font-black text-slate-900">{interviewedCount}</span>
+                <span className="text-[11px] font-medium text-slate-400">/ {quota}</span>
+                <span className="text-[11px] font-bold text-indigo-600 ml-1">({quotaPercent}%)</span>
               </div>
             </div>
+
+            {/* Progress Bar */}
             <div className="w-full h-1.5 bg-slate-200/80 rounded-full overflow-hidden">
               <div
                 className={cn(
@@ -268,31 +310,71 @@ export default function TaskCard({
                 style={{ width: `${quotaPercent}%` }}
               />
             </div>
+
+            {/* Bottom Row: Remaining count & Preview button */}
+            <div className="flex items-center justify-between pt-0.5">
+              <span className="text-[10.5px] font-medium text-slate-400">
+                {quota > interviewedCount ? `${quota - interviewedCount} remaining` : 'Target reached'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsPreviewModalOpen(true)}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer active:scale-95 transition-all"
+                title="Preview All Stakeholder Responses"
+              >
+                <Eye size={13} weight="bold" />
+                <span>Preview</span>
+              </button>
+            </div>
           </div>
         )}
 
-        {/* Bottom row: date + assignees */}
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
-          <span className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
-            <CalendarBlank size={12} className="text-slate-400" />
-            {formatDate(task.startDate)} → {formatDate(task.endDate)}
+        {/* Members Assigned & Date */}
+        <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-slate-100 text-xs text-slate-400">
+          <span className="flex items-center gap-1 text-[11px]">
+            {task.isMeetingTask ? (
+              <>
+                <Clock size={12} weight="bold" className="text-slate-500" />
+                <span>
+                  {formatDate(task.startDate)}
+                  {task.meetingData?.scheduledAt && (
+                    <strong className="text-slate-600 font-semibold ml-1">
+                      ({formatMeetingTime(task.meetingData.scheduledAt, task.meetingData.duration)})
+                    </strong>
+                  )}
+                </span>
+              </>
+            ) : (
+              <>
+                <CalendarBlank size={12} />
+                <span>
+                  {formatDate(task.startDate)}
+                  {task.endDate && ` → ${formatDate(task.endDate)}`}
+                </span>
+              </>
+            )}
           </span>
-          {task.assignedTo.length > 0 && !compact && (
-            <span className="flex items-center gap-1 text-[11px] text-slate-400">
+
+          {task.assignedTo && task.assignedTo.length > 0 && (
+            <span className="flex items-center gap-1 text-[11px] font-medium text-slate-600">
               {task.assignedTo.length === 1 ? (
                 <>
-                  <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[9px] font-bold shrink-0">
-                    {task.assignedTo[0].name.slice(0, 1).toUpperCase()}
-                  </div>
-                  <span className="truncate max-w-[80px]">{task.assignedTo[0].name}</span>
+                  <span className="w-4 h-4 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[9px] font-bold">
+                    {task.assignedTo[0].name.charAt(0)}
+                  </span>
+                  <span>{task.assignedTo[0].name}</span>
                 </>
               ) : (
                 <>
                   <div className="flex -space-x-1.5">
                     {task.assignedTo.slice(0, 3).map((a, i) => (
-                      <div key={a.id} className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[9px] font-bold ring-1 ring-white" style={{ zIndex: 3 - i }}>
-                        {a.name.slice(0, 1).toUpperCase()}
-                      </div>
+                      <span
+                        key={i}
+                        className="w-4 h-4 rounded-full bg-indigo-100 text-indigo-700 border border-white flex items-center justify-center text-[9px] font-bold"
+                        title={a.name}
+                      >
+                        {a.name.charAt(0)}
+                      </span>
                     ))}
                   </div>
                   <span>{task.assignedTo.length} people</span>
@@ -302,23 +384,23 @@ export default function TaskCard({
           )}
         </div>
 
-        {/* Survey actions - Flexible Submission: "Start Survey" (to add more) & "Submit Survey" (whenever over / completed) */}
+        {/* Survey actions - Flexible Submission: "Resume/Start Survey" & "Submit Survey" */}
         {task.isSurveyTask && !compact && (
           <div className="mt-3 grid grid-cols-2 gap-2">
             <Link
               href={surveyUrl}
               className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold bg-[#1e3a8a] hover:bg-[#172554] active:bg-[#1e40af] text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer text-center"
-              title="Start Survey Interview"
+              title={isSurveyStarted ? "Resume Survey Interview" : "Start Survey Interview"}
             >
               <ClipboardText size={14} weight="bold" />
-              <span>Start Survey</span>
+              <span>{isSurveyStarted ? 'Resume Survey' : 'Start Survey'}</span>
             </Link>
 
             <button
               type="button"
               onClick={() => setIsHierarchySubmitModalOpen(true)}
               className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 active:bg-emerald-200 shadow-2xs transition-all cursor-pointer text-center"
-              title="Submit survey batch and field feedback to supervisor"
+              title="Submit survey batch"
             >
               <CheckCircle size={14} weight="bold" />
               <span>Submit Survey</span>
@@ -326,8 +408,21 @@ export default function TaskCard({
           </div>
         )}
 
-        {/* Non-survey action - Update Status button appears where Start Survey appears */}
-        {!task.isSurveyTask && onStatusUpdate && !compact && (
+        {/* Meeting actions - Join Meeting button using standard navy styling */}
+        {task.isMeetingTask && task.meetingData && !compact && (
+          <a
+            href={task.meetingData.zoomJoinUrl || '#'}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold bg-[#1e3a8a] hover:bg-[#172554] active:bg-[#1e40af] text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer text-center"
+          >
+            <VideoCamera size={14} weight="bold" />
+            <span>Join Meeting</span>
+          </a>
+        )}
+
+        {/* Non-survey, non-meeting action - Update Status button appears where Start Survey appears */}
+        {!task.isSurveyTask && !task.isMeetingTask && onStatusUpdate && !compact && (
           <button
             type="button"
             onClick={() => setIsStatusModalOpen(true)}
@@ -350,125 +445,77 @@ export default function TaskCard({
         />
       )}
 
-      {/* Hierarchical Survey Submission & Feedback Modal for Survey Tasks */}
-      {isHierarchySubmitModalOpen && task.isSurveyTask && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="card p-5 sm:p-7 max-w-lg w-full max-h-[88dvh] overflow-y-auto space-y-4 shadow-2xl bg-white rounded-2xl border border-slate-200">
+      {/* Stable Portaled Survey Submission Confirmation Modal */}
+      {mounted && isHierarchySubmitModalOpen && task.isSurveyTask && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="card p-5 sm:p-6 max-w-md w-full max-h-[90dvh] overflow-y-auto space-y-4 shadow-2xl bg-white rounded-2xl border border-slate-200 animate-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
-                  Hierarchy Submission
-                </span>
-                <h3 className="text-base sm:text-lg font-bold text-slate-900 mt-1">
-                  Submit Survey: {task.name}
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Submitting to: <strong className="text-slate-800">{nextSupervisorInfo.personName}</strong>
-                </p>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
+                  <CheckCircle size={20} weight="bold" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-slate-900 leading-tight">
+                    Submit Survey Batch
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5 truncate">
+                    {task.name}
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsHierarchySubmitModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer"
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+                aria-label="Close"
               >
                 <X size={18} weight="bold" />
               </button>
             </div>
 
-            {/* Hierarchy Progress Strip */}
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
-              <div className="text-[10px] font-bold uppercase text-slate-500 tracking-wider mb-2">
-                Approval Hierarchy
-              </div>
-              <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 overflow-x-auto no-scrollbar">
-                <span className={cn('px-2 py-0.5 rounded-md', currentRole === 'intern' ? 'bg-indigo-600 text-white' : 'bg-emerald-100 text-emerald-800')}>
-                  Intern
-                </span>
-                <span className="text-slate-400 font-normal">→</span>
-                <span className={cn('px-2 py-0.5 rounded-md', currentRole === 'fellow' ? 'bg-indigo-600 text-white' : currentRole === 'pc' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700')}>
-                  Fellow
-                </span>
-                <span className="text-slate-400 font-normal">→</span>
-                <span className={cn('px-2 py-0.5 rounded-md', currentRole === 'pc' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700')}>
-                  Program Coordinator
-                </span>
-                <span className="text-slate-400 font-normal">→</span>
-                <span className="px-2 py-0.5 rounded-md bg-slate-200 text-slate-700">
-                  SPM / CPM
-                </span>
-              </div>
-            </div>
-
-            {/* Quota & Stakeholders Interviewed KPI */}
-            <div className="p-3 rounded-xl bg-indigo-50/50 border border-indigo-100 flex items-center justify-between">
-              <div>
-                <div className="text-xs font-semibold text-slate-700">Stakeholders Interviewed</div>
-                <div className="text-[11px] text-slate-500 mt-0.5">
-                  Flexible submission: You can submit whenever fieldwork concludes
+            {/* Quota & Stakeholders Interviewed Info */}
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-700">Stakeholders Interviewed</span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm font-black text-indigo-900">{interviewedCount}</span>
+                  <span className="text-xs font-medium text-slate-400">/ {quota}</span>
+                  <span className="text-xs font-bold text-indigo-600 ml-1">({quotaPercent}%)</span>
                 </div>
               </div>
-              <div className="text-right">
-                <span className="text-lg font-black text-indigo-900">{interviewedCount}</span>
-                <span className="text-xs text-slate-400 font-medium"> / {quota}</span>
-              </div>
-            </div>
-
-            {/* Field Feedback Inputs */}
-            <div className="space-y-3 pt-1">
-              <div>
-                <label className="block text-xs font-bold text-slate-800 mb-1">
-                  Field Observations &amp; Feedback for {nextSupervisorInfo.roleName} <span className="text-rose-500">*</span>
-                </label>
-                <textarea
-                  rows={3}
-                  value={feedbackText}
-                  onChange={(e) => {
-                    setFeedbackText(e.target.value);
-                    if (feedbackError) setFeedbackError('');
-                  }}
-                  placeholder="Summarize key takeaways, community sentiment, scheme reach, and overall observations from the field..."
-                  className={cn(
-                    'w-full p-3 rounded-xl border text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all leading-relaxed',
-                    feedbackError ? 'border-rose-400 ring-1 ring-rose-200 bg-rose-50/20' : 'border-slate-200 bg-white'
-                  )}
-                />
-                {feedbackError && <p className="text-[11px] text-rose-500 font-semibold mt-1">{feedbackError}</p>}
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Key Challenges Faced (optional)
-                </label>
-                <input
-                  type="text"
-                  value={challengesFaced}
-                  onChange={(e) => setChallengesFaced(e.target.value)}
-                  placeholder="e.g. Medicine stockouts at PHC, transport delays, connectivity issues..."
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Recommendations for Program Leadership (optional)
-                </label>
-                <input
-                  type="text"
-                  value={recommendations}
-                  onChange={(e) => setRecommendations(e.target.value)}
-                  placeholder="e.g. Conduct monthly review with BDO, supply additional testing kits..."
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-indigo-600 rounded-full transition-all"
+                  style={{ width: `${quotaPercent}%` }}
                 />
               </div>
             </div>
 
-            {/* Modal Actions */}
-            <div className="flex gap-2.5 pt-3 border-t border-slate-100">
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Are you sure you want to finalize and submit this survey batch? All recorded participant responses will be submitted to leadership.
+            </p>
+
+            {/* Optional Field Notes */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Field Notes / Observations (optional)
+              </label>
+              <textarea
+                rows={2}
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                placeholder="Add any overall field observations or notes..."
+                className="w-full p-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setIsHierarchySubmitModalOpen(false)}
-                className="flex-1 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-semibold cursor-pointer"
+                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold cursor-pointer"
               >
                 Cancel
               </button>
@@ -476,21 +523,31 @@ export default function TaskCard({
                 type="button"
                 onClick={handleConfirmTaskSurveySubmit}
                 disabled={isSubmittingFeedback}
-                className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer btn-press disabled:opacity-60"
+                className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-bold shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer btn-press disabled:opacity-60"
               >
                 {isSubmittingFeedback ? (
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
-                    <span>Submit to {nextSupervisorInfo.roleName}</span>
-                    <ArrowRight size={14} weight="bold" />
+                    <span>Submit Survey</span>
+                    <Check size={15} weight="bold" />
                   </>
                 )}
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
+
+      {/* Stakeholder Responses Preview Modal */}
+      <StakeholderResponsesPreviewModal
+        isOpen={isPreviewModalOpen}
+        onClose={() => setIsPreviewModalOpen(false)}
+        surveyTitle={task.name}
+        questions={matchedSurvey?.questions || []}
+        totalInterviewedCount={interviewedCount}
+      />
     </div>
   );
 }

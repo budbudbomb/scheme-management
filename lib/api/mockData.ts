@@ -201,24 +201,149 @@ export const MOCK_PAGINATED_TASKS = {
 
 // ─── Attendance ───────────────────────────────────────────────────────────────
 
-function makeAttendanceRecord(day: number, present: boolean): AttendanceRecord {
+const FELLOW_PROFILES = [
+  { id: 'u-fellow-sehore', name: 'Vikramaditya Singh', district: { id: 'dst-sehore', name: 'Sehore' }, location: 'District Collectorate, Sehore' },
+  { id: 'u-fellow-02', name: 'Kavita Patel', district: { id: 'dst-02', name: 'Bhopal' }, location: 'Zila Panchayat Office, Bhopal' },
+  { id: 'u-fellow-raisen', name: 'Rajesh Chouhan', district: { id: 'dst-raisen', name: 'Raisen' }, location: 'District Collectorate, Raisen' },
+  { id: 'u-fellow-rajgarh', name: 'Sunita Malviya', district: { id: 'dst-rajgarh', name: 'Rajgarh' }, location: 'District Administrative Complex, Rajgarh' },
+  { id: 'u-fellow-vidisha', name: 'Deepak Sharma', district: { id: 'dst-vidisha', name: 'Vidisha' }, location: 'District Collectorate, Vidisha' },
+];
+
+const INTERN_PROFILES = [
+  // Sehore Interns
+  { id: 'int-seh-01', name: 'Aakash Verma', district: { id: 'dst-sehore', name: 'Sehore' }, block: { id: 'blk-seh-01', name: 'Ashta' }, panchayat: 'Kothri', location: 'Gram Panchayat Bhawan, Kothri' },
+  { id: 'int-seh-02', name: 'Pooja Sharma', district: { id: 'dst-sehore', name: 'Sehore' }, block: { id: 'blk-seh-01', name: 'Ashta' }, panchayat: 'Kothri Kalan', location: 'Panchayat Seva Kendra, Kothri Kalan' },
+  { id: 'int-seh-03', name: 'Rahul Meena', district: { id: 'dst-sehore', name: 'Sehore' }, block: { id: 'blk-seh-01', name: 'Ashta' }, panchayat: 'Metwada', location: 'Anganwadi Centre, Metwada' },
+  { id: 'int-seh-04', name: 'Neha Gupta', district: { id: 'dst-sehore', name: 'Sehore' }, block: { id: 'blk-seh-01', name: 'Ashta' }, panchayat: 'Khachrod', location: 'PHC Campus, Khachrod' },
+  { id: 'int-seh-05', name: 'Suresh Solanki', district: { id: 'dst-sehore', name: 'Sehore' }, block: { id: 'blk-seh-02', name: 'Ichhawar' }, panchayat: 'Diwadia', location: 'GP Office, Diwadia' },
+  { id: 'int-seh-06', name: 'Priya Verma', district: { id: 'dst-sehore', name: 'Sehore' }, block: { id: 'blk-seh-02', name: 'Ichhawar' }, panchayat: 'Brijisnagar', location: 'Sub-Health Centre, Brijisnagar' },
+  { id: 'int-seh-07', name: 'Manish Tiwari', district: { id: 'dst-sehore', name: 'Sehore' }, block: { id: 'blk-seh-03', name: 'Budhni' }, panchayat: 'Shahganj', location: 'Community Hall, Shahganj' },
+  { id: 'int-seh-08', name: 'Jyoti Rathore', district: { id: 'dst-sehore', name: 'Sehore' }, block: { id: 'blk-seh-03', name: 'Budhni' }, panchayat: 'Bakhtra', location: 'Panchayat Bhavan, Bakhtra' },
+  { id: 'int-seh-09', name: 'Ajay Sen', district: { id: 'dst-sehore', name: 'Sehore' }, block: { id: 'blk-seh-04', name: 'Sehore Rural' }, panchayat: 'Bilkisganj', location: 'Bilkisganj Main Chowk' },
+  { id: 'int-seh-10', name: 'Ritu Parmar', district: { id: 'dst-sehore', name: 'Sehore' }, block: { id: 'blk-seh-04', name: 'Sehore Rural' }, panchayat: 'Mandi', location: 'Gram Seva Kendra, Mandi' },
+  // Bhopal Interns
+  { id: 'int-bhp-01', name: 'Deepak Sharma', district: { id: 'dst-02', name: 'Bhopal' }, block: { id: 'blk-bhp-01', name: 'Phanda' }, panchayat: 'Phanda Kalan', location: 'Block Development Office, Phanda' },
+  { id: 'int-bhp-02', name: 'Aarti Kushwaha', district: { id: 'dst-02', name: 'Bhopal' }, block: { id: 'blk-bhp-01', name: 'Phanda' }, panchayat: 'Tara Sewaniya', location: 'Gram Panchayat Tara Sewaniya' },
+  { id: 'int-bhp-03', name: 'Manoj Sen', district: { id: 'dst-02', name: 'Bhopal' }, block: { id: 'blk-bhp-01', name: 'Phanda' }, panchayat: 'Khajuri Sadak', location: 'Health Post Khajuri' },
+  { id: 'int-bhp-04', name: 'Sangeeta Lodhi', district: { id: 'dst-02', name: 'Bhopal' }, block: { id: 'blk-bhp-02', name: 'Berasia' }, panchayat: 'Gunga', location: 'Panchayat Samiti Gunga' },
+  { id: 'int-bhp-05', name: 'Vikas Yadav', district: { id: 'dst-02', name: 'Bhopal' }, block: { id: 'blk-bhp-02', name: 'Berasia' }, panchayat: 'Lalariya', location: 'Govt School Campus, Lalariya' },
+  // Raisen Interns
+  { id: 'int-rsn-01', name: 'Anil Malviya', district: { id: 'dst-raisen', name: 'Raisen' }, block: { id: 'blk-rsn-01', name: 'Sanchi' }, panchayat: 'Salammatpur', location: 'Gram Panchayat Salammatpur' },
+  { id: 'int-rsn-02', name: 'Rekha Sen', district: { id: 'dst-raisen', name: 'Raisen' }, block: { id: 'blk-rsn-02', name: 'Gairatganj' }, panchayat: 'Garhi', location: 'Panchayat Bhavan Garhi' },
+  // Rajgarh Interns
+  { id: 'int-rjg-01', name: 'Govind Rajput', district: { id: 'dst-rajgarh', name: 'Rajgarh' }, block: { id: 'blk-rjg-01', name: 'Biaora' }, panchayat: 'Karanwas', location: 'Karanwas Seva Kendra' },
+  { id: 'int-rjg-02', name: 'Mamta Sahu', district: { id: 'dst-rajgarh', name: 'Rajgarh' }, block: { id: 'blk-rjg-02', name: 'Khilchipur' }, panchayat: 'Chhapiheda', location: 'Sub-Centre Chhapiheda' },
+  // Vidisha Interns
+  { id: 'int-vds-01', name: 'Nitin Jain', district: { id: 'dst-vidisha', name: 'Vidisha' }, block: { id: 'blk-vds-01', name: 'Basoda' }, panchayat: 'Tyonda', location: 'GP Office Tyonda' },
+  { id: 'int-vds-02', name: 'Meena Raghuwanshi', district: { id: 'dst-vidisha', name: 'Vidisha' }, block: { id: 'blk-vds-02', name: 'Kurwai' }, panchayat: 'Mandi Bamora', location: 'Kurwai Block Office' },
+];
+
+function generateTeamAttendanceRecords(): AttendanceRecord[] {
+  const records: AttendanceRecord[] = [];
+  const dates = [
+    '2026-09-06', '2026-09-05', '2026-09-04', '2026-09-03', '2026-09-02', '2026-09-01',
+    '2026-08-31', '2026-08-30', '2026-08-29', '2026-08-28', '2026-08-27', '2026-08-26',
+    '2026-08-25', '2026-08-24', '2026-08-23', '2026-08-22', '2026-08-21', '2026-08-20',
+  ];
+
+  // 1. Fellow Records
+  dates.forEach((date, dIdx) => {
+    FELLOW_PROFILES.forEach((f, fIdx) => {
+      // Create varied realistic statuses
+      const hash = (dIdx * 7 + fIdx * 13) % 20;
+      let status: AttendanceRecord['status'] = 'present';
+      let markedAt = `09:${String(10 + (hash % 35)).padStart(2, '0')} AM`;
+      if (hash === 3) {
+        status = 'on_leave';
+        markedAt = '—';
+      } else if (hash === 7) {
+        status = 'half_day';
+        markedAt = '09:20 AM (Half Day)';
+      } else if (hash === 11) {
+        status = 'absent';
+        markedAt = '—';
+      }
+
+      records.push({
+        id: `att-flw-${f.id}-${date}`,
+        userId: f.id,
+        userName: f.name,
+        role: 'fellow',
+        date,
+        markedAt,
+        latitude: 23.2599 + (fIdx * 0.05),
+        longitude: 77.4126 + (fIdx * 0.05),
+        status,
+        district: f.district,
+        locationAddress: f.location,
+      });
+    });
+  });
+
+  // 2. Intern Records
+  dates.forEach((date, dIdx) => {
+    INTERN_PROFILES.forEach((int, iIdx) => {
+      const hash = (dIdx * 11 + iIdx * 17) % 20;
+      let status: AttendanceRecord['status'] = 'present';
+      let markedAt = `09:${String(5 + (hash % 40)).padStart(2, '0')} AM`;
+      if (hash === 2 || hash === 14) {
+        status = 'absent';
+        markedAt = '—';
+      } else if (hash === 6) {
+        status = 'on_leave';
+        markedAt = '—';
+      } else if (hash === 18) {
+        status = 'half_day';
+        markedAt = '09:45 AM (Half Day)';
+      }
+
+      records.push({
+        id: `att-int-${int.id}-${date}`,
+        userId: int.id,
+        userName: int.name,
+        role: 'intern',
+        date,
+        markedAt,
+        latitude: 23.0123 + (iIdx * 0.02),
+        longitude: 76.9876 + (iIdx * 0.02),
+        status,
+        district: int.district,
+        block: int.block,
+        panchayatName: int.panchayat,
+        locationAddress: int.location,
+      });
+    });
+  });
+
+  return records;
+}
+
+export const MOCK_TEAM_ATTENDANCE: AttendanceRecord[] = generateTeamAttendanceRecords();
+
+function makeSelfAttendanceRecord(day: number, present: boolean): AttendanceRecord {
   const date = `2026-08-${String(day).padStart(2, '0')}`;
   return {
-    id: `att-${day}`, userId: 'u-intern-01', userName: 'Priya Patel',
-    date, markedAt: present ? '09:15' : '—',
-    latitude: 23.1765, longitude: 75.7885,
+    id: `att-self-${day}`,
+    userId: 'u-pc-01',
+    userName: 'Anjali Singh Verma',
+    role: 'pc',
+    date,
+    markedAt: present ? '09:12 AM' : '—',
+    latitude: 23.2599,
+    longitude: 77.4126,
     status: present ? 'present' : 'absent',
-    block: { id: 'blk-01', name: 'Ujjain Urban' },
+    district: { id: 'dst-02', name: 'Bhopal' },
+    locationAddress: 'Bhopal Division HQ, Arera Hills, Bhopal',
   };
 }
 
 export const MOCK_ATTENDANCE_RECORDS: AttendanceRecord[] = [
-  ...Array.from({ length: 31 }, (_, i) => makeAttendanceRecord(i + 1, [6, 7, 13, 14, 20, 21, 27, 28].indexOf(i + 1) === -1)),
+  ...Array.from({ length: 31 }, (_, i) => makeSelfAttendanceRecord(i + 1, [6, 7, 13, 14, 20, 21, 27, 28].indexOf(i + 1) === -1)),
 ];
 
 export const MOCK_PAGINATED_ATTENDANCE = {
-  items: MOCK_ATTENDANCE_RECORDS,
-  total: MOCK_ATTENDANCE_RECORDS.length,
+  items: MOCK_TEAM_ATTENDANCE,
+  total: MOCK_TEAM_ATTENDANCE.length,
   page: 1,
   limit: 50,
 };
@@ -456,6 +581,22 @@ export const MOCK_MEETINGS: Meeting[] = [
     agenda: 'State-wide progress review and Q4 planning.',
     zoomJoinUrl: '#demo-meeting',
     createdAt: '2026-09-02T00:00:00Z',
+  },
+  {
+    id: 'meet-04', title: 'District Field Sync & Debrief',
+    scheduledAt: '2026-09-06T15:30:00Z', duration: 45,
+    organizer: me, invitees: [intern1, fellow1],
+    agenda: 'Check-in on ongoing block health survey and stakeholder interviews.',
+    zoomJoinUrl: 'https://zoom.us/j/demo-sync-meeting',
+    createdAt: '2026-09-03T00:00:00Z',
+  },
+  {
+    id: 'meet-05', title: 'Block Health Survey Protocol Review',
+    scheduledAt: '2026-09-08T11:00:00Z', duration: 60,
+    organizer: me, invitees: [intern1],
+    agenda: 'Guidance on PHC assessment forms, digital validation, and media notes.',
+    zoomJoinUrl: 'https://zoom.us/j/demo-survey-protocol',
+    createdAt: '2026-09-04T00:00:00Z',
   },
 ];
 

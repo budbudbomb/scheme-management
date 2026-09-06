@@ -87,60 +87,62 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">User Registration</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {data ? `${data.total.toLocaleString('en-IN')} users found` : 'Manage Fellows, Interns, and PCs'}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setAddUserOpen(true)}
-          id="add-user-btn"
-          className={cn(
-            'flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius)] text-sm font-medium',
-            'bg-indigo-600 text-white hover:bg-indigo-700 btn-press transition-colors'
-          )}
-        >
-          <Plus size={16} weight="bold" />
-          Add User
-        </button>
-      </div>
-
-      {/* Filters */}
-      <div className="flex items-center gap-2.5">
-        <div className="relative flex-1 min-w-0">
-          <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="search"
-            placeholder="Search users…"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="w-full pl-9 pr-3 py-2.5 text-sm rounded-[var(--radius)] border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          />
-        </div>
-        <div className="relative shrink-0">
-          <div className={cn(
-            'w-10 h-10 rounded-[var(--radius)] border flex items-center justify-center transition-colors pointer-events-none',
-            roleFilter
-              ? 'bg-indigo-600 border-indigo-600 text-white shadow-2xs'
-              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-          )}>
-            <FunnelSimple size={18} weight={roleFilter ? 'bold' : 'regular'} />
+      {/* Frozen / Sticky Header Bar (Add User, Search Bar, Filter) */}
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md pt-1 pb-3 -mx-4 sm:-mx-6 px-4 sm:px-6 border-b border-slate-100 shadow-2xs space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl font-bold text-slate-900 truncate">User Registration</h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5 line-clamp-1 sm:line-clamp-none">
+              {data ? `${data.total.toLocaleString('en-IN')} users found` : 'Manage Fellows, Interns, and PCs'}
+            </p>
           </div>
-          <select
-            value={roleFilter}
-            onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            aria-label="Filter by role"
-            title="Filter by role"
+          <button
+            type="button"
+            onClick={() => setAddUserOpen(true)}
+            id="add-user-btn"
+            className={cn(
+              'flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold shrink-0',
+              'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 transition-all shadow-xs cursor-pointer'
+            )}
           >
-            {ROLES.map((r) => (
-              <option key={r.value} value={r.value}>{r.label}</option>
-            ))}
-          </select>
+            <Plus size={16} weight="bold" />
+            <span>Add User</span>
+          </button>
+        </div>
+
+        {/* Filters: Search Bar & Filter */}
+        <div className="flex items-center gap-2.5">
+          <div className="relative flex-1 min-w-0">
+            <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="search"
+              placeholder="Search users…"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-2xs"
+            />
+          </div>
+          <div className="relative shrink-0">
+            <div className={cn(
+              'w-9 h-9 sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center transition-colors pointer-events-none shadow-2xs',
+              roleFilter
+                ? 'bg-indigo-600 border-indigo-600 text-white shadow-xs'
+                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+            )}>
+              <FunnelSimple size={17} weight={roleFilter ? 'bold' : 'regular'} />
+            </div>
+            <select
+              value={roleFilter}
+              onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              aria-label="Filter by role"
+              title="Filter by role"
+            >
+              {ROLES.map((r) => (
+                <option key={r.value} value={r.value}>{r.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 

@@ -1,8 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { cn, taskPriorityLabel, taskStatusLabel } from '@/lib/utils/formatters';
-import type { Task } from '@/types/models';
+import { useState, useMemo, useEffect, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
+import { cn } from '@/lib/utils/formatters';
+import type { Task, Meeting } from '@/types/models';
+import { trainingApi } from '@/lib/api/training';
+import { MOCK_MEETINGS } from '@/lib/api/mockData';
 import TaskCard from './TaskCard';
 import {
   CaretLeft,
@@ -11,6 +14,7 @@ import {
   Rows,
   GridFour,
   CalendarDots,
+  X,
 } from '@phosphor-icons/react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -19,9 +23,12 @@ export type CalendarView = 'day' | 'week' | 'month';
 
 export interface MobileCalendarProps {
   tasks: Task[];
+  meetings?: Meeting[];
   view?: CalendarView;
   onViewChange?: (v: CalendarView) => void;
   onStatusUpdate?: (taskId: string, status: Task['status'], comment?: string) => Promise<void> | void;
+  onEdit?: (task: Task) => void;
+  onDelete?: (taskId: string) => void;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -35,6 +42,8 @@ const DAY_NAMES_SHORT = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const DAY_NAMES_MED = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const emptySubscribe = () => () => {};
 
 function isoToDate(str: string) {
   return new Date(str.substring(0, 10));
@@ -70,6 +79,152 @@ function getWeekDates(referenceDate: Date): Date[] {
     date.setDate(startOfWeek.getDate() + i);
     return date;
   });
+}
+
+/** Converts an online meeting into a standard Task entity */
+function meetingToTask(meeting: Meeting): Task {
+  const mDate = new Date(meeting.scheduledAt);
+  const year = mDate.getFullYear();
+  const month = String(mDate.getMonth() + 1).padStart(2, '0');
+  const day = String(mDate.getDate()).padStart(2, '0');
+  const dateStr = `${year}-${month}-${day}`;
+
+  return {
+    id: `meeting-${meeting.id}`,
+    name: meeting.title,
+    description: meeting.agenda || 'Scheduled virtual conference meeting',
+    priority: 'medium',
+    status: 'pending',
+    startDate: dateStr,
+    endDate: dateStr,
+    createdBy: meeting.organizer,
+    assignedTo: meeting.invitees && meeting.invitees.length > 0 ? meeting.invitees : [meeting.organizer],
+    isMeetingTask: true,
+    meetingData: meeting,
+    createdAt: meeting.createdAt,
+    updatedAt: meeting.createdAt,
+  };
+}
+
+// ─── Roll-up Bottom Sheet Modal ───────────────────────────────────────────────
+
+function DateTasksRollupSheet({
+  date,
+  isOpen,
+  onClose,
+  tasks,
+  onStatusUpdate,
+  onEdit,
+  onDelete,
+}: {
+  date: Date | null;
+  isOpen: boolean;
+  onClose: () => void;
+  tasks: Task[];
+  onStatusUpdate?: (taskId: string, status: Task['status'], comment?: string) => Promise<void> | void;
+  onEdit?: (task: Task) => void;
+  onDelete?: (taskId: string) => void;
+}) {
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+
+    // Prevent background scrolling while roll-up sheet is open
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen || !mounted || !date) return null;
+
+  const dayTasks = tasks.filter(t => taskActiveOnDay(t, date));
+  const today = new Date();
+  const isToday = sameDay(date, today);
+
+  const sheetContent = (
+    <div className="fixed inset-0 z-50 flex flex-col justify-end">
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs animate-rollup-backdrop cursor-pointer"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      {/* Roll up sheet card */}
+      <div
+        className="relative z-10 w-full max-w-2xl mx-auto bg-white rounded-t-[28px] shadow-[0_-12px_40px_rgba(0,0,0,0.22)] border-t border-slate-200 flex flex-col max-h-[82vh] animate-rollup-sheet"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Drag handle */}
+        <div className="pt-3 pb-1.5 flex justify-center cursor-grab active:cursor-grabbing">
+          <div className="w-12 h-1.5 bg-slate-300 rounded-full" />
+        </div>
+
+        {/* Sheet Header */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
+                {date.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              </h3>
+              {isToday && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-600 text-white">
+                  Today
+                </span>
+              )}
+            </div>
+            <p className="text-xs font-semibold text-slate-500 mt-0.5">
+              {dayTasks.length} {dayTasks.length === 1 ? 'task' : 'tasks'} for this date
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+            aria-label="Close tasks sheet"
+          >
+            <X size={18} weight="bold" />
+          </button>
+        </div>
+
+        {/* Sheet Body with Task Cards */}
+        <div className="overflow-y-auto p-4 sm:p-5 space-y-3 overscroll-contain pb-safe pb-8 custom-scrollbar">
+          {dayTasks.length === 0 ? (
+            <div className="py-12 px-4 text-center bg-slate-50/70 rounded-2xl border border-dashed border-slate-200">
+              <CalendarBlank size={36} className="mx-auto text-slate-300 mb-2" />
+              <p className="text-sm font-semibold text-slate-700">No tasks on this day</p>
+              <p className="text-xs text-slate-400 mt-0.5">There are no active tasks assigned for this date.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {dayTasks.map(task => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onStatusUpdate={onStatusUpdate}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  return createPortal(sheetContent, document.body);
 }
 
 // ─── ViewTabs (Day - Week - Month) ──────────────────────────────────────────
@@ -117,14 +272,12 @@ function MonthView({
   tasks,
   selectedDay,
   onSelectDay,
-  onStatusUpdate,
 }: {
   year: number;
   month: number;
   tasks: Task[];
   selectedDay: Date | null;
   onSelectDay: (d: Date) => void;
-  onStatusUpdate?: (taskId: string, status: Task['status'], comment?: string) => Promise<void> | void;
 }) {
   const today = new Date();
   const firstDay = new Date(year, month, 1);
@@ -145,14 +298,14 @@ function MonthView({
       map.set(day.toDateString(), tasks.filter(t => taskActiveOnDay(t, day)));
     });
     return map;
-  }, [tasks, year, month]);
+  }, [tasks, cells]);
 
   const selectedDayTasks = selectedDay
     ? tasks.filter(t => taskActiveOnDay(t, selectedDay))
     : [];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Weekday Header */}
       <div className="grid grid-cols-7">
         {DAY_NAMES_SHORT.map((d, i) => (
@@ -229,57 +382,34 @@ function MonthView({
         })}
       </div>
 
-      {/* Selected Day Task Cards list */}
+      {/* Selected Day Status Bar */}
       {selectedDay && (
-        <div className="pt-3 border-t border-slate-100 space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-bold text-slate-800">
-              {selectedDay.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
-            </h3>
-            <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-              {selectedDayTasks.length} {selectedDayTasks.length === 1 ? 'task' : 'tasks'}
-            </span>
-          </div>
-
-          {selectedDayTasks.length === 0 ? (
-            <div className="p-6 text-center bg-slate-50/60 rounded-2xl border border-dashed border-slate-200">
-              <CalendarBlank size={28} className="mx-auto mb-1 text-slate-300" />
-              <p className="text-xs font-semibold text-slate-500">No tasks on this day</p>
-            </div>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {selectedDayTasks.map(task => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  onStatusUpdate={onStatusUpdate}
-                />
-              ))}
-            </div>
-          )}
+        <div className="pt-2 px-1 flex items-center justify-between text-xs text-slate-500">
+          <span>
+            Selected: <strong className="text-slate-800 font-semibold">{selectedDay.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}</strong> ({selectedDayTasks.length} {selectedDayTasks.length === 1 ? 'task' : 'tasks'})
+          </span>
         </div>
       )}
     </div>
   );
 }
 
-// ─── WeekView (No Hourly Slots, Clean Daily Tasks) ────────────────────────────
+// ─── WeekView (Clean Daily Tasks, No Separate Section) ────────────────────────
+
+// ─── WeekView (Clean 7-Day Calendar Strip Only; Tasks open in Roll-up Sheet) ──
 
 function WeekView({
   weekDates,
   tasks,
   selectedDay,
   onSelectDay,
-  onStatusUpdate,
 }: {
   weekDates: Date[];
   tasks: Task[];
   selectedDay: Date | null;
   onSelectDay: (d: Date) => void;
-  onStatusUpdate?: (taskId: string, status: Task['status'], comment?: string) => Promise<void> | void;
 }) {
   const today = new Date();
-  const currentDay = selectedDay ?? today;
 
   const tasksByDay = useMemo(() => {
     const map = new Map<string, Task[]>();
@@ -289,15 +419,13 @@ function WeekView({
     return map;
   }, [tasks, weekDates]);
 
-  const activeDayTasks = tasksByDay.get(currentDay.toDateString()) ?? [];
-
   return (
-    <div className="flex flex-col">
-      {/* 7-Day Header Selector Strip */}
-      <div className="grid grid-cols-7 border-b border-slate-100 bg-white p-2 gap-1 sm:gap-2">
+    <div className="flex flex-col p-2 sm:p-4">
+      {/* 7-Day Header Selector Strip: Just pure task numbers in pill */}
+      <div className="grid grid-cols-7 bg-white p-1 sm:p-2 gap-1 sm:gap-2">
         {weekDates.map(day => {
           const isToday = sameDay(day, today);
-          const isSel = sameDay(day, currentDay);
+          const isSel = selectedDay ? sameDay(day, selectedDay) : false;
           const isWeekend = day.getDay() === 0 || day.getDay() === 6;
           const dayCount = (tasksByDay.get(day.toDateString()) ?? []).length;
 
@@ -307,12 +435,12 @@ function WeekView({
               type="button"
               onClick={() => onSelectDay(day)}
               className={cn(
-                'flex flex-col items-center py-2 px-1 rounded-xl transition-all duration-200 cursor-pointer text-center relative border',
+                'flex flex-col items-center py-2.5 px-1 rounded-xl transition-all duration-200 cursor-pointer text-center relative border',
                 isSel
                   ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm ring-2 ring-indigo-200'
                   : isToday
                   ? 'bg-indigo-50/70 border-indigo-200 text-slate-800'
-                  : 'bg-white border-transparent hover:bg-slate-50 text-slate-700'
+                  : 'bg-white border-slate-100 hover:border-slate-200 hover:bg-slate-50 text-slate-700'
               )}
             >
               <span
@@ -331,7 +459,8 @@ function WeekView({
               >
                 {day.getDate()}
               </span>
-              {/* Task count pill or subtle dot */}
+
+              {/* Task count pill or subtle dot - pure count including any meeting task */}
               {dayCount > 0 ? (
                 <span
                   className={cn(
@@ -348,89 +477,35 @@ function WeekView({
           );
         })}
       </div>
-
-      {/* Week Content Area - Clean Tasks List for the Selected Day */}
-      <div className="p-4 sm:p-6 space-y-4">
-        {/* Selected day summary banner */}
-        <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100">
-          <div className="flex items-center gap-2">
-            <span className="text-sm sm:text-base font-bold text-slate-900">
-              {currentDay.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
-            </span>
-            {sameDay(currentDay, today) && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-600 text-white">
-                Today
-              </span>
-            )}
-          </div>
-          <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full shrink-0">
-            {activeDayTasks.length} {activeDayTasks.length === 1 ? 'task' : 'tasks'}
-          </span>
-        </div>
-
-        {/* Selected day tasks */}
-        {activeDayTasks.length === 0 ? (
-          <div className="py-12 text-center bg-slate-50/70 rounded-2xl border border-dashed border-slate-200 p-6">
-            <CalendarBlank size={36} className="mx-auto text-slate-300 mb-2" />
-            <p className="text-sm font-semibold text-slate-700">No tasks on this day</p>
-            <p className="text-xs text-slate-400 mt-0.5">Select another day in the week above to view its tasks.</p>
-          </div>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {activeDayTasks.map(task => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                onStatusUpdate={onStatusUpdate}
-              />
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
 
-// ─── DayView (No Hourly Slots, Clean Daily Tasks) ─────────────────────────────
+// ─── DayView (Clean Daily Tasks, No Separate Meeting Section) ──────────────────
 
 function DayView({
   day,
   tasks,
   onStatusUpdate,
+  onEdit,
+  onDelete,
 }: {
   day: Date;
   tasks: Task[];
   onStatusUpdate?: (taskId: string, status: Task['status'], comment?: string) => Promise<void> | void;
+  onEdit?: (task: Task) => void;
+  onDelete?: (taskId: string) => void;
 }) {
   const dayTasks = tasks.filter(t => taskActiveOnDay(t, day));
-  const today = new Date();
-  const isToday = sameDay(day, today);
 
   return (
     <div className="p-4 sm:p-6 space-y-4">
-      {/* Day summary header */}
-      <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100">
-        <div className="flex items-center gap-2">
-          <span className="text-sm sm:text-base font-bold text-slate-900">
-            {day.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-          </span>
-          {isToday && (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-600 text-white">
-              Today
-            </span>
-          )}
-        </div>
-        <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full shrink-0">
-          {dayTasks.length} {dayTasks.length === 1 ? 'task' : 'tasks'}
-        </span>
-      </div>
-
-      {/* Task cards list for this day */}
+      {/* Task cards list for this day - all rendered via standard TaskCard */}
       {dayTasks.length === 0 ? (
         <div className="py-12 text-center bg-slate-50/70 rounded-2xl border border-dashed border-slate-200 p-6">
           <CalendarBlank size={36} className="mx-auto text-slate-300 mb-2" />
           <p className="text-sm font-semibold text-slate-700">No tasks scheduled for this day</p>
-          <p className="text-xs text-slate-400 mt-0.5">There are no active tasks or surveys assigned for this date.</p>
+          <p className="text-xs text-slate-400 mt-0.5">There are no active tasks or meetings assigned for this date.</p>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -439,6 +514,8 @@ function DayView({
               key={task.id}
               task={task}
               onStatusUpdate={onStatusUpdate}
+              onEdit={onEdit}
+              onDelete={onDelete}
             />
           ))}
         </div>
@@ -451,18 +528,62 @@ function DayView({
 
 export default function MobileCalendar({
   tasks,
+  meetings: externalMeetings,
   view: externalView,
   onViewChange,
   onStatusUpdate,
+  onEdit,
+  onDelete,
 }: MobileCalendarProps) {
   const today = new Date();
 
-  const [internalView, setInternalView] = useState<CalendarView>('day');
+  const [internalView] = useState<CalendarView>('day');
   const view = externalView ?? internalView;
-  const setView = onViewChange ?? setInternalView;
 
   const [currentDate, setCurrentDate] = useState(today);
   const [selectedDay, setSelectedDay] = useState<Date | null>(today);
+  const [weekSelectedDay, setWeekSelectedDay] = useState<Date | null>(null);
+
+  // Online meetings state
+  const [loadedMeetings, setLoadedMeetings] = useState<Meeting[]>(externalMeetings || MOCK_MEETINGS);
+
+  useEffect(() => {
+    if (externalMeetings) {
+      setLoadedMeetings(externalMeetings);
+      return;
+    }
+    trainingApi.getMyMeetings()
+      .then(res => {
+        if (res && res.length > 0) setLoadedMeetings(res);
+      })
+      .catch(() => {
+        setLoadedMeetings(MOCK_MEETINGS);
+      });
+  }, [externalMeetings]);
+
+  // Combine tasks and meeting tasks into a single unified tasks list (strictly deduplicated by ID)!
+  const allTasks = useMemo(() => {
+    const seen = new Set<string>();
+    const unique: Task[] = [];
+    for (const t of tasks) {
+      if (!seen.has(t.id)) {
+        seen.add(t.id);
+        unique.push(t);
+      }
+    }
+    const meetingTasks = loadedMeetings.map(meetingToTask);
+    for (const mt of meetingTasks) {
+      if (!seen.has(mt.id)) {
+        seen.add(mt.id);
+        unique.push(mt);
+      }
+    }
+    return unique;
+  }, [tasks, loadedMeetings]);
+
+  // Roll-up bottom sheet state for Week and Month views
+  const [isRollupOpen, setIsRollupOpen] = useState(false);
+  const [rollupDate, setRollupDate] = useState<Date | null>(null);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -477,6 +598,7 @@ export default function MobileCalendar({
       });
     } else if (view === 'week') {
       setCurrentDate(prev => addDays(prev, 7));
+      setWeekSelectedDay(null);
     } else {
       const next = addDays(selectedDay ?? today, 1);
       setSelectedDay(next);
@@ -493,6 +615,7 @@ export default function MobileCalendar({
       });
     } else if (view === 'week') {
       setCurrentDate(prev => addDays(prev, -7));
+      setWeekSelectedDay(null);
     } else {
       const prev = addDays(selectedDay ?? today, -1);
       setSelectedDay(prev);
@@ -500,13 +623,18 @@ export default function MobileCalendar({
     }
   };
 
-  const monthTaskCount = useMemo(() => tasks.filter(t => {
+  const monthTaskCount = useMemo(() => allTasks.filter(t => {
     const start = isoToDate(t.startDate);
     const end = isoToDate(t.endDate);
     const mStart = new Date(year, month, 1);
     const mEnd = new Date(year, month + 1, 0);
     return start <= mEnd && end >= mStart;
-  }).length, [tasks, year, month]);
+  }).length, [allTasks, year, month]);
+
+  const activeDay = selectedDay ?? today;
+  const dayTaskCount = useMemo(() => {
+    return allTasks.filter(t => taskActiveOnDay(t, activeDay)).length;
+  }, [allTasks, activeDay]);
 
   const headerTitle = useMemo(() => {
     if (view === 'month') return `${MONTH_NAMES[month]} ${year}`;
@@ -518,9 +646,17 @@ export default function MobileCalendar({
       }
       return `${SHORT_MONTH[first.getMonth()]} – ${SHORT_MONTH[last.getMonth()]} ${last.getFullYear()}`;
     }
-    const d = selectedDay ?? today;
-    return d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
-  }, [view, month, year, weekDates, selectedDay]);
+    return activeDay.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
+  }, [view, month, year, weekDates, activeDay]);
+
+  const isTodayInDayView = view === 'day' && sameDay(activeDay, today);
+
+  // When a day is clicked in Month or Week view, select the day and open the roll-up sheet from below
+  const handleDateSelect = (d: Date) => {
+    setSelectedDay(d);
+    setRollupDate(d);
+    setIsRollupOpen(true);
+  };
 
   return (
     <div className="relative">
@@ -528,15 +664,27 @@ export default function MobileCalendar({
         {/* Header with date on left and only < > buttons on right */}
         <div className="px-4 sm:px-6 py-3.5 border-b border-slate-100">
           <div className="flex items-center justify-between gap-2">
-            <div>
-              <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">{headerTitle}</h2>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap min-w-0">
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">{headerTitle}</h2>
+                {isTodayInDayView && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-600 text-white shrink-0">
+                    Today
+                  </span>
+                )}
+                {view === 'day' && (
+                  <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full whitespace-nowrap shrink-0 inline-flex items-center leading-none">
+                    {dayTaskCount} {dayTaskCount === 1 ? 'task' : 'tasks'}
+                  </span>
+                )}
+              </div>
               {view === 'month' && (
                 <p className="text-xs text-slate-400 mt-0.5">
                   {monthTaskCount} task{monthTaskCount !== 1 ? 's' : ''} this month
                 </p>
               )}
             </div>
-            {/* Nav buttons: < > only without Today button */}
+            {/* Nav buttons: < > only */}
             <div className="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
@@ -558,38 +706,55 @@ export default function MobileCalendar({
           </div>
         </div>
 
-        {/* View body without any hourly timeline */}
+        {/* View body */}
         <div>
           {view === 'month' && (
             <div className="p-4 sm:p-6">
               <MonthView
                 year={year}
                 month={month}
-                tasks={tasks}
+                tasks={allTasks}
                 selectedDay={selectedDay}
-                onSelectDay={setSelectedDay}
-                onStatusUpdate={onStatusUpdate}
+                onSelectDay={handleDateSelect}
               />
             </div>
           )}
           {view === 'week' && (
             <WeekView
               weekDates={weekDates}
-              tasks={tasks}
-              selectedDay={selectedDay}
-              onSelectDay={d => { setSelectedDay(d); setCurrentDate(d); }}
-              onStatusUpdate={onStatusUpdate}
+              tasks={allTasks}
+              selectedDay={weekSelectedDay}
+              onSelectDay={d => {
+                setWeekSelectedDay(d);
+                handleDateSelect(d);
+              }}
             />
           )}
           {view === 'day' && (
             <DayView
-              day={selectedDay ?? today}
-              tasks={tasks}
+              day={activeDay}
+              tasks={allTasks}
               onStatusUpdate={onStatusUpdate}
+              onEdit={onEdit}
+              onDelete={onDelete}
             />
           )}
         </div>
       </div>
+
+      {/* Roll-up Bottom Sheet for Week and Month date selections */}
+      <DateTasksRollupSheet
+        date={rollupDate}
+        isOpen={isRollupOpen}
+        onClose={() => {
+          setIsRollupOpen(false);
+          setWeekSelectedDay(null);
+        }}
+        tasks={allTasks}
+        onStatusUpdate={onStatusUpdate}
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
     </div>
   );
 }

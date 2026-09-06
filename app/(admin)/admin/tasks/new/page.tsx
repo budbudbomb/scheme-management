@@ -7,19 +7,64 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Check, Warning, Trash, ClipboardText, CheckCircle, CheckSquare, MagnifyingGlass, X, FunnelSimple, MapPin, CaretRight, UsersThree, Users, UserCheck } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowRight, Check, Warning, Trash, ClipboardText, CheckCircle, CheckSquare, MagnifyingGlass, X, FunnelSimple, MapPin, CaretRight, UsersThree, Users, UserCheck, VideoCamera, Clock } from '@phosphor-icons/react';
 import { usersApi } from '@/lib/api/users';
 import { tasksApi } from '@/lib/api/tasks';
 import { surveysApi } from '@/lib/api/surveys';
-import type { User, Survey, Division, District, Block, GramPanchayat, Village } from '@/types/models';
+import type { User, Survey, Division, District, Block, GramPanchayat, Village, Meeting } from '@/types/models';
 import { cn, roleLabel } from '@/lib/utils/formatters';
 import { toast } from 'sonner';
+import { useAuth } from '@/lib/auth/context';
 import { useVirtualKeyboard } from '@/lib/hooks/useVirtualKeyboard';
 import DatePicker from '@/components/shared/DatePicker';
 import CustomSelect from '@/components/shared/CustomSelect';
 
+const TIME_OPTIONS = [
+  { value: '08:00 AM', label: '08:00 AM' },
+  { value: '08:30 AM', label: '08:30 AM' },
+  { value: '09:00 AM', label: '09:00 AM' },
+  { value: '09:30 AM', label: '09:30 AM' },
+  { value: '10:00 AM', label: '10:00 AM' },
+  { value: '10:30 AM', label: '10:30 AM' },
+  { value: '11:00 AM', label: '11:00 AM' },
+  { value: '11:30 AM', label: '11:30 AM' },
+  { value: '12:00 PM', label: '12:00 PM' },
+  { value: '12:30 PM', label: '12:30 PM' },
+  { value: '01:00 PM', label: '01:00 PM' },
+  { value: '01:30 PM', label: '01:30 PM' },
+  { value: '02:00 PM', label: '02:00 PM' },
+  { value: '02:30 PM', label: '02:30 PM' },
+  { value: '03:00 PM', label: '03:00 PM' },
+  { value: '03:30 PM', label: '03:30 PM' },
+  { value: '04:00 PM', label: '04:00 PM' },
+  { value: '04:30 PM', label: '04:30 PM' },
+  { value: '05:00 PM', label: '05:00 PM' },
+  { value: '05:30 PM', label: '05:30 PM' },
+  { value: '06:00 PM', label: '06:00 PM' },
+  { value: '06:30 PM', label: '06:30 PM' },
+  { value: '07:00 PM', label: '07:00 PM' },
+  { value: '07:30 PM', label: '07:30 PM' },
+  { value: '08:00 PM', label: '08:00 PM' },
+];
+
+function parseTimeToMinutes(timeStr: string): number {
+  const [time, modifier] = timeStr.split(' ');
+  let [hours, minutes] = time.split(':').map(Number);
+  if (modifier === 'PM' && hours < 12) hours += 12;
+  if (modifier === 'AM' && hours === 12) hours = 0;
+  return hours * 60 + minutes;
+}
+
+function parseTimeTo24H(timeStr: string): string {
+  const [time, modifier] = timeStr.split(' ');
+  let [hours, minutes] = time.split(':').map(Number);
+  if (modifier === 'PM' && hours < 12) hours += 12;
+  if (modifier === 'AM' && hours === 12) hours = 0;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
+}
+
 const schema = z.object({
-  name: z.string().min(2, 'Task name required'),
+  name: z.string().min(2, 'Name or title required'),
   description: z.string().optional(),
   priority: z.enum(['high', 'medium', 'low'] as const),
   startDate: z.string().min(1, 'Start date required'),
@@ -27,6 +72,7 @@ const schema = z.object({
   assignedToIds: z.array(z.string()).default([]),
   isSurveyTask: z.boolean().optional(),
   surveyId: z.string().optional(),
+  isMeetingTask: z.boolean().optional(),
 })
 .refine(d => d.startDate <= d.endDate, { message: 'End date must be after start date', path: ['endDate'] })
 .refine(d => !d.isSurveyTask || (d.isSurveyTask && !!d.surveyId), { message: 'Please select a survey', path: ['surveyId'] });
@@ -43,6 +89,7 @@ function inputCls(hasError?: boolean) {
 
 function NewTaskForm() {
   const router = useRouter();
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const querySurveyId = searchParams?.get('surveyId') || '';
   const querySurveyName = searchParams?.get('surveyName') || '';
@@ -55,6 +102,10 @@ function NewTaskForm() {
   const [users, setUsers] = useState<User[]>([]);
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [isSurveyToggle, setIsSurveyToggle] = useState<boolean>(false);
+  const [isMeetingToggle, setIsMeetingToggle] = useState<boolean>(false);
+  const [meetingStartTime, setMeetingStartTime] = useState<string>('10:00 AM');
+  const [meetingEndTime, setMeetingEndTime] = useState<string>('11:00 AM');
+  const [meetingUrl, setMeetingUrl] = useState<string>('');
   const [surveyError, setSurveyError] = useState<boolean>(false);
   const [cameFromSurvey, setCameFromSurvey] = useState<boolean>(false);
   const [userSearch, setUserSearch] = useState<string>('');
@@ -585,6 +636,9 @@ function NewTaskForm() {
   };
 
   const handleNextFromStep2 = async () => {
+    if (isMeetingToggle && watchStartDate) {
+      setValue('endDate', watchStartDate, { shouldValidate: true });
+    }
     const isValid = await trigger(['startDate', 'endDate', 'priority']);
     if (isValid) setStep(3);
   };
@@ -624,6 +678,13 @@ function NewTaskForm() {
         setCameFromSurvey(false);
         setValue('isSurveyTask', false, { shouldValidate: true });
         setValue('surveyId', '', { shouldValidate: true });
+        if (isMeetingToggle) {
+          const today = new Date().toISOString().split('T')[0];
+          if (!watchStartDate) {
+            setValue('startDate', today, { shouldValidate: true });
+            setValue('endDate', today, { shouldValidate: true });
+          }
+        }
         setStep(1);
       }
     } else if (step === 1) {
@@ -686,9 +747,34 @@ function NewTaskForm() {
           }
         }
       }
-      await tasksApi.create(data);
+
+      let meetingData: Meeting | undefined = undefined;
+      if (isMeetingToggle) {
+        const start24 = parseTimeTo24H(meetingStartTime);
+        const durationMins = Math.max(15, parseTimeToMinutes(meetingEndTime) - parseTimeToMinutes(meetingStartTime) || 60);
+        meetingData = {
+          id: `meet-${Date.now()}`,
+          title: data.name,
+          scheduledAt: `${data.startDate}T${start24}Z`,
+          duration: durationMins,
+          organizer: { id: user?.id || 'cpm-01', name: user?.name || 'Program Manager', role: 'admin' },
+          invitees: selectedUsers.map(u => ({ id: u.id, name: u.name, role: u.role })),
+          zoomJoinUrl: meetingUrl.trim() || 'https://zoom.us/j/cmyp-meeting-session',
+          agenda: data.description || 'Virtual conference and team sync meeting',
+          createdAt: new Date().toISOString(),
+        };
+      }
+
+      await tasksApi.create({
+        ...data,
+        isMeetingTask: isMeetingToggle,
+        meetingData,
+      });
+
       toast.success(
-        assignmentMode === 'area'
+        isMeetingToggle
+          ? 'Meeting scheduled and assigned successfully'
+          : assignmentMode === 'area'
           ? `Task allocated to ${areaTarget || 'selected area'} successfully`
           : 'Task created and assigned successfully'
       );
@@ -706,7 +792,7 @@ function NewTaskForm() {
   return (
     <div className="max-w-4xl mx-auto space-y-3 sm:space-y-6 pb-24 lg:pb-12">
       {/* Header Container */}
-      <div className="sticky top-0 z-20 bg-[hsl(var(--color-bg))] backdrop-blur-md pt-0.5 pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:static lg:bg-transparent lg:p-0 lg:m-0 border-b border-slate-200/70 lg:border-none shadow-2xs lg:shadow-none">
+      <div className="sticky top-0 z-20 bg-[hsl(var(--color-bg))] backdrop-blur-md pt-0.5 pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:static lg:bg-transparent lg:p-0 border-b border-slate-200/70 lg:border-none shadow-2xs lg:shadow-none">
         <div className="flex items-center gap-2.5 sm:gap-3">
           <Link
             href={cameFromSurvey ? '/admin/surveys' : '/admin/tasks'}
@@ -752,7 +838,7 @@ function NewTaskForm() {
 
       {/* Desktop Stepper UI - Clean Segmented Cards with distinct gap */}
       <div
-        className="hidden lg:grid gap-3.5 mb-8"
+        className="hidden lg:grid gap-3.5 mb-8 lg:mt-7"
         style={{
           gridTemplateColumns: (cameFromSurvey || (step === 0 && isSurveyToggle))
             ? 'repeat(2, minmax(0, 1fr))'
@@ -765,9 +851,9 @@ function NewTaskForm() {
               { key: 3, num: 2, label: 'Select Assignees', desc: `${selectedUsers.length} selected` },
             ]
           : [
-              { key: 0, num: 1, label: 'Task Type', desc: isSurveyToggle ? 'Survey Task' : 'Standard Task' },
-              { key: 1, num: 2, label: 'Task Details', desc: watchName || 'Name & context' },
-              { key: 2, num: 3, label: 'Schedule', desc: watchStartDate && watchEndDate ? `${watchStartDate} – ${watchEndDate}` : 'Dates & priority' },
+              { key: 0, num: 1, label: 'Task Type', desc: isSurveyToggle ? 'Survey Task' : isMeetingToggle ? 'Schedule a Meeting' : 'Standard Task' },
+              { key: 1, num: 2, label: isMeetingToggle ? 'Title' : 'Task Details', desc: watchName || (isMeetingToggle ? 'Meeting title' : 'Name & context') },
+              { key: 2, num: 3, label: 'Schedule', desc: isMeetingToggle ? (watchStartDate ? `${watchStartDate} (${meetingStartTime})` : 'Date & time') : (watchStartDate && watchEndDate ? `${watchStartDate} – ${watchEndDate}` : 'Dates & priority') },
               { key: 3, num: 4, label: 'Select Assignees', desc: `${selectedUsers.length} selected` },
             ]
         ).map((s) => {
@@ -838,26 +924,28 @@ function NewTaskForm() {
             </div>
 
             {/* Type Selection Cards */}
-            <div className="space-y-2.5 sm:grid sm:grid-cols-2 sm:gap-4 sm:space-y-0">
+            <div className="space-y-2.5 sm:grid sm:grid-cols-3 sm:gap-4 sm:space-y-0">
               {/* Standard Task Card */}
               <button
                 type="button"
                 onClick={() => {
+                  setIsMeetingToggle(false);
                   setIsSurveyToggle(false);
+                  setValue('isMeetingTask', false, { shouldValidate: true });
                   setValue('isSurveyTask', false, { shouldValidate: true });
                   setValue('surveyId', '');
                   setSurveyError(false);
                 }}
                 className={cn(
                   'w-full p-3 sm:p-5 rounded-xl border-2 text-left transition-all cursor-pointer flex items-center sm:items-start gap-3 sm:gap-4',
-                  !isSurveyToggle
+                  !isSurveyToggle && !isMeetingToggle
                     ? 'border-indigo-600 bg-indigo-50/50 shadow-xs ring-1 ring-indigo-200'
                     : 'border-slate-200 hover:border-slate-300 bg-white'
                 )}
               >
                 <div className={cn(
                   'w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors',
-                  !isSurveyToggle ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-100 text-slate-500'
+                  !isSurveyToggle && !isMeetingToggle ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-100 text-slate-500'
                 )}>
                   <CheckSquare size={20} weight="bold" />
                 </div>
@@ -866,14 +954,14 @@ function NewTaskForm() {
                     <span className="font-bold text-slate-900 text-xs sm:text-sm">Standard Task</span>
                     <div className={cn(
                       'w-4 h-4 rounded-full border flex items-center justify-center shrink-0 sm:hidden',
-                      !isSurveyToggle ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
+                      !isSurveyToggle && !isMeetingToggle ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
                     )}>
-                      {!isSurveyToggle && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      {!isSurveyToggle && !isMeetingToggle && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                     </div>
                   </div>
                   <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 leading-snug">
-                    <span className="sm:hidden">Field assignment, documentation & review</span>
-                    <span className="hidden sm:inline">Create a regular field assignment, documentation, inspection, or review task.</span>
+                    <span className="sm:hidden">Field assignment & review</span>
+                    <span className="hidden sm:inline">Create a regular field assignment, inspection, or review task.</span>
                   </p>
                 </div>
               </button>
@@ -882,19 +970,21 @@ function NewTaskForm() {
               <button
                 type="button"
                 onClick={() => {
+                  setIsMeetingToggle(false);
                   setIsSurveyToggle(true);
+                  setValue('isMeetingTask', false, { shouldValidate: true });
                   setValue('isSurveyTask', true, { shouldValidate: true });
                 }}
                 className={cn(
                   'w-full p-3 sm:p-5 rounded-xl border-2 text-left transition-all cursor-pointer flex items-center sm:items-start gap-3 sm:gap-4',
-                  isSurveyToggle
+                  isSurveyToggle && !isMeetingToggle
                     ? 'border-purple-600 bg-purple-50/50 shadow-xs ring-1 ring-purple-200'
                     : 'border-slate-200 hover:border-slate-300 bg-white'
                 )}
               >
                 <div className={cn(
                   'w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors',
-                  isSurveyToggle ? 'bg-purple-600 text-white shadow-xs' : 'bg-slate-100 text-slate-500'
+                  isSurveyToggle && !isMeetingToggle ? 'bg-purple-600 text-white shadow-xs' : 'bg-slate-100 text-slate-500'
                 )}>
                   <ClipboardText size={20} weight="bold" />
                 </div>
@@ -903,14 +993,55 @@ function NewTaskForm() {
                     <span className="font-bold text-slate-900 text-xs sm:text-sm">Survey Task</span>
                     <div className={cn(
                       'w-4 h-4 rounded-full border flex items-center justify-center shrink-0 sm:hidden',
-                      isSurveyToggle ? 'border-purple-600 bg-purple-600' : 'border-slate-300'
+                      isSurveyToggle && !isMeetingToggle ? 'border-purple-600 bg-purple-600' : 'border-slate-300'
                     )}>
-                      {isSurveyToggle && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      {isSurveyToggle && !isMeetingToggle && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                     </div>
                   </div>
                   <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 leading-snug">
                     <span className="sm:hidden">Deploy questionnaires for field responses</span>
-                    <span className="hidden sm:inline">Deploy an active survey questionnaire for respondents to fill and submit directly.</span>
+                    <span className="hidden sm:inline">Deploy an active survey questionnaire for respondents to fill directly.</span>
+                  </p>
+                </div>
+              </button>
+
+              {/* Schedule a Meeting Card */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMeetingToggle(true);
+                  setIsSurveyToggle(false);
+                  setValue('isMeetingTask', true, { shouldValidate: true });
+                  setValue('isSurveyTask', false, { shouldValidate: true });
+                  setValue('surveyId', '');
+                  setSurveyError(false);
+                }}
+                className={cn(
+                  'w-full p-3 sm:p-5 rounded-xl border-2 text-left transition-all cursor-pointer flex items-center sm:items-start gap-3 sm:gap-4',
+                  isMeetingToggle
+                    ? 'border-[#1e3a8a] bg-blue-50/60 shadow-xs ring-1 ring-blue-300'
+                    : 'border-slate-200 hover:border-slate-300 bg-white'
+                )}
+              >
+                <div className={cn(
+                  'w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors',
+                  isMeetingToggle ? 'bg-[#1e3a8a] text-white shadow-xs' : 'bg-slate-100 text-slate-500'
+                )}>
+                  <VideoCamera size={20} weight="bold" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-900 text-xs sm:text-sm">schedule a meeting</span>
+                    <div className={cn(
+                      'w-4 h-4 rounded-full border flex items-center justify-center shrink-0 sm:hidden',
+                      isMeetingToggle ? 'border-[#1e3a8a] bg-[#1e3a8a]' : 'border-slate-300'
+                    )}>
+                      {isMeetingToggle && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </div>
+                  </div>
+                  <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 leading-snug">
+                    <span className="sm:hidden">Schedule online training or review meeting</span>
+                    <span className="hidden sm:inline">Schedule an online meeting or training session with assignees.</span>
                   </p>
                 </div>
               </button>
@@ -962,7 +1093,7 @@ function NewTaskForm() {
                 onClick={handleNext}
                 className="px-6 py-2.5 rounded-[var(--radius)] bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 btn-press transition-all shadow-xs flex items-center gap-2 cursor-pointer"
               >
-                <span>{isSurveyToggle ? 'Next: Select Assignees' : 'Next: Task Details'}</span>
+                <span>{isSurveyToggle ? 'Next: Select Assignees' : isMeetingToggle ? 'Next: Meeting Details' : 'Next: Task Details'}</span>
                 <ArrowRight size={16} weight="bold" />
               </button>
             </div>
@@ -973,17 +1104,21 @@ function NewTaskForm() {
         {step === 1 && (
           <div className="card p-6 sm:p-8 space-y-6 border border-slate-200/80 shadow-xs bg-white animate-in fade-in duration-200">
             <div className="border-b border-slate-100 pb-4">
-              <h2 className="text-base sm:text-lg font-bold text-slate-900">Step 2: Task Details</h2>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Provide a clear task title and contextual instructions for assignees</p>
+              <h2 className="text-base sm:text-lg font-bold text-slate-900">
+                {isMeetingToggle ? 'Step 2: Meeting Title & Details' : 'Step 2: Task Details'}
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                {isMeetingToggle ? 'Provide a clear meeting title and agenda instructions for attendees' : 'Provide a clear task title and contextual instructions for assignees'}
+              </p>
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                Task Name <span className="text-rose-500">*</span>
+                {isMeetingToggle ? 'Title' : 'Task Name'} <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
-                placeholder="e.g. District Field Survey Q3"
+                placeholder={isMeetingToggle ? 'e.g. Weekly District Alignment Meeting' : 'e.g. District Field Survey Q3'}
                 value={watchName}
                 onChange={e => setValue('name', e.target.value, { shouldValidate: true })}
                 className={inputCls(!!errors.name)}
@@ -997,16 +1132,32 @@ function NewTaskForm() {
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                Description (optional)
+                {isMeetingToggle ? 'Agenda / Description (optional)' : 'Description (optional)'}
               </label>
               <textarea
                 rows={4}
-                placeholder="Add detailed task instructions, target requirements, or field directions…"
+                placeholder={isMeetingToggle ? 'Add agenda points, discussion topics, or meeting guidelines…' : 'Add detailed task instructions, target requirements, or field directions…'}
                 value={watchDescription}
                 onChange={e => setValue('description', e.target.value, { shouldValidate: true })}
                 className={cn(inputCls(), 'resize-none')}
               />
             </div>
+
+            {/* Third Field: Upload meeting URL for meetings */}
+            {isMeetingToggle && (
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                  Upload meeting URL
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://meet.google.com/… or Zoom link"
+                  value={meetingUrl}
+                  onChange={e => setMeetingUrl(e.target.value)}
+                  className={inputCls()}
+                />
+              </div>
+            )}
 
             {/* Desktop Inline Action Bar */}
             <div className="hidden lg:flex items-center justify-between pt-5 border-t border-slate-100">
@@ -1034,64 +1185,104 @@ function NewTaskForm() {
         {step === 2 && (
           <div className="card p-6 sm:p-8 space-y-6 border border-slate-200/80 shadow-xs bg-white animate-in fade-in duration-200">
             <div className="border-b border-slate-100 pb-4">
-              <h2 className="text-base sm:text-lg font-bold text-slate-900">Step 3: Schedule &amp; Priority</h2>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Define the active timeline window and urgency level for completion</p>
+              <h2 className="text-base sm:text-lg font-bold text-slate-900">
+                {isMeetingToggle ? 'Step 3: Schedule' : 'Step 3: Schedule & Priority'}
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                {isMeetingToggle ? 'Select the date and time window for the meeting' : 'Define the active timeline window and urgency level for completion'}
+              </p>
             </div>
 
             <div className="space-y-4 sm:space-y-5">
-              <div>
-                <CustomSelect
-                  label="Priority"
-                  required
-                  value={watchPriority}
-                  onChange={val => setValue('priority', val as any, { shouldValidate: true })}
-                  options={[
-                    {
-                      value: 'high',
-                      label: 'High Priority',
-                      badge: 'High',
-                      badgeColor: 'bg-rose-50 text-rose-700 border border-rose-200',
-                      subtext: 'Urgent timeline, requires immediate attention',
-                    },
-                    {
-                      value: 'medium',
-                      label: 'Medium Priority',
-                      badge: 'Normal',
-                      badgeColor: 'bg-amber-50 text-amber-700 border border-amber-200',
-                      subtext: 'Standard operational workflow timeline',
-                    },
-                    {
-                      value: 'low',
-                      label: 'Low Priority',
-                      badge: 'Low',
-                      badgeColor: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-                      subtext: 'Flexible schedule with routine delivery',
-                    },
-                  ]}
-                />
-              </div>
+              {!isMeetingToggle && (
+                <div>
+                  <CustomSelect
+                    label="Priority"
+                    required
+                    value={watchPriority}
+                    onChange={val => setValue('priority', val as any, { shouldValidate: true })}
+                    options={[
+                      {
+                        value: 'high',
+                        label: 'High Priority',
+                        badge: 'High',
+                        badgeColor: 'bg-rose-50 text-rose-700 border border-rose-200',
+                        subtext: 'Urgent timeline, requires immediate attention',
+                      },
+                      {
+                        value: 'medium',
+                        label: 'Medium Priority',
+                        badge: 'Normal',
+                        badgeColor: 'bg-amber-50 text-amber-700 border border-amber-200',
+                        subtext: 'Standard operational workflow timeline',
+                      },
+                      {
+                        value: 'low',
+                        label: 'Low Priority',
+                        badge: 'Low',
+                        badgeColor: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+                        subtext: 'Flexible schedule with routine delivery',
+                      },
+                    ]}
+                  />
+                </div>
+              )}
 
-              {/* Start Date and End Date side by side using sleek DatePicker */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5">
-                <DatePicker
-                  label="Start Date"
-                  required
-                  value={watchStartDate}
-                  onChange={val => setValue('startDate', val, { shouldValidate: true })}
-                  maxDate={watchEndDate}
-                  hasError={!!errors.startDate}
-                  errorMessage={errors.startDate?.message}
-                />
-                <DatePicker
-                  label="End Date"
-                  required
-                  value={watchEndDate}
-                  onChange={val => setValue('endDate', val, { shouldValidate: true })}
-                  minDate={watchStartDate}
-                  hasError={!!errors.endDate}
-                  errorMessage={errors.endDate?.message}
-                />
-              </div>
+              {/* If meeting: Show single "Date" dropdown/picker and "Start" and "End" Time dropdowns */}
+              {isMeetingToggle ? (
+                <div className="space-y-4">
+                  <DatePicker
+                    label="Date"
+                    required
+                    value={watchStartDate}
+                    onChange={val => {
+                      setValue('startDate', val, { shouldValidate: true });
+                      setValue('endDate', val, { shouldValidate: true });
+                    }}
+                    hasError={!!errors.startDate}
+                    errorMessage={errors.startDate?.message}
+                  />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5">
+                    <CustomSelect
+                      label="Start Time"
+                      required
+                      value={meetingStartTime}
+                      onChange={val => setMeetingStartTime(val)}
+                      options={TIME_OPTIONS}
+                    />
+                    <CustomSelect
+                      label="End Time"
+                      required
+                      value={meetingEndTime}
+                      onChange={val => setMeetingEndTime(val)}
+                      options={TIME_OPTIONS}
+                    />
+                  </div>
+                </div>
+              ) : (
+                /* Start Date and End Date side by side using sleek DatePicker */
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5">
+                  <DatePicker
+                    label="Start Date"
+                    required
+                    value={watchStartDate}
+                    onChange={val => setValue('startDate', val, { shouldValidate: true })}
+                    maxDate={watchEndDate}
+                    hasError={!!errors.startDate}
+                    errorMessage={errors.startDate?.message}
+                  />
+                  <DatePicker
+                    label="End Date"
+                    required
+                    value={watchEndDate}
+                    onChange={val => setValue('endDate', val, { shouldValidate: true })}
+                    minDate={watchStartDate}
+                    hasError={!!errors.endDate}
+                    errorMessage={errors.endDate?.message}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Desktop Inline Action Bar */}
@@ -2112,7 +2303,7 @@ function NewTaskForm() {
                 className="px-7 py-2.5 rounded-[var(--radius)] bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 btn-press transition-all shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-60"
               >
                 {isSubmitting && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                <span>{cameFromSurvey || isSurveyTask ? 'Deploy Survey Task' : 'Create & Assign Task'}</span>
+                <span>{cameFromSurvey || isSurveyTask ? 'Deploy Survey Task' : isMeetingToggle ? 'Schedule Meeting' : 'Create & Assign Task'}</span>
                 <Check size={16} weight="bold" />
               </button>
             </div>
@@ -2146,7 +2337,7 @@ function NewTaskForm() {
                   }}
                   className="flex-1 h-12 px-6 rounded-full bg-indigo-600 text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/35 hover:bg-indigo-700 btn-press transition-all disabled:opacity-60 cursor-pointer"
                 >
-                  {isSubmitting ? 'Saving...' : cameFromSurvey || isSurveyTask ? 'Deploy Survey Task' : 'Save & Assign Task'}
+                  {isSubmitting ? 'Saving...' : cameFromSurvey || isSurveyTask ? 'Deploy Survey Task' : isMeetingToggle ? 'Schedule Meeting' : 'Save & Assign Task'}
                   <Check size={16} weight="bold" />
                 </button>
               ) : (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -28,6 +28,7 @@ import {
   UploadSimple,
   FloppyDisk,
   ChatText,
+  Eye,
 } from '@phosphor-icons/react';
 import type { Survey, SurveyQuestion, QuestionMediaAnswer } from '@/types/models';
 import { surveysApi } from '@/lib/api/surveys';
@@ -35,6 +36,7 @@ import { cn, formatDate } from '@/lib/utils/formatters';
 import { toast } from 'sonner';
 import { useVirtualKeyboard } from '@/lib/hooks/useVirtualKeyboard';
 import { useAuth } from '@/lib/auth/context';
+import StakeholderResponsesPreviewModal from './StakeholderResponsesPreviewModal';
 
 interface SurveyFillFormProps {
   survey: Survey;
@@ -42,17 +44,37 @@ interface SurveyFillFormProps {
   onSuccess?: () => void;
 }
 
-export default function SurveyFillForm({ survey, backHref = '/surveys', onSuccess }: SurveyFillFormProps) {
+export default function SurveyFillForm({ survey, backHref = '', onSuccess }: SurveyFillFormProps) {
   const router = useRouter();
   const { user } = useAuth();
   const currentRole = (user?.role as 'intern' | 'fellow' | 'pc') || 'intern';
 
-  const [mounted, setMounted] = useState(false);
-  const isKeyboardOpen = useVirtualKeyboard();
+  const targetBackHref = useMemo(() => {
+    if (backHref && backHref !== '/surveys' && !backHref.endsWith('/surveys')) {
+      return backHref;
+    }
+    return `/${currentRole}/tasks`;
+  }, [backHref, currentRole]);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const handleExitSurvey = () => {
+    try {
+      router.push(targetBackHref);
+    } catch {
+      window.location.href = targetBackHref;
+    }
+    setTimeout(() => {
+      if (typeof window !== 'undefined' && window.location.pathname.includes('/surveys/')) {
+        window.location.href = targetBackHref;
+      }
+    }, 150);
+  };
+
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+  const isKeyboardOpen = useVirtualKeyboard();
 
   // ── Step State ──
   // 0 = General & Stakeholder Details Screen
@@ -76,6 +98,7 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
   const [savedResponsesCount, setSavedResponsesCount] = useState<number>(survey.responsesCount || 0);
   const [isHierarchyModalOpen, setIsHierarchyModalOpen] = useState(false);
   const [isSavePromptModalOpen, setIsSavePromptModalOpen] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [justSavedStakeholder, setJustSavedStakeholder] = useState('');
   const [hierarchySubmittedTo, setHierarchySubmittedTo] = useState<string>('');
 
@@ -229,8 +252,6 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
     if (currentStepIndex < totalQuestions) {
       setCurrentStepIndex(prev => prev + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      setIsHierarchyModalOpen(true);
     }
   };
 
@@ -239,6 +260,33 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
     if (currentStepIndex > 0) {
       setCurrentStepIndex(prev => prev - 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Direct Submission on Final Question (Without redundant feedback page)
+  const handleFinalQuestionSubmit = async () => {
+    if (!validateCurrentQuestion()) return;
+    setIsSubmitting(true);
+    try {
+      const res = await surveysApi.saveDraftResponse(survey.id, {
+        stakeholder: {
+          fullName: stakeholderName.trim(),
+          contactInfo: stakeholderContact.trim() || undefined,
+          district: stakeholderLocation.trim() || undefined,
+        },
+        answers,
+      });
+
+      setSavedResponsesCount(res.responsesCount);
+      const nameSaved = stakeholderName.trim() || 'Participant';
+      setJustSavedStakeholder(nameSaved);
+      setSubmittedSuccess(true);
+      toast.success(`Survey response for "${nameSaved}" recorded successfully!`);
+      if (onSuccess) onSuccess();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to submit response');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -269,17 +317,14 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
     }
   };
 
-  // Option 2: Hierarchical Submission with Feedback
-  const handleConfirmHierarchySubmit = async () => {
-    if (!feedbackText.trim()) {
-      setFeedbackError(`Please provide field feedback & observations for the ${nextSupervisorInfo.roleName}.`);
-      return;
-    }
-    setFeedbackError('');
-    setIsSubmitting(true);
+  const progressPercent = totalQuestions > 0 && currentStepIndex > 0
+    ? Math.round((currentStepIndex / totalQuestions) * 100)
+    : 0;
 
+  // Direct Hierarchy Submission from prompt/dialog
+  const handleConfirmHierarchySubmit = async () => {
+    setIsSubmitting(true);
     try {
-      // If current form has filled answers not yet saved, save it first
       if (stakeholderName.trim() && Object.keys(answers).length > 0) {
         await surveysApi.saveDraftResponse(survey.id, {
           stakeholder: {
@@ -298,15 +343,16 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
       await surveysApi.submitHierarchySurvey(survey.id, {
         submittedBy: currentUserRef,
         role: currentRole,
-        feedbackText: feedbackText.trim(),
+        feedbackText: feedbackText.trim() || 'Survey completed and submitted from field.',
         challengesFaced: challengesFaced.trim() || undefined,
         recommendations: recommendations.trim() || undefined,
       });
 
       setHierarchySubmittedTo(nextSupervisorInfo.personName);
       setIsHierarchyModalOpen(false);
+      setIsSavePromptModalOpen(false);
       setSubmittedSuccess(true);
-      toast.success(`Survey batch and feedback submitted to ${nextSupervisorInfo.roleName}!`);
+      toast.success('Survey batch submitted successfully!');
       if (onSuccess) onSuccess();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to submit survey');
@@ -338,18 +384,10 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
         </div>
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
-            {hierarchySubmittedTo ? 'Survey Batch Submitted with Feedback!' : 'Survey Response Recorded!'}
+            Survey Submitted Successfully!
           </h2>
           <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">
-            {hierarchySubmittedTo ? (
-              <>
-                All responses and field observations for <strong className="text-slate-800">"{survey.title}"</strong> have been submitted to <strong className="text-indigo-700">{hierarchySubmittedTo}</strong>.
-              </>
-            ) : (
-              <>
-                Response for stakeholder <strong className="text-slate-800">"{stakeholderName || justSavedStakeholder}"</strong> has been recorded for <strong className="text-slate-800">"{survey.title}"</strong>.
-              </>
-            )}
+            All responses and field observations for <strong className="text-slate-800">&quot;{survey.title}&quot;</strong> have been submitted.
           </p>
         </div>
 
@@ -362,58 +400,94 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
             <Plus size={16} weight="bold" />
             <span>Interview Another Stakeholder</span>
           </button>
-          <Link
-            href={backHref}
-            className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors shadow-2xs"
+          <button
+            type="button"
+            onClick={() => setIsPreviewModalOpen(true)}
+            className="px-5 py-2.5 rounded-xl border border-indigo-200 bg-indigo-50/60 text-indigo-700 text-sm font-semibold hover:bg-indigo-100/70 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
           >
-            Back to Tasks &amp; Surveys
-          </Link>
+            <Eye size={16} weight="bold" />
+            <span>Preview All Responses</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleExitSurvey}
+            className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+          >
+            Back to Tasks
+          </button>
         </div>
+
+        {/* Stakeholder Responses Preview Modal */}
+        <StakeholderResponsesPreviewModal
+          isOpen={isPreviewModalOpen}
+          onClose={() => setIsPreviewModalOpen(false)}
+          surveyTitle={survey.title}
+          questions={questions}
+          currentStakeholder={{
+            name: justSavedStakeholder || stakeholderName,
+            contact: stakeholderContact,
+            location: stakeholderLocation,
+            answers,
+          }}
+          totalInterviewedCount={savedResponsesCount}
+        />
       </div>
     );
   }
 
-  // Progress percentage (only for questions: 1 to totalQuestions)
-  const progressPercent = totalQuestions > 0 && currentStepIndex > 0
-    ? Math.round((currentStepIndex / totalQuestions) * 100)
-    : 0;
-
   return (
-    <div className="max-w-3xl mx-auto space-y-5 pb-36 sm:pb-24">
+    <div className={cn(
+      "max-w-3xl mx-auto transition-all",
+      currentStepIndex === 0
+        ? "space-y-3.5 sm:space-y-5 pb-4 sm:pb-6"
+        : "space-y-4 sm:space-y-5 pb-16 sm:pb-8"
+    )}>
+      {/* ══════════════════════════════════════════════════════════════════════
+          FROZEN TOP BAR (STEP 0: GENERAL & STAKEHOLDER DETAILS)
+         ══════════════════════════════════════════════════════════════════════ */}
       {/* ══════════════════════════════════════════════════════════════════════
           FROZEN TOP BAR (STEP 0: GENERAL & STAKEHOLDER DETAILS)
          ══════════════════════════════════════════════════════════════════════ */}
       {currentStepIndex === 0 && (
         <div className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-md -mx-4 px-4 pt-2.5 pb-2.5 border-b border-slate-200/80 shadow-2xs">
-          <div className="flex items-center gap-2.5 max-w-3xl mx-auto">
+          <div className="flex items-center justify-between gap-3 max-w-3xl mx-auto">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <button
+                type="button"
+                onClick={handleExitSurvey}
+                className="w-10 h-10 rounded-full border border-slate-200 bg-white text-slate-700 flex items-center justify-center hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer shrink-0 active:scale-95"
+                aria-label="Back"
+                title="Back to Tasks"
+              >
+                <ArrowLeft size={18} weight="bold" />
+              </button>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-base sm:text-lg font-bold text-slate-900 truncate leading-snug">
+                  {survey.title}
+                </h1>
+                <p className="text-[11px] text-slate-400 font-medium leading-none mt-0.5">
+                  General &amp; Stakeholder Details
+                </p>
+              </div>
+            </div>
+
+            {/* Eye preview button on top right */}
             <button
               type="button"
-              onClick={() => {
-                if (typeof window !== 'undefined' && window.history.length > 1) {
-                  router.back();
-                } else {
-                  router.push(backHref);
-                }
-              }}
-              className="w-10 h-10 rounded-full border border-slate-200 bg-white text-slate-700 flex items-center justify-center hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer shrink-0 active:scale-95"
-              aria-label="Back"
+              onClick={() => setIsPreviewModalOpen(true)}
+              className="h-9 px-3 rounded-full border border-slate-200 bg-white text-slate-700 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50/50 flex items-center gap-1.5 text-xs font-semibold shadow-2xs transition-colors cursor-pointer shrink-0 active:scale-95"
+              title="Preview all stakeholder responses"
             >
-              <ArrowLeft size={18} weight="bold" />
+              <Eye size={16} weight="bold" />
+              <span className="hidden sm:inline">Preview Responses</span>
+              <span className="sm:hidden">Preview</span>
             </button>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-base sm:text-lg font-bold text-slate-900 truncate leading-snug">
-                {survey.title}
-              </h1>
-              <p className="text-[11px] text-slate-400 font-medium leading-none mt-0.5">
-                General &amp; Stakeholder Details
-              </p>
-            </div>
           </div>
         </div>
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════
-          FROZEN TOP BAR (DURING QUESTIONS): BACK BUTTON + PARTICIPANT NAME + STEPPER
+          FROZEN TOP BAR (DURING QUESTIONS): BACK BUTTON + PARTICIPANT NAME + STEPPER + PREVIEW EYE
          ══════════════════════════════════════════════════════════════════════ */}
       {currentStepIndex > 0 && (
         <div className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-md -mx-4 px-4 pt-2.5 pb-2.5 border-b border-slate-200/80 shadow-2xs space-y-2">
@@ -430,7 +504,7 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
               </button>
               <div className="min-w-0">
                 <h1 className="text-base sm:text-lg font-bold text-slate-900 truncate leading-snug">
-                  {stakeholderName}
+                  {stakeholderName || 'Participant Interview'}
                 </h1>
                 <p className="text-[11px] text-slate-400 font-medium leading-none mt-0.5">
                   Participant
@@ -438,10 +512,21 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
               </div>
             </div>
 
-            {/* Question Counter Pill */}
-            <span className="text-xs font-bold px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 shadow-2xs shrink-0">
-              {currentStepIndex} / {totalQuestions}
-            </span>
+            {/* Eye preview button & Question Counter Pill */}
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsPreviewModalOpen(true)}
+                className="h-8 px-2.5 rounded-full border border-slate-200 bg-white text-slate-700 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50/50 flex items-center gap-1.5 text-xs font-semibold shadow-2xs transition-colors cursor-pointer active:scale-95"
+                title="Preview all stakeholder responses"
+              >
+                <Eye size={15} weight="bold" />
+                <span className="hidden sm:inline">Preview</span>
+              </button>
+              <span className="text-xs font-bold px-3 py-1 rounded-full border shadow-2xs bg-white border-slate-200 text-slate-700">
+                {currentStepIndex} / {totalQuestions}
+              </span>
+            </div>
           </div>
 
           {/* Stepper Progress Bar (Starts when questions start) */}
@@ -487,23 +572,23 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
           )}
 
           {/* Stakeholder Details Form */}
-          <div className="card p-5 sm:p-7 space-y-5 border border-slate-200/90 shadow-xs bg-white">
-            <div className="border-b border-slate-100 pb-3 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
+          <div className="card p-4 sm:p-6 space-y-3.5 sm:space-y-5 border border-slate-200/90 shadow-xs bg-white rounded-2xl">
+            <div className="border-b border-slate-100 pb-2.5 flex items-center gap-2.5 sm:gap-3">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
                 1
               </div>
               <div>
-                <h2 className="text-base font-bold text-slate-900">Stakeholder Details</h2>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <h2 className="text-sm sm:text-base font-bold text-slate-900">Stakeholder Details</h2>
+                <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
                   Capture the profile information of the participant before starting questions
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {/* Full Name (Required) */}
               <div className="sm:col-span-2">
-                <label className="block text-xs sm:text-sm font-semibold text-slate-800 mb-1.5">
+                <label className="block text-xs sm:text-sm font-semibold text-slate-800 mb-1">
                   Full Name <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
@@ -516,11 +601,11 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
                       if (stakeholderErrors.name) setStakeholderErrors({});
                     }}
                     className={cn(
-                      'w-full pl-10 pr-4 py-2.5 rounded-xl border text-xs sm:text-sm transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500',
+                      'w-full pl-9 sm:pl-10 pr-4 py-2 sm:py-2.5 rounded-xl border text-xs sm:text-sm transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500',
                       stakeholderErrors.name ? 'border-rose-400 ring-1 ring-rose-200' : 'border-slate-200 bg-white'
                     )}
                   />
-                  <User size={16} className="absolute left-3.5 top-3 text-slate-400 pointer-events-none" />
+                  <User size={16} className="absolute left-3 top-2.5 sm:top-3 text-slate-400 pointer-events-none" />
                 </div>
                 {stakeholderErrors.name && (
                   <p className="text-xs text-rose-600 mt-1 flex items-center gap-1 font-semibold">
@@ -531,7 +616,7 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
 
               {/* Contact Info */}
               <div className="sm:col-span-2">
-                <label className="block text-xs sm:text-sm font-semibold text-slate-800 mb-1.5">
+                <label className="block text-xs sm:text-sm font-semibold text-slate-800 mb-1">
                   Contact Info
                 </label>
                 <div className="relative">
@@ -540,15 +625,15 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
                     placeholder="e.g. +91 98765 43210 or email"
                     value={stakeholderContact}
                     onChange={e => setStakeholderContact(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full pl-9 sm:pl-10 pr-4 py-2 sm:py-2.5 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
-                  <Phone size={16} className="absolute left-3.5 top-3 text-slate-400 pointer-events-none" />
+                  <Phone size={16} className="absolute left-3 top-2.5 sm:top-3 text-slate-400 pointer-events-none" />
                 </div>
               </div>
 
               {/* Location / Village / District */}
               <div className="sm:col-span-2">
-                <label className="block text-xs sm:text-sm font-semibold text-slate-800 mb-1.5">
+                <label className="block text-xs sm:text-sm font-semibold text-slate-800 mb-1">
                   Location / Village / District (optional)
                 </label>
                 <input
@@ -556,23 +641,17 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
                   placeholder="e.g. Gram Panchayat Pipariya, Block Hoshangabad"
                   value={stakeholderLocation}
                   onChange={e => setStakeholderLocation(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
             </div>
           </div>
 
-          {/* Action Bar for Step 0 (Inline on all devices, NO floating card over tab bar) */}
-          <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
+          {/* Action Bar for Step 0 (Lifted up nicely above the tab bar) */}
+          <div className="flex items-center gap-3 pt-1 sm:pt-2">
             <button
               type="button"
-              onClick={() => {
-                if (typeof window !== 'undefined' && window.history.length > 1) {
-                  router.back();
-                } else {
-                  router.push(backHref);
-                }
-              }}
+              onClick={handleExitSurvey}
               className="w-11 h-11 rounded-full bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 flex items-center justify-center shrink-0 shadow-xs cursor-pointer active:scale-95 transition-all"
               aria-label="Cancel"
               title="Cancel"
@@ -595,7 +674,7 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
       {/* ══════════════════════════════════════════════════════════════════════
           SCREENS 1..N: CLEAN QUESTION INTERFACE (ONLY QUESTION NO & QUESTION)
          ══════════════════════════════════════════════════════════════════════ */}
-      {currentStepIndex > 0 && currentQuestion && (
+      {currentStepIndex > 0 && currentStepIndex <= totalQuestions && currentQuestion && (
         <div className="space-y-6 animate-in fade-in duration-200">
           {/* Main Question Card - Dynamic height as per content */}
           <div className="card p-5 sm:p-7 border border-slate-200/90 shadow-sm bg-white space-y-5 rounded-2xl transition-all">
@@ -973,7 +1052,7 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
               )}
             </div>
 
-            {/* Desktop Action Bar */}
+            {/* Desktop Action Bar for Questions */}
             <div className="hidden sm:flex items-center justify-between pt-6 border-t border-slate-100">
               <button
                 type="button"
@@ -989,104 +1068,91 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
                 <button
                   type="button"
                   onClick={handleNextQuestion}
-                  className="py-2.5 px-7 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 shadow-md transition-all flex items-center gap-2 cursor-pointer btn-press active:scale-98"
+                  className="py-2.5 px-7 rounded-xl bg-[#1e3a8a] text-white text-sm font-bold hover:bg-[#172554] active:bg-[#1e40af] shadow-md transition-all flex items-center gap-2 cursor-pointer btn-press active:scale-98"
                 >
                   <span>Next Question</span>
                   <ArrowRight size={16} weight="bold" />
                 </button>
               ) : (
-                <div className="flex items-center gap-3">
-                  {/* Option to Save Only (For Sequential / Batch Interviewing) */}
-                  <button
-                    type="button"
-                    onClick={handleSaveResponseOnly}
-                    disabled={isSubmitting}
-                    className="py-2.5 px-5 rounded-xl border border-indigo-200 bg-indigo-50/80 text-indigo-700 hover:bg-indigo-100 text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer btn-press active:scale-98 shadow-2xs"
-                    title="Save this participant's response and interview more"
-                  >
-                    <FloppyDisk size={16} weight="bold" />
-                    <span>Save Response</span>
-                  </button>
-
-                  {/* Option to Submit Survey up the hierarchy */}
-                  <button
-                    type="button"
-                    onClick={() => setIsHierarchyModalOpen(true)}
-                    disabled={isSubmitting}
-                    className="py-2.5 px-6 rounded-xl bg-emerald-600 text-white text-xs sm:text-sm font-bold hover:bg-emerald-700 shadow-md transition-all flex items-center gap-2 cursor-pointer btn-press active:scale-98 disabled:opacity-60"
-                  >
-                    <span>Submit Survey</span>
-                    <Check size={16} weight="bold" />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleFinalQuestionSubmit}
+                  disabled={isSubmitting}
+                  className="py-2.5 px-7 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 shadow-md transition-all flex items-center gap-2 cursor-pointer btn-press active:scale-98 disabled:opacity-60"
+                >
+                  {isSubmitting ? (
+                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <span>Submit Survey</span>
+                      <Check size={16} weight="bold" />
+                    </>
+                  )}
+                </button>
               )}
             </div>
           </div>
-
-          {/* ══════════════════════════════════════════════════════════════════
-              FROZEN FLOATING BOTTOM NAVIGATION ON MOBILE (ABOVE FLOATING TAB BAR, HIDDEN ON KEYBOARD OPEN)
-             ══════════════════════════════════════════════════════════════════ */}
-          {mounted && !isKeyboardOpen && createPortal(
-            <div className="sm:hidden fixed bottom-[calc(72px+env(safe-area-inset-bottom,0px))] left-3 right-3 max-w-lg mx-auto z-50 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-2xl p-2.5 shadow-xl">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handlePrevQuestion}
-                  className="w-10 h-10 rounded-full border border-slate-200 bg-white text-slate-700 flex items-center justify-center shrink-0 shadow-xs hover:bg-slate-50 cursor-pointer active:scale-95 transition-transform"
-                  aria-label="Previous question"
-                >
-                  <ArrowLeft size={16} weight="bold" />
-                </button>
-
-                {currentStepIndex < totalQuestions ? (
-                  <button
-                    type="button"
-                    onClick={handleNextQuestion}
-                    className="flex-1 py-2.5 px-4 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 shadow-md flex items-center justify-center gap-2 cursor-pointer btn-press active:scale-98 transition-all"
-                  >
-                    <span>Next Question</span>
-                    <ArrowRight size={16} weight="bold" />
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleSaveResponseOnly}
-                      disabled={isSubmitting}
-                      className="flex-1 py-2.5 px-3 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-2xs"
-                    >
-                      <FloppyDisk size={14} weight="bold" />
-                      <span>Save</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsHierarchyModalOpen(true)}
-                      disabled={isSubmitting}
-                      className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 shadow-md flex items-center justify-center gap-1.5 cursor-pointer btn-press active:scale-98 transition-all disabled:opacity-60"
-                    >
-                      <Check size={14} weight="bold" />
-                      <span>Submit</span>
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>,
-            document.body
-          )}
         </div>
       )}
 
+      {/* ══════════════════════════════════════════════════════════════════
+          FROZEN FLOATING BUTTONS ON MOBILE (LIFTED HIGHER AT 100PX, NO CARD CONTAINER)
+         ══════════════════════════════════════════════════════════════════ */}
+      {currentStepIndex > 0 && mounted && !isKeyboardOpen && !isHierarchyModalOpen && createPortal(
+        <div className="sm:hidden fixed bottom-[calc(100px+env(safe-area-inset-bottom,0px))] left-3 right-3 max-w-lg mx-auto z-50 pointer-events-none">
+          <div className="flex items-center gap-2.5 pointer-events-auto">
+            <button
+              type="button"
+              onClick={handlePrevQuestion}
+              className="w-11 h-11 rounded-full border border-slate-200/90 bg-white text-slate-700 flex items-center justify-center shrink-0 shadow-[0_4px_16px_rgba(0,0,0,0.12)] hover:bg-slate-50 cursor-pointer active:scale-95 transition-all"
+              aria-label="Previous question"
+              title="Back"
+            >
+              <ArrowLeft size={18} weight="bold" />
+            </button>
+
+            {currentStepIndex < totalQuestions ? (
+              <button
+                type="button"
+                onClick={handleNextQuestion}
+                className="flex-1 py-3 px-5 rounded-2xl bg-[#1e3a8a] text-white text-sm font-bold hover:bg-[#172554] active:bg-[#1e40af] shadow-[0_4px_16px_rgba(30,58,138,0.35)] flex items-center justify-center gap-2 cursor-pointer btn-press active:scale-98 transition-all"
+              >
+                <span>Next Question</span>
+                <ArrowRight size={17} weight="bold" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleFinalQuestionSubmit}
+                disabled={isSubmitting}
+                className="flex-1 py-3 px-5 rounded-2xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 shadow-[0_4px_16px_rgba(16,185,129,0.35)] flex items-center justify-center gap-2 cursor-pointer btn-press active:scale-98 transition-all disabled:opacity-60"
+              >
+                {isSubmitting ? (
+                  <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <span>Submit Survey</span>
+                    <Check size={18} weight="bold" />
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
+
       {/* ── Dialog 1: Response Saved Prompt (Batch Interviewing) ── */}
-      {isSavePromptModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="card p-6 max-w-sm w-full space-y-4 shadow-2xl text-center bg-white rounded-2xl border border-slate-200">
+      {mounted && isSavePromptModalOpen && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="card p-6 max-w-sm w-full space-y-4 shadow-2xl text-center bg-white rounded-2xl border border-slate-200 animate-in zoom-in-95 duration-200">
             <div className="w-14 h-14 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto shadow-xs border border-indigo-100">
               <FloppyDisk size={28} weight="bold" />
             </div>
             <div>
               <h3 className="text-base font-bold text-slate-900">Participant Response Saved!</h3>
               <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                Interview for <strong className="text-slate-800">"{justSavedStakeholder}"</strong> has been saved.
+                Interview for <strong className="text-slate-800">&quot;{justSavedStakeholder}&quot;</strong> has been saved.
               </p>
               <div className="mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 text-xs text-slate-700">
                 <span className="font-semibold text-slate-500">Total Interviewed: </span>
@@ -1107,168 +1173,56 @@ export default function SurveyFillForm({ survey, backHref = '/surveys', onSucces
 
               <button
                 type="button"
-                onClick={() => {
-                  setIsSavePromptModalOpen(false);
-                  setIsHierarchyModalOpen(true);
-                }}
-                className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer btn-press"
+                onClick={() => setIsPreviewModalOpen(true)}
+                className="w-full py-2.5 px-4 rounded-xl border border-indigo-200 bg-indigo-50/50 text-indigo-700 text-xs font-bold hover:bg-indigo-100/70 shadow-2xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <Check size={15} weight="bold" />
-                <span>Submit Survey to {nextSupervisorInfo.roleName}</span>
+                <Eye size={15} weight="bold" />
+                <span>Preview All Responses</span>
               </button>
 
-              <Link
-                href={backHref}
-                className="block w-full py-2 px-4 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 text-xs font-semibold transition-colors"
-              >
-                Return to Tasks
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Dialog 2: Hierarchical Submission & Feedback Modal ── */}
-      {isHierarchyModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="card p-5 sm:p-7 max-w-lg w-full max-h-[88dvh] overflow-y-auto space-y-4 shadow-2xl bg-white rounded-2xl border border-slate-200">
-            {/* Modal Header */}
-            <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
-                  Hierarchy Submission
-                </span>
-                <h3 className="text-base sm:text-lg font-bold text-slate-900 mt-1">
-                  Submit Survey to {nextSupervisorInfo.roleName}
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Submitting to: <strong className="text-slate-800">{nextSupervisorInfo.personName}</strong>
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsHierarchyModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer"
-              >
-                <X size={18} weight="bold" />
-              </button>
-            </div>
-
-            {/* Hierarchy Progress Strip */}
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
-              <div className="text-[10px] font-bold uppercase text-slate-500 tracking-wider mb-2">
-                Approval Hierarchy
-              </div>
-              <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 overflow-x-auto no-scrollbar">
-                <span className={cn('px-2 py-0.5 rounded-md', currentRole === 'intern' ? 'bg-indigo-600 text-white' : 'bg-emerald-100 text-emerald-800')}>
-                  Intern
-                </span>
-                <span className="text-slate-400 font-normal">→</span>
-                <span className={cn('px-2 py-0.5 rounded-md', currentRole === 'fellow' ? 'bg-indigo-600 text-white' : currentRole === 'pc' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700')}>
-                  Fellow
-                </span>
-                <span className="text-slate-400 font-normal">→</span>
-                <span className={cn('px-2 py-0.5 rounded-md', currentRole === 'pc' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700')}>
-                  Program Coordinator
-                </span>
-                <span className="text-slate-400 font-normal">→</span>
-                <span className="px-2 py-0.5 rounded-md bg-slate-200 text-slate-700">
-                  SPM / CPM
-                </span>
-              </div>
-            </div>
-
-            {/* Quota & Stakeholders Interviewed KPI */}
-            <div className="p-3 rounded-xl bg-indigo-50/50 border border-indigo-100 flex items-center justify-between">
-              <div>
-                <div className="text-xs font-semibold text-slate-700">Stakeholders Interviewed</div>
-                <div className="text-[11px] text-slate-500 mt-0.5">
-                  Flexible submission enabled (submit anytime)
-                </div>
-              </div>
-              <div className="text-right">
-                <span className="text-lg font-black text-indigo-900">{savedResponsesCount || 1}</span>
-                <span className="text-xs text-slate-400 font-medium"> / {survey.participantsRequired || 50}</span>
-              </div>
-            </div>
-
-            {/* Field Feedback Inputs */}
-            <div className="space-y-3 pt-1">
-              <div>
-                <label className="block text-xs font-bold text-slate-800 mb-1">
-                  Field Observations &amp; Feedback for {nextSupervisorInfo.roleName} <span className="text-rose-500">*</span>
-                </label>
-                <textarea
-                  rows={3}
-                  value={feedbackText}
-                  onChange={(e) => {
-                    setFeedbackText(e.target.value);
-                    if (feedbackError) setFeedbackError('');
-                  }}
-                  placeholder="Summarize key takeaways, community sentiment, scheme reach, and overall observations from the field..."
-                  className={cn(
-                    'w-full p-3 rounded-xl border text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all leading-relaxed',
-                    feedbackError ? 'border-rose-400 ring-1 ring-rose-200 bg-rose-50/20' : 'border-slate-200 bg-white'
-                  )}
-                />
-                {feedbackError && <p className="text-[11px] text-rose-500 font-semibold mt-1">{feedbackError}</p>}
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Key Challenges Faced (optional)
-                </label>
-                <input
-                  type="text"
-                  value={challengesFaced}
-                  onChange={(e) => setChallengesFaced(e.target.value)}
-                  placeholder="e.g. Medicine stockouts at PHC, transport delays, connectivity issues..."
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Recommendations for Program Leadership (optional)
-                </label>
-                <input
-                  type="text"
-                  value={recommendations}
-                  onChange={(e) => setRecommendations(e.target.value)}
-                  placeholder="e.g. Conduct monthly review with BDO, supply additional testing kits..."
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-            </div>
-
-            {/* Modal Actions */}
-            <div className="flex gap-2.5 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setIsHierarchyModalOpen(false)}
-                className="flex-1 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-semibold cursor-pointer"
-              >
-                Cancel
-              </button>
               <button
                 type="button"
                 onClick={handleConfirmHierarchySubmit}
                 disabled={isSubmitting}
-                className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer btn-press disabled:opacity-60"
+                className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer btn-press disabled:opacity-60"
               >
                 {isSubmitting ? (
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
-                    <span>Submit to {nextSupervisorInfo.roleName}</span>
-                    <ArrowRight size={14} weight="bold" />
+                    <Check size={15} weight="bold" />
+                    <span>Submit Survey Batch</span>
                   </>
                 )}
               </button>
+
+              <button
+                type="button"
+                onClick={handleExitSurvey}
+                className="block w-full py-2 px-4 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 text-xs font-semibold transition-colors text-center cursor-pointer"
+              >
+                Return to Tasks
+              </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
+
+      {/* Stakeholder Responses Preview Modal */}
+      <StakeholderResponsesPreviewModal
+        isOpen={isPreviewModalOpen}
+        onClose={() => setIsPreviewModalOpen(false)}
+        surveyTitle={survey.title}
+        questions={questions}
+        currentStakeholder={{
+          name: stakeholderName,
+          contact: stakeholderContact,
+          location: stakeholderLocation,
+          answers,
+        }}
+        totalInterviewedCount={savedResponsesCount}
+      />
     </div>
   );
 }

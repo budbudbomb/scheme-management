@@ -13,5 +13,5 @@ export function generateStaticParams() {
 }
 
 export default function SurveyPage() {
-  return <FillSurveyPageContainer backHref="/fellow/surveys" />;
+  return <FillSurveyPageContainer backHref="/fellow/tasks" />;
 }

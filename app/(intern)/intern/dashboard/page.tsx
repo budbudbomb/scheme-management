@@ -78,7 +78,7 @@ export default function InternDashboardPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { href: '/intern/tasks', label: 'My Tasks', icon: CheckSquare, color: 'indigo' },
-            { href: '/intern/surveys', label: 'Surveys', icon: ClipboardText, color: 'emerald' },
+            { href: '/intern/attendance', label: 'Attendance', icon: MapPin, color: 'emerald' },
             { href: '/intern/leave', label: 'Apply Leave', icon: ClipboardText, color: 'amber' },
             { href: '/intern/training', label: 'Training', icon: Calendar, color: 'sky' },
           ].map(({ href, label, icon: Icon, color }) => (

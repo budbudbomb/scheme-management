@@ -2,10 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import type { FellowDashboardStats } from '@/types/models';
-import StatCard from '@/components/shared/StatCard';
-import { SkeletonStatGrid } from '@/components/shared/SkeletonCard';
-import ErrorState from '@/components/shared/ErrorState';
-import { CheckSquare, ClipboardText, ArrowCircleUpRight, Users, MapPin } from '@phosphor-icons/react';
+import { CheckSquare, ClipboardText, ArrowCircleUpRight, MapPin } from '@phosphor-icons/react';
 import { get } from '@/lib/api/client';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/context';
@@ -43,27 +40,17 @@ export default function FellowDashboardPage() {
   useEffect(() => { load(); }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       <div>
-        <h1 className="text-xl font-bold text-slate-900">
-          {user?.district?.name ? `${user.district.name} District` : 'My Dashboard'}
+        <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+          <MapPin size={22} className="text-indigo-600 shrink-0" weight="duotone" />
+          <span>{user?.district?.name ? `${user.district.name} District` : 'My Dashboard'}</span>
         </h1>
-        <p className="text-sm text-slate-500 mt-0.5">CMYPDP Fellow — {user?.district?.divisionName ?? 'Indore'}</p>
+        <p className="text-xs sm:text-sm text-slate-500 mt-0.5">CMYPDP Fellow — {user?.district?.divisionName ?? 'Indore Division'}</p>
       </div>
 
-      {loading ? <SkeletonStatGrid count={4} /> : error ? (
-        <ErrorState message={error} onRetry={load} />
-      ) : stats && (
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-          <StatCard label="My Active Tasks" value={stats.myActiveTasks} icon={CheckSquare} iconColor="text-indigo-600" iconBg="bg-indigo-50" />
-          <StatCard label="Interns Under Me" value={stats.internsUnderMe} icon={Users} iconColor="text-emerald-600" iconBg="bg-emerald-50" />
-          <StatCard label="My Leave Status" value={stats.myPendingLeave} icon={ClipboardText} iconColor="text-amber-600" iconBg="bg-amber-50" />
-          <StatCard label="Intern Approvals" value={stats.pendingInternApprovals} icon={ArrowCircleUpRight} iconColor="text-rose-600" iconBg="bg-rose-50" />
-        </div>
-      )}
-
       {/* Block-wise Intern Task Monitoring */}
-      <div className="pt-2">
+      <div>
         <HierarchicalTaskMonitor
           role="fellow"
           districtId={user?.district?.id}

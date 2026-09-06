@@ -31,15 +31,11 @@ const PMU_MANAGERS = [
     role: 'Chief Program Manager',
     email: 'cpm@cmyp.mp.gov.in',
     pass: 'cpm123',
-    activeClass: 'bg-indigo-600 text-white border-indigo-600 shadow-sm ring-2 ring-indigo-300',
-    inactiveClass: 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200',
   },
   {
     role: 'Senior Program Manager',
     email: 'spm@cmyp.mp.gov.in',
     pass: 'spm123',
-    activeClass: 'bg-purple-600 text-white border-purple-600 shadow-sm ring-2 ring-purple-300',
-    inactiveClass: 'bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200',
   },
 ];
 
@@ -48,22 +44,16 @@ const FIELD_ROLES = [
     role: 'PC',
     email: 'pc.bhopal@cmyp.mp.gov.in',
     pass: 'pc123',
-    activeClass: 'bg-emerald-600 text-white border-emerald-600 shadow-sm ring-2 ring-emerald-300',
-    inactiveClass: 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200',
   },
   {
     role: 'Fellow',
     email: 'fellow.indore@cmyp.mp.gov.in',
     pass: 'fellow123',
-    activeClass: 'bg-amber-600 text-white border-amber-600 shadow-sm ring-2 ring-amber-300',
-    inactiveClass: 'bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200',
   },
   {
     role: 'Intern',
     email: 'intern.ujjain@cmyp.mp.gov.in',
     pass: 'intern123',
-    activeClass: 'bg-sky-600 text-white border-sky-600 shadow-sm ring-2 ring-sky-300',
-    inactiveClass: 'bg-sky-50 hover:bg-sky-100 text-sky-700 border-sky-200',
   },
 ];
 
@@ -106,7 +96,7 @@ export default function LoginForm() {
     <div>
       {/* Top Floating Circular Logo Emblem as shown in user reference */}
       <div className="flex justify-center -mt-16 sm:-mt-18 mb-4">
-        <div className="w-18 h-18 rounded-full bg-white shadow-lg border border-slate-100 p-2 flex items-center justify-center ring-4 ring-slate-50 overflow-hidden">
+        <div className="w-18 h-18 rounded-full bg-white shadow-xl border border-slate-100 p-2 flex items-center justify-center ring-4 ring-white overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={LOGO_DATA_URL}
@@ -119,7 +109,7 @@ export default function LoginForm() {
       </div>
 
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Welcome back</h2>
+        <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Welcome</h2>
         <p className="text-slate-500 mt-1 text-xs sm:text-sm">
           Sign in to access your role-based dashboard
         </p>
@@ -141,8 +131,10 @@ export default function LoginForm() {
                 type="button"
                 onClick={() => handleQuickSelect(acc.role, acc.email, acc.pass)}
                 className={cn(
-                  'py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer',
-                  isSelected ? acc.activeClass : acc.inactiveClass
+                  'py-2.5 px-3 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer select-none',
+                  isSelected
+                    ? 'bg-[#162F5E] text-white border-[#162F5E] shadow-xs font-bold ring-2 ring-[#162F5E]/20'
+                    : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300 shadow-2xs'
                 )}
               >
                 {acc.role}
@@ -161,8 +153,10 @@ export default function LoginForm() {
                 type="button"
                 onClick={() => handleQuickSelect(acc.role, acc.email, acc.pass)}
                 className={cn(
-                  'py-2 px-2 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer',
-                  isSelected ? acc.activeClass : acc.inactiveClass
+                  'py-2.5 px-2 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer select-none',
+                  isSelected
+                    ? 'bg-[#162F5E] text-white border-[#162F5E] shadow-xs font-bold ring-2 ring-[#162F5E]/20'
+                    : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300 shadow-2xs'
                 )}
               >
                 {acc.role}
@@ -194,7 +188,7 @@ export default function LoginForm() {
                 'w-full pl-10 pr-4 py-2.5 rounded-xl text-sm',
                 'border bg-white text-slate-900 placeholder:text-slate-400',
                 'transition-shadow duration-150',
-                'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                'focus:outline-none focus:ring-2 focus:ring-[#162F5E] focus:border-[#162F5E]',
                 errors.email
                   ? 'border-rose-400 focus:ring-rose-400'
                   : 'border-slate-200 hover:border-slate-300'
@@ -217,7 +211,7 @@ export default function LoginForm() {
             </label>
             <Link
               href="/forgot-password"
-              className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
+              className="text-xs text-[#162F5E] hover:underline font-medium transition-colors"
             >
               Forgot password?
             </Link>
@@ -238,7 +232,7 @@ export default function LoginForm() {
                 'w-full pl-10 pr-10 py-2.5 rounded-xl text-sm',
                 'border bg-white text-slate-900 placeholder:text-slate-400',
                 'transition-shadow duration-150',
-                'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                'focus:outline-none focus:ring-2 focus:ring-[#162F5E] focus:border-[#162F5E]',
                 errors.password
                   ? 'border-rose-400 focus:ring-rose-400'
                   : 'border-slate-200 hover:border-slate-300'
@@ -273,14 +267,14 @@ export default function LoginForm() {
           </div>
         )}
 
-        {/* Submit button with vibrant blue-indigo gradient */}
+        {/* Submit button matching the #162F5E shade */}
         <button
           type="submit"
           disabled={isSubmitting}
           className={cn(
             'w-full py-3 px-4 rounded-xl text-sm font-semibold text-white cursor-pointer',
-            'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-700',
-            'shadow-md hover:shadow-lg shadow-blue-500/20 transition-all duration-150',
+            'bg-[#162F5E] hover:bg-[#11254a] active:scale-[0.99]',
+            'shadow-xs hover:shadow transition-all duration-150',
             'flex items-center justify-center gap-2',
             isSubmitting && 'opacity-70 cursor-not-allowed'
           )}
@@ -304,7 +298,7 @@ export default function LoginForm() {
         Don&apos;t have an account?{' '}
         <Link
           href="/register"
-          className="text-blue-600 hover:text-blue-700 font-semibold transition-colors"
+          className="text-[#162F5E] hover:underline font-semibold transition-colors"
         >
           Apply here
         </Link>

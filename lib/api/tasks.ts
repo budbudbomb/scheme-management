@@ -1,6 +1,6 @@
 import { get, post, patch, del } from './client';
 import type { Task, CreateTaskRequest, UpdateTaskStatusRequest, TaskStatus, TaskPriority, UserRole } from '@/types/models';
-import { MOCK_PAGINATED_TASKS, MOCK_TASKS, MOCK_USERS } from './mockData';
+import { MOCK_PAGINATED_TASKS, MOCK_TASKS, MOCK_USERS, MOCK_MEETINGS } from './mockData';
 
 export interface TasksQuery {
   status?: TaskStatus;
@@ -73,11 +73,16 @@ export const tasksApi = {
         assignedTo: assignedToUsers,
         isSurveyTask: data.isSurveyTask,
         surveyId: data.surveyId,
+        isMeetingTask: data.isMeetingTask,
+        meetingData: data.meetingData,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
 
       MOCK_TASKS.unshift(newTask);
+      if (data.isMeetingTask && data.meetingData) {
+        MOCK_MEETINGS.unshift(data.meetingData);
+      }
       return newTask;
     }
   },

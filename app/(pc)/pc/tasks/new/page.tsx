@@ -43,6 +43,11 @@ export default function PCNewTaskPage() {
   });
 
   useEffect(() => {
+    toast.info('Only CPM and SPM can create tasks.');
+    router.replace('/pc/tasks');
+  }, [router]);
+
+  useEffect(() => {
     // Load only Fellows (PC can only assign to Fellows in their division)
     usersApi.list({ role: 'fellow', limit: 100 }).then(res => setFellows(res.items)).catch(console.error);
   }, []);

@@ -1,5 +1,5 @@
-'use client';
-import SurveysListPage from '@/components/shared/SurveysListPage';
+import { redirect } from 'next/navigation';
+
 export default function FellowSurveysPage() {
-  return <SurveysListPage fillPathPrefix="/fellow/surveys" />;
+  redirect('/fellow/tasks');
 }

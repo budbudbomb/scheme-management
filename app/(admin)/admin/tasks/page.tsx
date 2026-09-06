@@ -24,6 +24,7 @@ import {
   SquaresFour,
   CaretDown,
   Eye,
+  VideoCamera,
 } from '@phosphor-icons/react';
 import { tasksApi } from '@/lib/api/tasks';
 import type { Task, UserRole, TaskStatus, TaskPriority } from '@/types/models';
@@ -347,7 +348,7 @@ export default function AdminTasksPage() {
       {/* ── KPI Metrics Section ── */}
 
       {/* Phone View: Horizontally Scrollable Circular Cards (4 visible on phone, 5th scrollable) */}
-      <div className="flex sm:hidden items-center gap-2.5 overflow-x-auto no-scrollbar py-1 px-0.5 scroll-smooth snap-x">
+      <div className="flex sm:hidden items-center gap-2.5 overflow-x-auto no-scrollbar py-1.5 px-2.5 scroll-smooth snap-x">
         {[
           {
             key: '',
@@ -734,16 +735,16 @@ export default function AdminTasksPage() {
       ) : layoutMode === 'list' ? (
         /* Asana-style Structured List View */
         <div className="card overflow-hidden border border-slate-200/80 shadow-xs">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-h-[440px] sm:max-h-[540px] overflow-y-auto custom-scrollbar">
             <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-semibold text-slate-500 uppercase tracking-wider select-none">
-                  <th className="py-3 px-3.5 sm:px-4">Task Name</th>
-                  <th className="py-3 px-4 hidden sm:table-cell min-w-[170px]">Assignee</th>
-                  <th className="py-3 px-4 hidden md:table-cell min-w-[130px]">Due Date</th>
-                  <th className="py-3 px-4 hidden lg:table-cell min-w-[110px]">Priority</th>
-                  <th className="py-3 px-4 hidden sm:table-cell min-w-[120px]">Status</th>
-                  <th className="py-3 px-3.5 sm:px-4 text-right w-14 sm:min-w-[80px]">
+              <thead className="sticky top-0 z-10 bg-slate-50 shadow-2xs">
+                <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-500 uppercase tracking-wider select-none">
+                  <th className="py-3 px-3.5 sm:px-4 bg-slate-50">Task Name</th>
+                  <th className="py-3 px-4 hidden sm:table-cell min-w-[170px] bg-slate-50">Assignee</th>
+                  <th className="py-3 px-4 hidden md:table-cell min-w-[130px] bg-slate-50">Due Date</th>
+                  <th className="py-3 px-4 hidden lg:table-cell min-w-[110px] bg-slate-50">Priority</th>
+                  <th className="py-3 px-4 hidden sm:table-cell min-w-[120px] bg-slate-50">Status</th>
+                  <th className="py-3 px-3.5 sm:px-4 text-right w-14 sm:min-w-[80px] bg-slate-50">
                     <span className="sm:hidden">View</span>
                     <span className="hidden sm:inline">Actions</span>
                   </th>
@@ -766,6 +767,11 @@ export default function AdminTasksPage() {
                             {task.isSurveyTask && (
                               <span className="text-[10px] px-1.5 py-0.2 rounded border font-semibold bg-purple-50 text-purple-700 border-purple-200 shrink-0">
                                 Survey
+                              </span>
+                            )}
+                            {task.isMeetingTask && (
+                              <span className="text-[10px] px-1.5 py-0.2 rounded border font-semibold bg-blue-50 text-[#1e3a8a] border-blue-200 shrink-0">
+                                Meeting
                               </span>
                             )}
                           </div>
@@ -918,6 +924,12 @@ export default function AdminTasksPage() {
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border bg-purple-100 text-purple-800 border-purple-300 shadow-2xs">
                         <ClipboardText size={11} weight="fill" className="text-purple-600" />
                         Survey Task
+                      </span>
+                    )}
+                    {task.isMeetingTask && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border bg-blue-50 text-[#1e3a8a] border-blue-200 shadow-2xs">
+                        <VideoCamera size={11} weight="fill" className="text-[#1e3a8a]" />
+                        Meeting
                       </span>
                     )}
                   </div>

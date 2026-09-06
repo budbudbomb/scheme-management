@@ -122,6 +122,8 @@ export interface Task {
   isSurveyTask?: boolean;
   surveyId?: string;
   targetAudience?: 'all_interns' | 'all_fellows' | 'all_pcs' | 'all' | 'selective';
+  isMeetingTask?: boolean;
+  meetingData?: Meeting;
   createdAt: string;
   updatedAt: string;
 }
@@ -135,6 +137,8 @@ export interface CreateTaskRequest {
   assignedToIds: string[];
   isSurveyTask?: boolean;
   surveyId?: string;
+  isMeetingTask?: boolean;
+  meetingData?: Meeting;
 }
 
 export interface UpdateTaskStatusRequest {
@@ -148,13 +152,16 @@ export interface AttendanceRecord {
   id: string;
   userId: string;
   userName: string;
+  role?: 'fellow' | 'intern' | 'pc';
   date: string;
   markedAt: string;     // HH:MM format
   latitude: number;
   longitude: number;
-  status: 'present' | 'absent';
+  status: 'present' | 'absent' | 'half_day' | 'on_leave';
   district?: Pick<District, 'id' | 'name'>;
   block?: Pick<Block, 'id' | 'name'>;
+  panchayatName?: string;
+  locationAddress?: string;
 }
 
 export interface AttendanceReportRow {

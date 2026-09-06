@@ -24,11 +24,13 @@ import {
   UploadSimple,
   ShieldCheck,
   Info,
-  Sparkle
+  Sparkle,
+  Eye
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { cn, formatDate } from '@/lib/utils/formatters';
 import { useAuth } from '@/lib/auth/context';
+import SelectPopup, { DatePopup } from '@/components/shared/SelectPopup';
 
 // ── Types ─────────────────────────────────────────────────────────────
 type AdminRole = 'chief_program_manager' | 'senior_program_manager';
@@ -71,7 +73,7 @@ interface CoordinatorLeaveApplication {
   phone: string;
   district: string;
   division: string;
-  leaveType: 'casual' | 'medical' | 'earned';
+  leaveType: 'casual' | 'medical' | 'earned' | 'special';
   startDate: string;
   endDate: string;
   totalDays: number;
@@ -603,181 +605,143 @@ export default function AdminLeavePage() {
     };
   }, [currentMyLeavesList]);
 
+  // Badge helpers
+  function leaveTypeBadge(type: string) {
+    switch (type) {
+      case 'casual':
+        return { label: 'Casual Leave (CL)', cls: 'bg-indigo-50 text-indigo-700 border-indigo-200' };
+      case 'medical':
+        return { label: 'Medical Leave (ML)', cls: 'bg-rose-50 text-rose-700 border-rose-200' };
+      case 'earned':
+        return { label: 'Earned Leave (EL)', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+      case 'special':
+        return { label: 'Special / Restricted', cls: 'bg-purple-50 text-purple-700 border-purple-200' };
+      default:
+        return { label: type, cls: 'bg-slate-100 text-slate-700 border-slate-200' };
+    }
+  }
+
+  function statusBadge(status: string) {
+    switch (status) {
+      case 'applied':
+        return { label: 'Pending', cls: 'bg-amber-50 text-amber-700 border-amber-200', icon: Clock };
+      case 'approved':
+        return { label: 'Approved', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: CheckCircle };
+      case 'rejected':
+        return { label: 'Rejected', cls: 'bg-rose-50 text-rose-700 border-rose-200', icon: XCircle };
+      default:
+        return { label: status, cls: 'bg-slate-100 text-slate-700 border-slate-200', icon: Clock };
+    }
+  }
+
   return (
     <div className="space-y-6 pb-12">
-      {/* ── Minimalist Clean Header: Title + Role Name + Role Switcher ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Leave Management</h1>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs">
-            <ShieldCheck size={14} weight="fill" className="text-indigo-600" />
-            {activeRole === 'chief_program_manager' ? 'Chief Program Manager' : 'Senior Program Manager'}
-          </span>
-        </div>
-
-        {/* 2 Clean Role Buttons */}
-        <div className="flex items-center gap-1.5 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveRole('chief_program_manager');
-              toast.info('Switched view to Chief Program Manager');
-            }}
-            className={cn(
-              'px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer',
-              activeRole === 'chief_program_manager'
-                ? 'bg-white text-indigo-700 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            )}
-          >
-            Chief Program Manager
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveRole('senior_program_manager');
-              toast.info('Switched view to Senior Program Manager');
-            }}
-            className={cn(
-              'px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer',
-              activeRole === 'senior_program_manager'
-                ? 'bg-white text-indigo-700 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            )}
-          >
-            Senior Program Manager
-          </button>
-        </div>
-      </div>
-
-      {/* ── Enhanced Visual KPIs (Leave Balance Cards) ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* Casual Leave */}
-        <div className="bg-gradient-to-br from-blue-50/70 to-indigo-50/30 border border-blue-200/70 rounded-2xl p-4.5 shadow-xs hover:shadow-md transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-blue-900 uppercase tracking-wider">Casual Leave</span>
-            <span className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center font-extrabold text-xs shadow-2xs">CL</span>
+      {/* ── FROZEN STICKY HEADER: Title + Description + Tab Switcher (stays frozen while scrolling up/down) ── */}
+      <div className="sticky top-0 z-20 bg-slate-50/95 lg:bg-white/95 backdrop-blur-md -mt-4 sm:-mt-6 lg:-mt-8 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-3.5 pb-3 sm:pt-5 sm:pb-4 border-b border-slate-200/80 shadow-2xs space-y-3 sm:space-y-4">
+        {/* ── Page Header + Top-Right Apply Button ── */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Leave Management</h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+              Apply for your leaves and review leave applications submitted by program coordinators &amp; field staff
+            </p>
           </div>
-          <div className="mt-3 flex items-baseline gap-1.5">
-            <span className="text-3xl font-black text-slate-900">{leaveBalance.casual.available}</span>
-            <span className="text-xs text-slate-500 font-semibold">/ {leaveBalance.casual.total} Days Left</span>
-          </div>
-          <div className="w-full bg-blue-100/80 h-2 rounded-full mt-3 overflow-hidden">
-            <div
-              className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-300"
-              style={{ width: `${(leaveBalance.casual.available / leaveBalance.casual.total) * 100}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Earned Leave */}
-        <div className="bg-gradient-to-br from-emerald-50/70 to-teal-50/30 border border-emerald-200/70 rounded-2xl p-4.5 shadow-xs hover:shadow-md transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider">Earned Leave</span>
-            <span className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-extrabold text-xs shadow-2xs">EL</span>
-          </div>
-          <div className="mt-3 flex items-baseline gap-1.5">
-            <span className="text-3xl font-black text-slate-900">{leaveBalance.earned.available}</span>
-            <span className="text-xs text-slate-500 font-semibold">/ {leaveBalance.earned.total} Days Left</span>
-          </div>
-          <div className="w-full bg-emerald-100/80 h-2 rounded-full mt-3 overflow-hidden">
-            <div
-              className="bg-gradient-to-r from-emerald-500 to-teal-600 h-full rounded-full transition-all duration-300"
-              style={{ width: `${(leaveBalance.earned.available / leaveBalance.earned.total) * 100}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Medical Leave */}
-        <div className="bg-gradient-to-br from-rose-50/70 to-pink-50/30 border border-rose-200/70 rounded-2xl p-4.5 shadow-xs hover:shadow-md transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-rose-900 uppercase tracking-wider">Medical Leave</span>
-            <span className="w-7 h-7 rounded-lg bg-rose-600 text-white flex items-center justify-center font-extrabold text-xs shadow-2xs">ML</span>
-          </div>
-          <div className="mt-3 flex items-baseline gap-1.5">
-            <span className="text-3xl font-black text-slate-900">{leaveBalance.medical.available}</span>
-            <span className="text-xs text-slate-500 font-semibold">/ {leaveBalance.medical.total} Days Left</span>
-          </div>
-          <div className="w-full bg-rose-100/80 h-2 rounded-full mt-3 overflow-hidden">
-            <div
-              className="bg-gradient-to-r from-rose-500 to-pink-600 h-full rounded-full transition-all duration-300"
-              style={{ width: `${(leaveBalance.medical.available / leaveBalance.medical.total) * 100}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Special Leave */}
-        <div className="bg-gradient-to-br from-purple-50/70 to-violet-50/30 border border-purple-200/70 rounded-2xl p-4.5 shadow-xs hover:shadow-md transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-purple-900 uppercase tracking-wider">Special / Restricted</span>
-            <span className="w-7 h-7 rounded-lg bg-purple-600 text-white flex items-center justify-center font-extrabold text-xs shadow-2xs">SL</span>
-          </div>
-          <div className="mt-3 flex items-baseline gap-1.5">
-            <span className="text-3xl font-black text-slate-900">{leaveBalance.special.available}</span>
-            <span className="text-xs text-slate-500 font-semibold">/ {leaveBalance.special.total} Days Left</span>
-          </div>
-          <div className="w-full bg-purple-100/80 h-2 rounded-full mt-3 overflow-hidden">
-            <div
-              className="bg-gradient-to-r from-purple-500 to-violet-600 h-full rounded-full transition-all duration-300"
-              style={{ width: `${(leaveBalance.special.available / leaveBalance.special.total) * 100}%` }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* ── 2 Main Tabs ── */}
-      <div className="border-b border-slate-200 bg-white rounded-xl shadow-xs px-2">
-        <div className="flex items-center gap-2 overflow-x-auto py-2">
-          {/* Tab 1: My Leave */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('my_leave')}
-            className={cn(
-              'flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all whitespace-nowrap cursor-pointer',
-              activeTab === 'my_leave'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            )}
-          >
-            <CalendarCheck size={18} weight={activeTab === 'my_leave' ? 'bold' : 'regular'} />
-            <span>1. My Leave</span>
-            <span
-              className={cn(
-                'ml-1 px-2 py-0.5 rounded-full text-xs font-bold',
-                activeTab === 'my_leave' ? 'bg-indigo-700 text-white' : 'bg-slate-200 text-slate-700'
-              )}
+          {activeTab === 'my_leave' && (
+            <button
+              type="button"
+              onClick={() => setIsApplyModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 transition-all shadow-xs cursor-pointer shrink-0"
             >
-              {currentMyLeavesList.length}
-            </span>
-          </button>
+              <Plus size={15} weight="bold" />
+              <span className="whitespace-nowrap">Apply for Leave</span>
+            </button>
+          )}
+        </div>
 
-          {/* Tab 2: Approve & Monitor Leaves (Combined in 1 Tab) */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('team_leave')}
-            className={cn(
-              'flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all whitespace-nowrap cursor-pointer',
-              activeTab === 'team_leave'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+        {/* ── Sleek Segmented Tab Switch + Role Filter Card (Unified in same card) ── */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="w-full sm:w-auto bg-slate-100/90 p-1 rounded-2xl border border-slate-200/90 flex flex-col sm:flex-row items-stretch sm:items-center gap-1 shadow-2xs">
+            {/* Primary Switch: Apply for Leave / Review Leaves */}
+            <div className="grid grid-cols-2 gap-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab('my_leave')}
+                className={cn(
+                  'py-2 px-3 sm:py-2.5 sm:px-3.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 select-none cursor-pointer text-center',
+                  activeTab === 'my_leave'
+                    ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 font-bold ring-1 ring-black/5'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+                )}
+              >
+                <CalendarCheck
+                  size={16}
+                  weight={activeTab === 'my_leave' ? 'fill' : 'bold'}
+                  className={activeTab === 'my_leave' ? 'text-indigo-600' : 'text-slate-500'}
+                />
+                <span className="truncate">Apply for Leave</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('team_leave')}
+                className={cn(
+                  'py-2 px-3 sm:py-2.5 sm:px-3.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 select-none cursor-pointer relative text-center',
+                  activeTab === 'team_leave'
+                    ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 font-bold ring-1 ring-black/5'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+                )}
+              >
+                <Users
+                  size={16}
+                  weight={activeTab === 'team_leave' ? 'fill' : 'bold'}
+                  className={activeTab === 'team_leave' ? 'text-indigo-600' : 'text-slate-500'}
+                />
+                <span className="truncate">Review Leaves</span>
+                {pendingPcCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600 border-2 border-white"></span>
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Sub-Switch: Program Coordinators / Fellows (In the SAME card on desktop) */}
+            {activeTab === 'team_leave' && (
+              <>
+                <div className="hidden sm:block w-px h-6 bg-slate-300 mx-1 shrink-0" />
+                <div className="grid grid-cols-2 gap-1 border-t border-slate-200/80 pt-1 sm:border-t-0 sm:pt-0">
+                  <button
+                    type="button"
+                    onClick={() => setTeamSubTab('coordinators')}
+                    className={cn(
+                      'py-2 px-3 sm:py-2.5 sm:px-3.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 select-none cursor-pointer text-center',
+                      teamSubTab === 'coordinators'
+                        ? 'bg-indigo-600 text-white shadow-xs font-bold'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+                    )}
+                  >
+                    <UserCheck size={16} weight={teamSubTab === 'coordinators' ? 'bold' : 'regular'} />
+                    <span className="truncate">Program Coordinators</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setTeamSubTab('fellows_interns')}
+                    className={cn(
+                      'py-2 px-3 sm:py-2.5 sm:px-3.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 select-none cursor-pointer text-center',
+                      teamSubTab === 'fellows_interns'
+                        ? 'bg-indigo-600 text-white shadow-xs font-bold'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+                    )}
+                  >
+                    <Users size={16} weight={teamSubTab === 'fellows_interns' ? 'bold' : 'regular'} />
+                    <span className="truncate">Fellows</span>
+                  </button>
+                </div>
+              </>
             )}
-          >
-            <Users size={18} weight={activeTab === 'team_leave' ? 'bold' : 'regular'} />
-            <span>2. Approve & Monitor Leaves</span>
-            {pendingPcCount > 0 && (
-              <span className="ml-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500 text-white">
-                {pendingPcCount} Pending
-              </span>
-            )}
-            <span
-              className={cn(
-                'ml-1 px-2 py-0.5 rounded-full text-xs font-bold',
-                activeTab === 'team_leave' ? 'bg-indigo-700 text-white' : 'bg-slate-200 text-slate-700'
-              )}
-            >
-              {pcLeaves.length + monitorLeaves.length}
-            </span>
-          </button>
+          </div>
         </div>
       </div>
 
@@ -785,121 +749,134 @@ export default function AdminLeavePage() {
           TAB 1: MY LEAVE
          ══════════════════════════════════════════════════════════════════ */}
       {activeTab === 'my_leave' && (
-        <div className="space-y-6">
-          {/* Action Bar & Apply Button */}
-          <div className="flex items-center justify-between flex-wrap gap-4 bg-white p-4.5 rounded-2xl border border-slate-200">
-            <div>
-              <h2 className="text-base font-bold text-slate-900">
-                My Leave Applications
-              </h2>
-              <p className="text-xs text-slate-500">
-                Track status of your submitted leaves or apply for a new leave.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsApplyModalOpen(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm cursor-pointer"
-            >
-              <Plus size={18} weight="bold" />
-              <span>+ Apply My Leave</span>
-            </button>
-          </div>
-
+        <div className="space-y-4">
           {/* My Leaves Table */}
-          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+          <div className="card overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ClipboardText size={16} weight="fill" className="text-slate-500" />
+                <span className="text-sm font-semibold text-slate-900">My Leave Applications</span>
+              </div>
+              <span className="text-xs text-slate-500">{currentMyLeavesList.length} record(s)</span>
+            </div>
             {currentMyLeavesList.length === 0 ? (
               <div className="text-center py-12 px-4">
                 <ClipboardText size={40} className="mx-auto text-slate-300 mb-2" />
                 <h3 className="text-sm font-semibold text-slate-700">No leave applications yet</h3>
-                <p className="text-xs text-slate-400 mt-1">Click &quot;+ Apply My Leave&quot; above to submit an application.</p>
+                <p className="text-xs text-slate-400 mt-1">Click &quot;Apply for Leave&quot; above to submit an application.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                  <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                      <th className="px-5 py-3.5">Leave Type</th>
-                      <th className="px-5 py-3.5">Duration & Dates</th>
-                      <th className="px-5 py-3.5">Total Days</th>
-                      <th className="px-5 py-3.5">Reason</th>
-                      <th className="px-5 py-3.5">Status</th>
-                      <th className="px-5 py-3.5">Applied Date</th>
-                      <th className="px-5 py-3.5">Sanctioning Authority</th>
-                      <th className="px-5 py-3.5 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {currentMyLeavesList.map(item => (
-                      <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="px-5 py-4">
-                          <span className={cn(
-                            'px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider',
-                            item.leaveType === 'casual' && 'bg-blue-50 text-blue-700 border border-blue-200',
-                            item.leaveType === 'earned' && 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-                            item.leaveType === 'medical' && 'bg-rose-50 text-rose-700 border border-rose-200',
-                            item.leaveType === 'special' && 'bg-purple-50 text-purple-700 border border-purple-200'
-                          )}>
-                            {item.leaveType}
+              <div className="divide-y divide-slate-100">
+                {currentMyLeavesList.map(item => {
+                  const tBadge = leaveTypeBadge(item.leaveType);
+                  const sBadge = statusBadge(item.status);
+                  const StatusIcon = sBadge.icon;
+                  const isPending = item.status === 'applied';
+
+                  return (
+                    <div key={item.id} className="p-4 sm:p-5 hover:bg-slate-50/50 transition space-y-3">
+                      {/* Top Row: Left = Chips (Leave Type + Days), Right = Status Badge in Top Right Corner */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={cn('badge border text-xs font-semibold', tBadge.cls)}>
+                            {tBadge.label}
                           </span>
-                        </td>
-                        <td className="px-5 py-4 font-medium text-slate-900 whitespace-nowrap">
-                          {formatDate(item.startDate)} → {formatDate(item.endDate)}
+                          <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200/70">
+                            {item.totalDays} {item.totalDays === 1 ? 'Day' : 'Days'}
+                          </span>
                           {item.isHalfDay && (
-                            <span className="block text-xs font-normal text-amber-600 mt-0.5">Half Day Leave</span>
+                            <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
+                              Half Day
+                            </span>
                           )}
-                        </td>
-                        <td className="px-5 py-4 font-semibold text-slate-800">
-                          {item.totalDays} {item.totalDays === 1 ? 'Day' : 'Days'}
-                        </td>
-                        <td className="px-5 py-4 text-slate-600 max-w-xs truncate" title={item.reason}>
-                          {item.reason}
-                        </td>
-                        <td className="px-5 py-4">
-                          <span className={cn(
-                            'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold capitalize',
-                            item.status === 'applied' && 'bg-amber-50 text-amber-700 border border-amber-200',
-                            item.status === 'approved' && 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-                            item.status === 'rejected' && 'bg-rose-50 text-rose-700 border border-rose-200'
-                          )}>
-                            {item.status === 'applied' && <Clock size={12} weight="bold" className="text-amber-500" />}
-                            {item.status === 'approved' && <CheckCircle size={12} weight="fill" className="text-emerald-500" />}
-                            {item.status === 'rejected' && <XCircle size={12} weight="fill" className="text-rose-500" />}
-                            {item.status === 'applied' ? 'Pending Approval' : item.status}
+                        </div>
+
+                        {/* Status Badge in Top Right Corner */}
+                        <span className={cn('badge border text-xs flex items-center gap-1 font-semibold shrink-0', sBadge.cls)}>
+                          <StatusIcon size={12} weight="fill" />
+                          {sBadge.label}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2.5 text-xs text-slate-500">
+                        <div className="flex items-center gap-1.5 font-medium text-slate-700">
+                          <Calendar size={14} className="text-indigo-600 shrink-0" />
+                          <span>
+                            {formatDate(item.startDate)} &mdash; {formatDate(item.endDate)}
                           </span>
-                        </td>
-                        <td className="px-5 py-4 text-slate-500 text-xs whitespace-nowrap">
-                          {formatDate(item.appliedAt)}
-                        </td>
-                        <td className="px-5 py-4 text-xs text-slate-500">
-                          {item.approverName || 'State Project Director'}
-                          {item.approverComment && (
-                            <p className="text-slate-400 italic text-[11px] mt-0.5">&quot;{item.approverComment}&quot;</p>
-                          )}
-                        </td>
-                        <td className="px-5 py-4 text-right">
-                          {item.status === 'applied' ? (
+                        </div>
+                        <div className="flex items-center gap-1.5 text-slate-400 sm:before:content-['•'] sm:before:mr-1 sm:before:text-slate-300">
+                          <span>Applied on {formatDate(item.appliedAt)}</span>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons: Reason for Leave & Document */}
+                      <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 shadow-2xs">
+                            <span className="text-xs font-semibold text-slate-700">
+                              Reason for Leave
+                            </span>
                             <button
                               type="button"
                               onClick={() => {
-                                setMyLeaves(prev => ({
-                                  ...prev,
-                                  [activeRole]: prev[activeRole].filter(l => l.id !== item.id)
-                                }));
-                                toast.info('Leave application cancelled');
+                                setSelectedPcLeave({
+                                  id: item.id,
+                                  pcId: currentManager.id,
+                                  pcName: currentManager.name,
+                                  email: currentManager.email,
+                                  phone: currentManager.phone,
+                                  district: 'State HQ',
+                                  division: 'Bhopal',
+                                  leaveType: item.leaveType,
+                                  startDate: item.startDate,
+                                  endDate: item.endDate,
+                                  totalDays: item.totalDays,
+                                  reason: item.reason,
+                                  substituteName: item.approverName || 'None',
+                                  documentName: item.documentName,
+                                  status: item.status,
+                                  appliedAt: item.appliedAt,
+                                  approverComment: item.approverComment,
+                                });
+                                setPcModalMode('view');
                               }}
-                              className="text-xs font-medium text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
+                              className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-lg transition shadow-2xs cursor-pointer"
                             >
-                              Cancel
+                              <Eye size={13} weight="bold" />
+                              View
                             </button>
-                          ) : (
-                            <span className="text-xs text-slate-400">Processed</span>
+                          </div>
+
+                          {item.documentName && (
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 shadow-2xs">
+                              <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5 truncate max-w-[200px]">
+                                <FileText size={14} className="text-indigo-600 shrink-0" />
+                                <span className="truncate">{item.documentName}</span>
+                              </span>
+                            </div>
                           )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </div>
+
+                        {isPending && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMyLeaves(prev => ({
+                                ...prev,
+                                [activeRole]: prev[activeRole].filter(l => l.id !== item.id)
+                              }));
+                              toast.info('Leave application cancelled');
+                            }}
+                            className="text-xs font-semibold text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
+                          >
+                            Cancel Application
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -911,48 +888,6 @@ export default function AdminLeavePage() {
          ══════════════════════════════════════════════════════════════════ */}
       {activeTab === 'team_leave' && (
         <div className="space-y-6">
-          {/* Sub-Tabs Switcher */}
-          <div className="bg-slate-100/90 p-1.5 rounded-2xl flex flex-wrap items-center gap-1.5 border border-slate-200/80">
-            <button
-              type="button"
-              onClick={() => setTeamSubTab('coordinators')}
-              className={cn(
-                'flex items-center gap-2 px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer',
-                teamSubTab === 'coordinators'
-                  ? 'bg-white text-indigo-700 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-              )}
-            >
-              <UserCheck size={18} weight={teamSubTab === 'coordinators' ? 'bold' : 'regular'} />
-              <span>Program Coordinators (Approve / Reject)</span>
-              {pendingPcCount > 0 ? (
-                <span className="px-2 py-0.5 rounded-full text-xs font-extrabold bg-amber-500 text-white animate-pulse">
-                  {pendingPcCount} Pending
-                </span>
-              ) : (
-                <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-slate-200 text-slate-700">
-                  {pcLeaves.length}
-                </span>
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setTeamSubTab('fellows_interns')}
-              className={cn(
-                'flex items-center gap-2 px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer',
-                teamSubTab === 'fellows_interns'
-                  ? 'bg-white text-indigo-700 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-              )}
-            >
-              <Users size={18} weight={teamSubTab === 'fellows_interns' ? 'bold' : 'regular'} />
-              <span>Fellows & Interns (Monitor Only)</span>
-              <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-slate-200 text-slate-700">
-                {monitorLeaves.length}
-              </span>
-            </button>
-          </div>
 
           {/* ── Sub-Tab 1: Coordinators (Approve / Reject) ── */}
           {teamSubTab === 'coordinators' && (
@@ -994,148 +929,189 @@ export default function AdminLeavePage() {
                   />
                 </div>
                 <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <Funnel size={16} className="text-slate-500" />
-                  <select
+                  <Funnel size={16} className="text-slate-500 shrink-0" />
+                  <SelectPopup
+                    title="Filter Status"
                     value={pcStatusFilter}
-                    onChange={e => setPcStatusFilter(e.target.value)}
-                    className="text-sm border border-slate-200 rounded-xl py-2 px-3 text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="all">All Status ({pcLeaves.length})</option>
-                    <option value="applied">Pending Approval ({pendingPcCount})</option>
-                    <option value="approved">Approved</option>
-                    <option value="rejected">Rejected</option>
-                  </select>
+                    options={[
+                      { value: 'all', label: `All Status (${pcLeaves.length})` },
+                      { value: 'applied', label: `Pending Approval (${pendingPcCount})` },
+                      { value: 'approved', label: 'Approved' },
+                      { value: 'rejected', label: 'Rejected' },
+                    ]}
+                    onChange={setPcStatusFilter}
+                    placeholder="All Status"
+                    buttonClassName="w-full sm:w-48 text-xs font-semibold py-2 px-3 border-slate-200 bg-white"
+                  />
                 </div>
               </div>
 
-              {/* PC Applications Table */}
-              <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
-                {filteredPcLeaves.length === 0 ? (
-                  <div className="text-center py-12 px-4">
-                    <Users size={40} className="mx-auto text-slate-300 mb-2" />
-                    <h3 className="text-sm font-semibold text-slate-700">No coordinator applications found</h3>
-                    <p className="text-xs text-slate-400 mt-1">Try clearing your search query or status filter.</p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                      <thead>
-                        <tr className="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                          <th className="px-5 py-3.5">Coordinator Name</th>
-                          <th className="px-5 py-3.5">District / Division</th>
-                          <th className="px-5 py-3.5">Leave Type</th>
-                          <th className="px-5 py-3.5">Dates & Duration</th>
-                          <th className="px-5 py-3.5">Reason & Handover</th>
-                          <th className="px-5 py-3.5">Status</th>
-                          <th className="px-5 py-3.5 text-right">Sanction Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {filteredPcLeaves.map(item => (
-                          <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
-                            <td className="px-5 py-4">
-                              <div className="font-semibold text-slate-900">{item.pcName}</div>
-                              <div className="text-xs text-slate-400">{item.email} • {item.phone}</div>
-                            </td>
-                            <td className="px-5 py-4">
-                              <div className="font-medium text-slate-800 flex items-center gap-1">
-                                <MapPin size={13} className="text-indigo-600" />
-                                {item.district}
-                              </div>
-                              <div className="text-xs text-slate-500">{item.division}</div>
-                            </td>
-                            <td className="px-5 py-4">
-                              <span className={cn(
-                                'px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider',
-                                item.leaveType === 'casual' && 'bg-blue-50 text-blue-700 border border-blue-200',
-                                item.leaveType === 'medical' && 'bg-rose-50 text-rose-700 border border-rose-200',
-                                item.leaveType === 'earned' && 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              )}>
-                                {item.leaveType}
+              {/* PC Applications Cards (Design from 3rd screenshot) */}
+              {filteredPcLeaves.length === 0 ? (
+                <div className="card p-10 text-center text-slate-400 text-sm">
+                  <Users size={40} className="mx-auto text-slate-300 mb-2" />
+                  <h3 className="text-sm font-semibold text-slate-700">No coordinator applications found</h3>
+                  <p className="text-xs text-slate-400 mt-1">Try clearing your search query or status filter.</p>
+                </div>
+              ) : (
+                <div className="space-y-3.5">
+                  {filteredPcLeaves.map(item => {
+                    const tBadge = leaveTypeBadge(item.leaveType);
+                    const sBadge = statusBadge(item.status);
+                    const StatusIcon = sBadge.icon;
+                    const isPending = item.status === 'applied';
+                    const initials = item.pcName.split(' ').map(n => n[0]).join('').slice(0, 2);
+
+                    return (
+                      <div key={item.id} className="card p-4 sm:p-5 hover:border-slate-300 transition space-y-3.5">
+                        {/* Header Row: Avatar + Name/Location + Status Badge in Top Right */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-9 h-9 rounded-full bg-purple-100 text-purple-700 font-bold text-xs flex items-center justify-center shrink-0 border border-purple-200 shadow-inner">
+                              {initials}
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="font-bold text-slate-900 text-sm truncate">{item.pcName}</h3>
+                              <span className="text-xs text-slate-400">({item.district} District)</span>
+                            </div>
+                          </div>
+
+                          {/* Top Right Corner Status Badge */}
+                          <span className={cn('badge border text-xs flex items-center gap-1 font-semibold shrink-0', sBadge.cls)}>
+                            <StatusIcon size={12} weight="fill" />
+                            {sBadge.label}
+                          </span>
+                        </div>
+
+                        {/* Chips Row: Leave Type + Total Days */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={cn('badge border text-xs font-semibold', tBadge.cls)}>
+                            {tBadge.label}
+                          </span>
+                          <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+                            {item.totalDays} {item.totalDays === 1 ? 'Day' : 'Days'}
+                          </span>
+                        </div>
+
+                        {/* Leave Duration & Applied Date */}
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2.5 text-xs text-slate-600">
+                          <div className="flex items-center gap-1.5 font-medium text-slate-700">
+                            <Calendar size={14} className="text-indigo-600 shrink-0" />
+                            <span>
+                              Leave Duration: {formatDate(item.startDate)} &mdash; {formatDate(item.endDate)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-slate-400 sm:before:content-['•'] sm:before:mr-1 sm:before:text-slate-300">
+                            <span>Applied on {formatDate(item.appliedAt)}</span>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons: Reason for Leave & Handover/Document */}
+                        <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                          {/* Reason for Leave */}
+                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 shadow-2xs">
+                            <span className="text-xs font-semibold text-slate-700">
+                              Reason for Leave
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedPcLeave(item);
+                                setPcModalMode('view');
+                              }}
+                              className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-lg transition shadow-2xs cursor-pointer"
+                            >
+                              <Eye size={13} weight="bold" />
+                              <span>View</span>
+                            </button>
+                          </div>
+
+                          {/* Handover Substitute */}
+                          {item.substituteName && item.substituteName !== 'None specified' && (
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 shadow-2xs">
+                              <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5 truncate max-w-[240px]">
+                                <UserCheck size={14} className="text-indigo-600 shrink-0" />
+                                <span className="truncate">Handover: {item.substituteName}</span>
                               </span>
-                            </td>
-                            <td className="px-5 py-4 whitespace-nowrap">
-                              <div className="font-medium text-slate-900">
-                                {formatDate(item.startDate)} → {formatDate(item.endDate)}
-                              </div>
-                              <div className="text-xs text-slate-500 font-semibold mt-0.5">
-                                {item.totalDays} {item.totalDays === 1 ? 'Day' : 'Days'}
-                              </div>
-                            </td>
-                            <td className="px-5 py-4 max-w-xs">
-                              <div className="text-slate-700 text-xs line-clamp-2" title={item.reason}>
-                                {item.reason}
-                              </div>
-                              <div className="text-[11px] text-indigo-700 mt-1 font-medium bg-indigo-50 px-2 py-0.5 rounded inline-block">
-                                Handover: {item.substituteName}
-                              </div>
-                            </td>
-                            <td className="px-5 py-4">
-                              <span className={cn(
-                                'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold capitalize',
-                                item.status === 'applied' && 'bg-amber-50 text-amber-700 border border-amber-200',
-                                item.status === 'approved' && 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-                                item.status === 'rejected' && 'bg-rose-50 text-rose-700 border border-rose-200'
-                              )}>
-                                {item.status === 'applied' && <Clock size={12} weight="bold" className="text-amber-500" />}
-                                {item.status === 'approved' && <CheckCircle size={12} weight="fill" className="text-emerald-500" />}
-                                {item.status === 'rejected' && <XCircle size={12} weight="fill" className="text-rose-500" />}
-                                {item.status === 'applied' ? 'Pending Approval' : item.status}
+                            </div>
+                          )}
+
+                          {/* Document if attached */}
+                          {item.documentName && (
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 shadow-2xs">
+                              <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5 truncate max-w-[200px]">
+                                <FileText size={14} className="text-indigo-600 shrink-0" />
+                                <span className="truncate">{item.documentName}</span>
                               </span>
-                              {item.approverComment && (
-                                <p className="text-[11px] text-slate-400 mt-1 italic line-clamp-1 max-w-[140px]" title={item.approverComment}>
-                                  &quot;{item.approverComment}&quot;
-                                </p>
-                              )}
-                            </td>
-                            <td className="px-5 py-4 text-right whitespace-nowrap">
-                              {item.status === 'applied' ? (
-                                <div className="flex items-center justify-end gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setSelectedPcLeave(item);
-                                      setPcModalMode('approve');
-                                      setPcRemark(`Sanctioned by ${currentManager.designation}`);
-                                    }}
-                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-xs cursor-pointer"
-                                  >
-                                    <Check size={14} weight="bold" />
-                                    Approve
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setSelectedPcLeave(item);
-                                      setPcModalMode('reject');
-                                      setPcRemark('');
-                                    }}
-                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 transition-colors shadow-xs cursor-pointer"
-                                  >
-                                    <X size={14} weight="bold" />
-                                    Reject
-                                  </button>
-                                </div>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedPcLeave(item);
-                                    setPcModalMode('view');
-                                  }}
-                                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
-                                >
-                                  View Details
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedPcLeave(item);
+                                  setPcModalMode('view');
+                                }}
+                                className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-lg transition shadow-2xs cursor-pointer"
+                              >
+                                <Eye size={13} weight="bold" />
+                                <span>View</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Approver Remark if processed */}
+                        {item.approverComment && (
+                          <div className="text-xs text-slate-600 bg-amber-50/70 border border-amber-200/60 rounded-xl px-3 py-2">
+                            <strong>Sanction Remark:</strong> {item.approverComment}
+                          </div>
+                        )}
+
+                        {/* Bottom Action Buttons: Approve / Reject 50-50 Grid */}
+                        {isPending ? (
+                          <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedPcLeave(item);
+                                setPcModalMode('approve');
+                                setPcRemark(`Sanctioned by ${currentManager.designation}`);
+                              }}
+                              className="py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
+                            >
+                              <Check size={16} weight="bold" />
+                              <span>Approve</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedPcLeave(item);
+                                setPcModalMode('reject');
+                                setPcRemark('');
+                              }}
+                              className="py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
+                            >
+                              <X size={16} weight="bold" />
+                              <span>Reject</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex justify-end pt-2 border-t border-slate-100">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedPcLeave(item);
+                                setPcModalMode('view');
+                              }}
+                              className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
+                            >
+                              View Details &rarr;
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -1225,101 +1201,119 @@ export default function AdminLeavePage() {
                 </div>
               </div>
 
-              {/* Monitor Table */}
-              <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
-                {filteredMonitorLeaves.length === 0 ? (
-                  <div className="text-center py-12 px-4">
-                    <ClipboardText size={40} className="mx-auto text-slate-300 mb-2" />
-                    <h3 className="text-sm font-semibold text-slate-700">No records found</h3>
-                    <p className="text-xs text-slate-400 mt-1">Try adjusting your filters or search terms.</p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                      <thead>
-                        <tr className="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                          <th className="px-5 py-3.5">Candidate</th>
-                          <th className="px-5 py-3.5">Role</th>
-                          <th className="px-5 py-3.5">District / Block</th>
-                          <th className="px-5 py-3.5">Leave Type</th>
-                          <th className="px-5 py-3.5">Duration</th>
-                          <th className="px-5 py-3.5">Reason</th>
-                          <th className="px-5 py-3.5">Status</th>
-                          <th className="px-5 py-3.5">Handled by Coordinator</th>
-                          <th className="px-5 py-3.5 text-right">Details</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {filteredMonitorLeaves.map(item => (
-                          <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
-                            <td className="px-5 py-4 font-semibold text-slate-900">
-                              {item.name}
-                            </td>
-                            <td className="px-5 py-4">
-                              <span className={cn(
-                                'px-2.5 py-1 rounded-md text-xs font-bold capitalize',
-                                item.role === 'fellow' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
-                              )}>
-                                {item.role}
+              {/* Monitor Applications Cards (Design from 3rd screenshot) */}
+              {filteredMonitorLeaves.length === 0 ? (
+                <div className="card p-10 text-center text-slate-400 text-sm">
+                  <ClipboardText size={40} className="mx-auto text-slate-300 mb-2" />
+                  <h3 className="text-sm font-semibold text-slate-700">No records found</h3>
+                  <p className="text-xs text-slate-400 mt-1">Try adjusting your filters or search terms.</p>
+                </div>
+              ) : (
+                <div className="space-y-3.5">
+                  {filteredMonitorLeaves.map(item => {
+                    const tBadge = leaveTypeBadge(item.leaveType);
+                    const sBadge = statusBadge(item.status);
+                    const StatusIcon = sBadge.icon;
+                    const initials = item.name.split(' ').map(n => n[0]).join('').slice(0, 2);
+
+                    return (
+                      <div key={item.id} className="card p-4 sm:p-5 hover:border-slate-300 transition space-y-3.5">
+                        {/* Header Row: Avatar + Name/Location + Status Badge in Top Right */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center shrink-0 border border-indigo-200 shadow-inner">
+                              {initials}
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="font-bold text-slate-900 text-sm truncate">{item.name}</h3>
+                              <span className="text-xs text-slate-400">
+                                {item.district} &bull; Block: {item.block}
                               </span>
-                            </td>
-                            <td className="px-5 py-4 text-xs">
-                              <div className="font-semibold text-slate-800">{item.district}</div>
-                              <div className="text-slate-500">Block: {item.block}</div>
-                            </td>
-                            <td className="px-5 py-4">
-                              <span className="capitalize px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
-                                {item.leaveType}
+                            </div>
+                          </div>
+
+                          {/* Top Right Corner Status Badge */}
+                          <span className={cn('badge border text-xs flex items-center gap-1 font-semibold shrink-0', sBadge.cls)}>
+                            <StatusIcon size={12} weight="fill" />
+                            {item.status === 'applied' ? 'Pending PC' : sBadge.label}
+                          </span>
+                        </div>
+
+                        {/* Chips Row: Role + Leave Type + Total Days */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={cn(
+                            'px-2.5 py-0.5 rounded-full text-xs font-bold capitalize border',
+                            item.role === 'fellow'
+                              ? 'bg-blue-50 text-blue-700 border-blue-200'
+                              : 'bg-purple-50 text-purple-700 border-purple-200'
+                          )}>
+                            {item.role}
+                          </span>
+                          <span className={cn('badge border text-xs font-semibold', tBadge.cls)}>
+                            {tBadge.label}
+                          </span>
+                          <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+                            {item.totalDays} {item.totalDays === 1 ? 'Day' : 'Days'}
+                          </span>
+                        </div>
+
+                        {/* Leave Duration & Applied Date */}
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2.5 text-xs text-slate-600">
+                          <div className="flex items-center gap-1.5 font-medium text-slate-700">
+                            <Calendar size={14} className="text-indigo-600 shrink-0" />
+                            <span>
+                              Leave Duration: {formatDate(item.startDate)} &mdash; {formatDate(item.endDate)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-slate-400 sm:before:content-['•'] sm:before:mr-1 sm:before:text-slate-300">
+                            <span>Applied on {formatDate(item.appliedAt)}</span>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons: Reason for Leave & PC Reviewer */}
+                        <div className="flex flex-wrap items-center justify-between gap-2.5 pt-0.5">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 shadow-2xs">
+                              <span className="text-xs font-semibold text-slate-700">
+                                Reason for Leave
                               </span>
-                            </td>
-                            <td className="px-5 py-4 whitespace-nowrap text-xs">
-                              <div className="font-medium text-slate-900">
-                                {formatDate(item.startDate)} → {formatDate(item.endDate)}
-                              </div>
-                              <div className="text-slate-500 mt-0.5 font-semibold">
-                                {item.totalDays} {item.totalDays === 1 ? 'Day' : 'Days'}
-                              </div>
-                            </td>
-                            <td className="px-5 py-4 max-w-xs text-xs text-slate-600 truncate" title={item.reason}>
-                              {item.reason}
-                            </td>
-                            <td className="px-5 py-4">
-                              <span className={cn(
-                                'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold capitalize',
-                                item.status === 'applied' && 'bg-amber-50 text-amber-700 border border-amber-200',
-                                item.status === 'approved' && 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-                                item.status === 'rejected' && 'bg-rose-50 text-rose-700 border border-rose-200'
-                              )}>
-                                {item.status === 'applied' && <Clock size={12} weight="bold" className="text-amber-500" />}
-                                {item.status === 'approved' && <CheckCircle size={12} weight="fill" className="text-emerald-500" />}
-                                {item.status === 'rejected' && <XCircle size={12} weight="fill" className="text-rose-500" />}
-                                {item.status === 'applied' ? 'Pending PC' : item.status}
-                              </span>
-                            </td>
-                            <td className="px-5 py-4 text-xs text-slate-600">
-                              <div className="font-medium text-slate-800">{item.reviewedByPC}</div>
-                              {item.pcComment && (
-                                <div className="text-slate-400 text-[11px] italic line-clamp-1 max-w-[150px]" title={item.pcComment}>
-                                  &quot;{item.pcComment}&quot;
-                                </div>
-                              )}
-                            </td>
-                            <td className="px-5 py-4 text-right">
                               <button
                                 type="button"
                                 onClick={() => setSelectedMonitorLeave(item)}
-                                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
+                                className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-lg transition shadow-2xs cursor-pointer"
                               >
-                                View
+                                <Eye size={13} weight="bold" />
+                                <span>View</span>
                               </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
+                            </div>
+
+                            {item.reviewedByPC && (
+                              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-600 shadow-2xs">
+                                <UserCheck size={14} className="text-indigo-600 shrink-0" />
+                                <span>Reviewed by: <strong className="text-slate-800">{item.reviewedByPC}</strong></span>
+                              </div>
+                            )}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setSelectedMonitorLeave(item)}
+                            className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
+                          >
+                            Full Details &rarr;
+                          </button>
+                        </div>
+
+                        {item.pcComment && (
+                          <div className="text-xs text-slate-600 bg-amber-50/70 border border-amber-200/60 rounded-xl px-3 py-2">
+                            <strong>Coordinator Note:</strong> &quot;{item.pcComment}&quot;
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1329,162 +1323,169 @@ export default function AdminLeavePage() {
           MODAL: APPLY LEAVE (FOR PROGRAM MANAGER)
          ══════════════════════════════════════════════════════════════════ */}
       {isApplyModalOpen && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in duration-150">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-300 ring-1 ring-black/10 overflow-hidden flex flex-col max-h-[88vh] animate-in fade-in zoom-in duration-150">
+            {/* Modal Header with distinct boundary */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 bg-slate-50/80 shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shadow-2xs">
                   <CalendarCheck size={20} weight="bold" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">Apply Leave</h3>
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900">Apply Leave</h3>
                   <p className="text-xs text-slate-500">{currentManager.designation}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsApplyModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer"
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-200/60 transition-colors cursor-pointer"
+                aria-label="Close"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleApplySubmit} className="mt-5 space-y-4">
-              {/* Leave Type */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Leave Type *
-                </label>
-                <select
-                  value={applyForm.leaveType}
-                  onChange={e => setApplyForm(f => ({ ...f, leaveType: e.target.value as any }))}
-                  className="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="casual">Casual Leave (CL) - Available: {leaveBalance.casual.available} Days</option>
-                  <option value="earned">Earned Leave (EL) - Available: {leaveBalance.earned.available} Days</option>
-                  <option value="medical">Medical Leave (ML) - Available: {leaveBalance.medical.available} Days</option>
-                  <option value="special">Special / Restricted Holiday - Available: {leaveBalance.special.available} Days</option>
-                </select>
-              </div>
-
-              {/* Half Day Checkbox */}
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="half-day-check"
-                  checked={applyForm.isHalfDay}
-                  onChange={e => setApplyForm(f => ({ ...f, isHalfDay: e.target.checked }))}
-                  className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
-                />
-                <label htmlFor="half-day-check" className="text-xs font-semibold text-slate-700 cursor-pointer">
-                  Half Day Leave
-                </label>
-              </div>
-
-              {/* Date Pickers */}
-              <div className="grid grid-cols-2 gap-3">
+            {/* Scrollable Form Body */}
+            <form onSubmit={handleApplySubmit} className="flex flex-col flex-1 min-h-0">
+              <div className="p-5 overflow-y-auto space-y-4 flex-1">
+                {/* Leave Type Popup */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Start Date *
+                    Leave Type *
                   </label>
-                  <input
-                    type="date"
-                    required
-                    value={applyForm.startDate}
-                    onChange={e => setApplyForm(f => ({ ...f, startDate: e.target.value }))}
-                    className="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  <SelectPopup
+                    title="Select Leave Type"
+                    value={applyForm.leaveType}
+                    options={[
+                      { value: 'casual', label: `Casual Leave (CL) - Available: ${leaveBalance.casual.available} Days` },
+                      { value: 'earned', label: `Earned Leave (EL) - Available: ${leaveBalance.earned.available} Days` },
+                      { value: 'medical', label: `Medical Leave (ML) - Available: ${leaveBalance.medical.available} Days` },
+                      { value: 'special', label: `Special / Restricted Holiday - Available: ${leaveBalance.special.available} Days` },
+                    ]}
+                    onChange={val => setApplyForm(f => ({ ...f, leaveType: val as any }))}
+                    placeholder="Select Leave Type"
+                    buttonClassName="w-full text-sm border-slate-300 rounded-xl px-3.5 py-2.5 bg-white text-slate-800"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    End Date *
-                  </label>
+
+                {/* Half Day Checkbox */}
+                <div className="flex items-center gap-2">
                   <input
-                    type="date"
-                    required
-                    value={applyForm.endDate}
-                    onChange={e => setApplyForm(f => ({ ...f, endDate: e.target.value }))}
-                    className="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    type="checkbox"
+                    id="half-day-check"
+                    checked={applyForm.isHalfDay}
+                    onChange={e => setApplyForm(f => ({ ...f, isHalfDay: e.target.checked }))}
+                    className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 cursor-pointer"
                   />
+                  <label htmlFor="half-day-check" className="text-xs font-semibold text-slate-700 cursor-pointer">
+                    Half Day Leave
+                  </label>
                 </div>
-              </div>
 
-              {/* Calculated Total Days */}
-              {calculatedDays > 0 && (
-                <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-100 flex items-center justify-between text-xs">
-                  <span className="text-indigo-800 font-semibold">Calculated Leave Duration:</span>
-                  <span className="font-extrabold text-indigo-900 bg-indigo-200/60 px-2.5 py-1 rounded-md">
-                    {calculatedDays} {calculatedDays === 1 ? 'Day' : 'Days'}
-                  </span>
-                </div>
-              )}
-
-              {/* Reason */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Reason for Leave *
-                </label>
-                <textarea
-                  required
-                  rows={3}
-                  placeholder="Specify official or personal justification for leave..."
-                  value={applyForm.reason}
-                  onChange={e => setApplyForm(f => ({ ...f, reason: e.target.value }))}
-                  className="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-                />
-              </div>
-
-              {/* Emergency Contact */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Emergency Reachable Number
-                </label>
-                <input
-                  type="text"
-                  placeholder={currentManager.phone}
-                  value={applyForm.emergencyContact}
-                  onChange={e => setApplyForm(f => ({ ...f, emergencyContact: e.target.value }))}
-                  className="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              {/* Document attachment */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Supporting Document (Optional for Medical/Official)
-                </label>
-                <div className="border border-dashed border-slate-300 rounded-xl p-3 flex items-center justify-between bg-slate-50">
-                  <span className="text-xs text-slate-500 truncate max-w-[280px]">
-                    {applyForm.documentName || 'No document attached'}
-                  </span>
-                  <label className="inline-flex items-center gap-1 text-xs font-semibold bg-white border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-100 cursor-pointer shadow-2xs">
-                    <UploadSimple size={14} />
-                    Choose File
-                    <input
-                      type="file"
-                      className="hidden"
-                      onChange={e => {
-                        if (e.target.files && e.target.files[0]) {
-                          setApplyForm(f => ({ ...f, documentName: e.target.files![0].name }));
-                        }
-                      }}
+                {/* Date Pickers via Popups */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Start Date *
+                    </label>
+                    <DatePopup
+                      value={applyForm.startDate}
+                      onChange={val => setApplyForm(f => ({ ...f, startDate: val }))}
+                      placeholder="dd-mm-yyyy"
+                      buttonClassName="w-full text-sm border-slate-300 rounded-xl px-3.5 py-2.5 bg-white text-slate-800"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      End Date *
+                    </label>
+                    <DatePopup
+                      value={applyForm.endDate}
+                      onChange={val => setApplyForm(f => ({ ...f, endDate: val }))}
+                      placeholder="dd-mm-yyyy"
+                      buttonClassName="w-full text-sm border-slate-300 rounded-xl px-3.5 py-2.5 bg-white text-slate-800"
+                    />
+                  </div>
+                </div>
+
+                {/* Calculated Total Days */}
+                {calculatedDays > 0 && (
+                  <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-100 flex items-center justify-between text-xs">
+                    <span className="text-indigo-800 font-semibold">Calculated Leave Duration:</span>
+                    <span className="font-extrabold text-indigo-900 bg-indigo-200/60 px-2.5 py-1 rounded-md">
+                      {calculatedDays} {calculatedDays === 1 ? 'Day' : 'Days'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Reason */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Reason for Leave *
                   </label>
+                  <textarea
+                    required
+                    rows={3}
+                    placeholder="Specify official or personal justification for leave..."
+                    value={applyForm.reason}
+                    onChange={e => setApplyForm(f => ({ ...f, reason: e.target.value }))}
+                    className="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                  />
+                </div>
+
+                {/* Emergency Contact */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Emergency Reachable Number
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={currentManager.phone}
+                    value={applyForm.emergencyContact}
+                    onChange={e => setApplyForm(f => ({ ...f, emergencyContact: e.target.value }))}
+                    className="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                {/* Document attachment */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Supporting Document (Optional for Medical/Official)
+                  </label>
+                  <div className="border border-dashed border-slate-300 rounded-xl p-3 flex items-center justify-between bg-slate-50">
+                    <span className="text-xs text-slate-500 truncate max-w-[240px]">
+                      {applyForm.documentName || 'No document attached'}
+                    </span>
+                    <label className="inline-flex items-center gap-1 text-xs font-semibold bg-white border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-100 cursor-pointer shadow-2xs">
+                      <UploadSimple size={14} />
+                      Choose File
+                      <input
+                        type="file"
+                        className="hidden"
+                        onChange={e => {
+                          if (e.target.files && e.target.files[0]) {
+                            setApplyForm(f => ({ ...f, documentName: e.target.files![0].name }));
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
+              {/* Modal Footer with distinct boundary */}
+              <div className="px-5 py-3.5 border-t border-slate-200 bg-slate-50/90 flex items-center justify-end gap-3 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsApplyModalOpen(false)}
-                  className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 rounded-xl cursor-pointer"
+                  className="px-4 py-2 text-xs sm:text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl transition cursor-pointer shadow-2xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl transition-colors shadow-sm cursor-pointer"
+                  className="px-5 py-2.5 text-xs sm:text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 rounded-xl transition-all shadow-xs cursor-pointer"
                 >
                   Submit Application
                 </button>

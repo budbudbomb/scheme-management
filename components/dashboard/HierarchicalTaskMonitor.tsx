@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   DistrictProgress,
   BlockProgress,
@@ -27,9 +27,12 @@ import {
   SquaresFour,
   Buildings,
   PaperPlaneTilt,
+  Eye,
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils/formatters';
 import { toast } from 'sonner';
+import StakeholderResponsesPreviewModal from '@/components/surveys/StakeholderResponsesPreviewModal';
+import { MOCK_SURVEYS } from '@/lib/api/mockData';
 
 interface HierarchicalTaskMonitorProps {
   role: 'fellow' | 'pc';
@@ -75,13 +78,17 @@ export default function HierarchicalTaskMonitor({
   // In Tabs mode: which block is selected ('all' or blockId)
   const [selectedBlockId, setSelectedBlockId] = useState<string>('all');
 
-  // In Accordion mode: expanded block IDs (default all expanded or first 2)
-  const [expandedBlocks, setExpandedBlocks] = useState<Record<string, boolean>>({
-    'blk-seh-01': true,
-    'blk-seh-02': true,
-    'blk-bhp-01': true,
-    'blk-rsn-01': true,
-  });
+  // In Accordion mode: expanded block IDs (for PC, collapsed by default)
+  const [expandedBlocks, setExpandedBlocks] = useState<Record<string, boolean>>(
+    role === 'pc' ? {} : { 'blk-seh-01': true, 'blk-seh-02': true }
+  );
+
+  // Reset expanded blocks to collapsed when PC drills down into a district
+  useEffect(() => {
+    if (role === 'pc') {
+      setExpandedBlocks({});
+    }
+  }, [role, selectedDistrictId]);
 
   // ── Filters & Search ──
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -89,6 +96,9 @@ export default function HierarchicalTaskMonitor({
 
   // Nudge state tracking (set of intern IDs that have been nudged)
   const [nudgedInterns, setNudgedInterns] = useState<Record<string, boolean>>({});
+
+  // Survey preview modal state for intern survey task
+  const [previewIntern, setPreviewIntern] = useState<InternTaskItem | null>(null);
 
   const toggleAccordionBlock = (blockId: string) => {
     setExpandedBlocks(prev => ({ ...prev, [blockId]: !prev[blockId] }));
@@ -101,12 +111,6 @@ export default function HierarchicalTaskMonitor({
     });
   };
 
-  const handleWhatsAppNudge = (intern: InternTaskItem) => {
-    const text = encodeURIComponent(
-      `Hello ${intern.internName}, this is an urgent reminder from CMYP regarding your pending task "${intern.taskName}". Please complete your submissions at the earliest.`
-    );
-    window.open(`https://wa.me/?text=${text}`, '_blank');
-  };
 
   // Helper for status badge
   const renderStatusBadge = (status: InternTaskItem['status']) => {
@@ -158,67 +162,65 @@ export default function HierarchicalTaskMonitor({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2.5">
       {/* ══════════════════════════════════════════════════════════════════════
           LEVEL 1: PC DIVISION DISTRICT OVERVIEW CARDS (WHEN NO DISTRICT SELECTED)
          ══════════════════════════════════════════════════════════════════════ */}
       {role === 'pc' && !activeDistrict && (
-        <div className="space-y-5 animate-in fade-in duration-200">
+        <div className="space-y-3.5 animate-in fade-in duration-200">
           {/* Division Header Strip */}
-          <div className="card p-5 sm:p-6 bg-white border border-slate-200/90 rounded-2xl shadow-xs space-y-4">
+          <div className="card p-4 sm:p-5 bg-white border border-slate-200/90 rounded-2xl shadow-xs space-y-3.5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-[11px] font-bold text-indigo-700 uppercase tracking-wider">
-                    Division Task Oversight
-                  </span>
-                  <span className="text-xs text-slate-500 font-medium">Admin-Assigned Intern Tasks</span>
+                <div className="text-xs sm:text-sm font-semibold text-slate-700">
+                  <span>Division District Overview</span>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-                  <Buildings size={24} className="text-indigo-600 shrink-0" weight="duotone" />
-                  <span>{divisionData.divisionName}</span>
-                </h2>
                 <p className="text-xs sm:text-sm text-slate-600">
                   Select a district below to monitor block-wise execution, intern submissions, and overdue alerts.
                 </p>
               </div>
 
-              {/* Division Overall Progress Ring/Bar */}
-              <div className="bg-slate-50 border border-slate-200/80 px-4 py-3 rounded-xl flex items-center gap-4 shrink-0 shadow-2xs">
+              {/* Division Overall Progress Ring moved to the right */}
+              <div className="bg-slate-50 border border-slate-200/80 px-4 py-2.5 rounded-xl flex items-center justify-between gap-4 shrink-0 shadow-2xs sm:min-w-[220px]">
                 <div>
                   <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     Division Progress
                   </div>
-                  <div className="text-2xl font-black text-slate-900">
-                    {divisionData.completionRate}%
-                  </div>
-                  <div className="text-[11px] text-slate-500 font-medium">
-                    {divisionData.completedTasks} of {divisionData.totalInterns} Interns Done
+                  <div className="text-xs text-slate-600 font-medium mt-0.5">
+                    {divisionData.completedTasks} of {divisionData.totalInterns} Surveys Done
                   </div>
                 </div>
-                <div className="w-12 h-12 rounded-full border-4 border-slate-200 border-t-emerald-500 flex items-center justify-center font-bold text-xs text-emerald-700 bg-white shadow-2xs">
+                <div className="w-12 h-12 rounded-full border-4 border-slate-200 border-t-emerald-500 flex items-center justify-center font-black text-xs text-emerald-700 bg-white shadow-2xs shrink-0 ml-auto">
                   {divisionData.completionRate}%
                 </div>
               </div>
             </div>
 
-            {/* Quick Metrics Strip */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-4 border-t border-slate-100 text-xs">
-              <div className="bg-slate-50/80 border border-slate-200/70 p-3 rounded-xl">
-                <span className="text-slate-500 block text-[11px] font-medium mb-0.5">Total Districts</span>
-                <span className="text-base font-bold text-slate-900">{divisionData.totalDistricts}</span>
+            {/* Quick Metrics Strip: Total Surveys, Surveys Completed, Surveys in Progress */}
+            <div className="grid grid-cols-3 gap-2.5 pt-3.5 border-t border-slate-100 text-xs items-stretch">
+              <div className="bg-slate-50/80 border border-slate-200/70 p-3 rounded-xl flex flex-col justify-between">
+                <span className="text-slate-500 block text-[11px] sm:text-xs font-medium leading-snug min-h-[2.25rem] flex items-start">
+                  Total surveys
+                </span>
+                <span className="text-base sm:text-lg font-bold text-slate-900 mt-auto">
+                  {divisionData.totalInterns}
+                </span>
               </div>
-              <div className="bg-slate-50/80 border border-slate-200/70 p-3 rounded-xl">
-                <span className="text-slate-500 block text-[11px] font-medium mb-0.5">Total Blocks</span>
-                <span className="text-base font-bold text-slate-900">{divisionData.totalBlocks}</span>
+              <div className="bg-slate-50/80 border border-slate-200/70 p-3 rounded-xl flex flex-col justify-between">
+                <span className="text-emerald-700 block text-[11px] sm:text-xs font-medium leading-snug min-h-[2.25rem] flex items-start">
+                  Surveys completed
+                </span>
+                <span className="text-base sm:text-lg font-bold text-emerald-600 mt-auto">
+                  {divisionData.completedTasks}
+                </span>
               </div>
-              <div className="bg-slate-50/80 border border-slate-200/70 p-3 rounded-xl">
-                <span className="text-slate-500 block text-[11px] font-medium mb-0.5">Total Interns</span>
-                <span className="text-base font-bold text-slate-900">{divisionData.totalInterns}</span>
-              </div>
-              <div className="bg-slate-50/80 border border-slate-200/70 p-3 rounded-xl">
-                <span className="text-slate-500 block text-[11px] font-medium mb-0.5">Overdue Tasks</span>
-                <span className="text-base font-bold text-rose-600">{divisionData.overdueTasks} Attention Needed</span>
+              <div className="bg-slate-50/80 border border-slate-200/70 p-3 rounded-xl flex flex-col justify-between">
+                <span className="text-indigo-700 block text-[11px] sm:text-xs font-medium leading-snug min-h-[2.25rem] flex items-start">
+                  Surveys in progress
+                </span>
+                <span className="text-base sm:text-lg font-bold text-indigo-600 mt-auto">
+                  {divisionData.inProgressTasks}
+                </span>
               </div>
             </div>
           </div>
@@ -275,20 +277,46 @@ export default function HierarchicalTaskMonitor({
                       </span>
                     </div>
 
-                    {/* Progress bar */}
-                    <div className="space-y-1.5 my-3">
-                      <div className="flex justify-between text-xs text-slate-500 font-medium">
-                        <span>Intern Completion</span>
-                        <span>{district.completedTasks} / {district.totalInterns}</span>
+                    {/* Multi-segment Colored Survey Progress Bar */}
+                    <div className="space-y-2 my-3">
+                      <div className="flex justify-between text-xs text-slate-600 font-medium">
+                        <span className="font-semibold text-slate-700">Survey Progress</span>
+                        <span>{district.completedTasks} / {district.totalInterns} Done</span>
                       </div>
-                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+
+                      {/* Stacked Colored Bar */}
+                      <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden flex">
                         <div
-                          className={cn(
-                            'h-full rounded-full transition-all duration-300',
-                            isHigh ? 'bg-emerald-500' : isMedium ? 'bg-amber-500' : 'bg-rose-500'
-                          )}
-                          style={{ width: `${district.completionRate}%` }}
+                          style={{ width: `${district.totalInterns > 0 ? (district.completedTasks / district.totalInterns) * 100 : 0}%` }}
+                          className="bg-emerald-500 h-full transition-all duration-300"
+                          title={`Completed: ${district.completedTasks}`}
                         />
+                        <div
+                          style={{ width: `${district.totalInterns > 0 ? (district.inProgressTasks / district.totalInterns) * 100 : 0}%` }}
+                          className="bg-blue-500 h-full transition-all duration-300"
+                          title={`In Progress: ${district.inProgressTasks}`}
+                        />
+                        <div
+                          style={{ width: `${district.totalInterns > 0 ? (district.pendingTasks / district.totalInterns) * 100 : 0}%` }}
+                          className="bg-rose-500 h-full transition-all duration-300"
+                          title={`Not Started: ${district.pendingTasks}`}
+                        />
+                      </div>
+
+                      {/* Legend */}
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium pt-0.5">
+                        <span className="flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                          <span>{district.completedTasks} Done</span>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                          <span>{district.inProgressTasks} In Progress</span>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+                          <span className="text-rose-600 font-semibold">{district.pendingTasks} Not Started</span>
+                        </span>
                       </div>
                     </div>
 
@@ -333,9 +361,9 @@ export default function HierarchicalTaskMonitor({
           LEVEL 2: DISTRICT BLOCK-WISE VIEW (FOR FELLOW OR PC DRILLED-DOWN)
          ══════════════════════════════════════════════════════════════════════ */}
       {activeDistrict && (
-        <div className="space-y-6 animate-in fade-in duration-200">
+        <div className="space-y-3.5 animate-in fade-in duration-200">
           {/* District Header & Breadcrumb for PC */}
-          <div className="card p-5 sm:p-6 bg-white border border-slate-200/90 rounded-2xl shadow-xs space-y-4">
+          <div className="card p-5 sm:p-6 bg-white border border-slate-200/90 rounded-2xl shadow-xs space-y-3.5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
                 {role === 'pc' && (
@@ -349,60 +377,70 @@ export default function HierarchicalTaskMonitor({
                   </button>
                 )}
 
-                <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-[11px] font-bold text-indigo-700 uppercase tracking-wider">
-                    {role === 'pc' ? 'District Drill-Down' : 'District Task Oversight'}
-                  </span>
-                  <span className="text-xs text-slate-500 font-medium">Admin-Assigned Intern Tasks</span>
-                </div>
-
-                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-                  <MapPin size={24} className="text-indigo-600 shrink-0" weight="duotone" />
-                  <span>{activeDistrict.districtName} District</span>
-                </h2>
-
-                <p className="text-xs sm:text-sm text-slate-600">
-                  Fellow in Charge: <strong className="text-slate-900 font-semibold">{activeDistrict.fellowName}</strong>{' '}
-                  <span className="text-slate-500">({activeDistrict.fellowPhone})</span>
-                </p>
+                {role === 'pc' ? (
+                  <>
+                    <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+                      <span>{activeDistrict.districtName} District</span>
+                    </h2>
+                    <p className="text-xs sm:text-sm text-slate-600">
+                      Fellow in Charge: <strong className="text-slate-900 font-semibold">{activeDistrict.fellowName}</strong>{' '}
+                      <span className="text-slate-500">({activeDistrict.fellowPhone})</span>
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs sm:text-sm text-slate-700 font-medium">
+                      Fellow in Charge: <strong className="text-slate-900 font-semibold">{activeDistrict.fellowName}</strong>{' '}
+                      <span className="text-slate-500">({activeDistrict.fellowPhone})</span>
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Monitor block-wise execution, intern submissions, and overdue alerts.
+                    </p>
+                  </>
+                )}
               </div>
 
-              {/* District Completion Box */}
-              <div className="bg-slate-50 border border-slate-200/80 px-4 py-3 rounded-xl flex items-center gap-4 shrink-0 shadow-2xs">
+              {/* District Completion Box - Encircled percentage moved to right */}
+              <div className="bg-slate-50 border border-slate-200/80 px-4 py-2.5 rounded-xl flex items-center justify-between gap-4 shrink-0 shadow-2xs sm:min-w-[220px]">
                 <div>
                   <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     District Progress
                   </div>
-                  <div className="text-2xl font-black text-slate-900">
-                    {activeDistrict.completionRate}%
-                  </div>
-                  <div className="text-[11px] text-slate-500 font-medium">
-                    {activeDistrict.completedTasks} of {activeDistrict.totalInterns} Interns Done
+                  <div className="text-xs text-slate-600 font-medium mt-0.5">
+                    {activeDistrict.completedTasks} of {activeDistrict.totalInterns} Surveys Done
                   </div>
                 </div>
-                <div className="w-12 h-12 rounded-full border-4 border-slate-200 border-t-emerald-500 flex items-center justify-center font-bold text-xs text-emerald-700 bg-white shadow-2xs">
+                <div className="w-12 h-12 rounded-full border-4 border-slate-200 border-t-emerald-500 flex items-center justify-center font-black text-xs text-emerald-700 bg-white shadow-2xs shrink-0 ml-auto">
                   {activeDistrict.completionRate}%
                 </div>
               </div>
             </div>
 
-            {/* Quick Metrics Bar */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-4 border-t border-slate-100 text-xs">
-              <div className="bg-slate-50/80 border border-slate-200/70 p-3 rounded-xl">
-                <span className="text-slate-500 block text-[11px] font-medium mb-0.5">Assigned Blocks</span>
-                <span className="text-base font-bold text-slate-900">{activeDistrict.blocks.length} Blocks</span>
+            {/* Quick Metrics Bar: Total Surveys, Surveys Completed, Surveys in Progress */}
+            <div className="grid grid-cols-3 gap-2.5 pt-3.5 border-t border-slate-100 text-xs items-stretch">
+              <div className="bg-slate-50/80 border border-slate-200/70 p-3 rounded-xl flex flex-col justify-between">
+                <span className="text-slate-500 block text-[11px] sm:text-xs font-medium leading-snug min-h-[2.25rem] flex items-start">
+                  Total surveys
+                </span>
+                <span className="text-base sm:text-lg font-bold text-slate-900 mt-auto">
+                  {activeDistrict.totalInterns}
+                </span>
               </div>
-              <div className="bg-slate-50/80 border border-slate-200/70 p-3 rounded-xl">
-                <span className="text-slate-500 block text-[11px] font-medium mb-0.5">Total Interns</span>
-                <span className="text-base font-bold text-slate-900">{activeDistrict.totalInterns}</span>
+              <div className="bg-slate-50/80 border border-slate-200/70 p-3 rounded-xl flex flex-col justify-between">
+                <span className="text-emerald-700 block text-[11px] sm:text-xs font-medium leading-snug min-h-[2.25rem] flex items-start">
+                  Surveys completed
+                </span>
+                <span className="text-base sm:text-lg font-bold text-emerald-600 mt-auto">
+                  {activeDistrict.completedTasks}
+                </span>
               </div>
-              <div className="bg-slate-50/80 border border-slate-200/70 p-3 rounded-xl">
-                <span className="text-slate-500 block text-[11px] font-medium mb-0.5">In Progress</span>
-                <span className="text-base font-bold text-indigo-600">{activeDistrict.inProgressTasks}</span>
-              </div>
-              <div className="bg-slate-50/80 border border-slate-200/70 p-3 rounded-xl">
-                <span className="text-slate-500 block text-[11px] font-medium mb-0.5">Overdue Tasks</span>
-                <span className="text-base font-bold text-rose-600">{activeDistrict.overdueTasks} Action Needed</span>
+              <div className="bg-slate-50/80 border border-slate-200/70 p-3 rounded-xl flex flex-col justify-between">
+                <span className="text-indigo-700 block text-[11px] sm:text-xs font-medium leading-snug min-h-[2.25rem] flex items-start">
+                  Surveys in progress
+                </span>
+                <span className="text-base sm:text-lg font-bold text-indigo-600 mt-auto">
+                  {activeDistrict.inProgressTasks}
+                </span>
               </div>
             </div>
           </div>
@@ -551,26 +589,74 @@ export default function HierarchicalTaskMonitor({
                     return (
                       <div key={block.blockId} className="card p-4 sm:p-5 border border-slate-200 bg-white shadow-2xs space-y-4">
                         {/* Block Sub-header */}
-                        <div className="flex items-center justify-between pb-3 border-b border-slate-100 flex-wrap gap-2">
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-sm font-bold text-slate-900">{block.blockName} Block</h4>
-                            <span className="text-xs text-slate-500">
-                              ({block.completedTasks} / {block.totalInterns} Interns Completed)
-                            </span>
+                        <div className="space-y-2.5 pb-3 border-b border-slate-100">
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div className="flex items-center gap-2">
+                              {role === 'pc' && (
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedDistrictId(null)}
+                                  className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2.5 py-1 rounded-lg transition-colors cursor-pointer shrink-0"
+                                  title="Back to All Districts"
+                                >
+                                  <ArrowLeft size={13} weight="bold" />
+                                  <span>Back</span>
+                                </button>
+                              )}
+                              <h4 className="text-sm font-bold text-slate-900">{block.blockName} Block</h4>
+                              <span className="text-xs text-slate-500">
+                                ({block.completedTasks} / {block.totalInterns} Surveys Completed)
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <span className={cn(
+                                'text-xs font-bold px-2 py-0.5 rounded-md',
+                                block.completionRate >= 75 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                              )}>
+                                {block.completionRate}% Done
+                              </span>
+                              {block.overdueTasks > 0 && (
+                                <span className="text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">
+                                  {block.overdueTasks} Overdue
+                                </span>
+                              )}
+                            </div>
                           </div>
 
-                          <div className="flex items-center gap-2">
-                            <span className={cn(
-                              'text-xs font-bold px-2 py-0.5 rounded-md',
-                              block.completionRate >= 75 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
-                            )}>
-                              {block.completionRate}% Done
-                            </span>
-                            {block.overdueTasks > 0 && (
-                              <span className="text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">
-                                {block.overdueTasks} Overdue
+                          {/* Multi-segment Colored Survey Progress Bar */}
+                          <div className="space-y-1.5 pt-1">
+                            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden flex">
+                              <div
+                                style={{ width: `${block.totalInterns > 0 ? (block.completedTasks / block.totalInterns) * 100 : 0}%` }}
+                                className="bg-emerald-500 h-full transition-all duration-300"
+                                title={`Completed: ${block.completedTasks}`}
+                              />
+                              <div
+                                style={{ width: `${block.totalInterns > 0 ? (block.inProgressTasks / block.totalInterns) * 100 : 0}%` }}
+                                className="bg-blue-500 h-full transition-all duration-300"
+                                title={`In Progress: ${block.inProgressTasks}`}
+                              />
+                              <div
+                                style={{ width: `${block.totalInterns > 0 ? (block.pendingTasks / block.totalInterns) * 100 : 0}%` }}
+                                className="bg-rose-500 h-full transition-all duration-300"
+                                title={`Not Started: ${block.pendingTasks}`}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
+                              <span className="flex items-center gap-1">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                                <span>{block.completedTasks} Completed</span>
                               </span>
-                            )}
+                              <span className="flex items-center gap-1">
+                                <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                                <span>{block.inProgressTasks} In Progress</span>
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+                                <span className="text-rose-600 font-semibold">{block.pendingTasks} Not Started</span>
+                              </span>
+                            </div>
                           </div>
                         </div>
 
@@ -582,7 +668,7 @@ export default function HierarchicalTaskMonitor({
                               intern={intern}
                               isNudged={!!nudgedInterns[intern.internId]}
                               onNudge={() => handleNudgeIntern(intern)}
-                              onWhatsApp={() => handleWhatsAppNudge(intern)}
+                              onPreviewSurvey={() => setPreviewIntern(intern)}
                               renderStatusBadge={renderStatusBadge}
                             />
                           ))}
@@ -615,7 +701,21 @@ export default function HierarchicalTaskMonitor({
                       onClick={() => toggleAccordionBlock(block.blockId)}
                       className="p-4 sm:p-5 flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-50/70 transition-colors select-none"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {role === 'pc' && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedDistrictId(null);
+                            }}
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2 py-1 rounded-lg transition-colors cursor-pointer shrink-0"
+                            title="Back to All Districts"
+                          >
+                            <ArrowLeft size={13} weight="bold" />
+                            <span>Back</span>
+                          </button>
+                        )}
                         <div
                           className={cn(
                             'w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 transition-colors',
@@ -636,9 +736,20 @@ export default function HierarchicalTaskMonitor({
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-slate-500 mt-0.5 truncate">
-                            {block.completedTasks} completed · {block.inProgressTasks} in progress · {block.pendingTasks} pending
-                          </p>
+                          <div className="flex items-center gap-3 text-xs text-slate-500 mt-1 flex-wrap">
+                            <span className="flex items-center gap-1 text-[11px] font-medium text-emerald-700">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                              {block.completedTasks} Completed
+                            </span>
+                            <span className="flex items-center gap-1 text-[11px] font-medium text-blue-700">
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
+                              {block.inProgressTasks} In Progress
+                            </span>
+                            <span className="flex items-center gap-1 text-[11px] font-semibold text-rose-600">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block" />
+                              {block.pendingTasks} Not Started
+                            </span>
+                          </div>
                         </div>
                       </div>
 
@@ -646,9 +757,9 @@ export default function HierarchicalTaskMonitor({
                       <div className="flex items-center gap-3 shrink-0">
                         <div className="hidden sm:block text-right">
                           <span className="text-xs font-bold text-slate-700 block">
-                            {block.completedTasks} / {block.totalInterns} Interns
+                            {block.completedTasks} / {block.totalInterns} Surveys
                           </span>
-                          <span className="text-[10px] text-slate-400">Target: 100%</span>
+                          <span className="text-[10px] text-slate-400">Total: {block.totalInterns}</span>
                         </div>
 
                         <div className="w-7 h-7 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 group-hover:bg-slate-100 transition-colors">
@@ -657,23 +768,31 @@ export default function HierarchicalTaskMonitor({
                       </div>
                     </div>
 
-                    {/* Progress line under header */}
-                    <div className="w-full h-1 bg-slate-100 overflow-hidden">
+                    {/* Multi-segment Colored Survey Progress Bar Strip */}
+                    <div className="w-full h-1.5 bg-slate-100 overflow-hidden flex">
                       <div
-                        className={cn(
-                          'h-full transition-all duration-300',
-                          isHigh ? 'bg-emerald-500' : isMedium ? 'bg-amber-500' : 'bg-rose-500'
-                        )}
-                        style={{ width: `${block.completionRate}%` }}
+                        style={{ width: `${block.totalInterns > 0 ? (block.completedTasks / block.totalInterns) * 100 : 0}%` }}
+                        className="bg-emerald-500 h-full transition-all duration-300"
+                        title={`Completed: ${block.completedTasks}`}
+                      />
+                      <div
+                        style={{ width: `${block.totalInterns > 0 ? (block.inProgressTasks / block.totalInterns) * 100 : 0}%` }}
+                        className="bg-blue-500 h-full transition-all duration-300"
+                        title={`In Progress: ${block.inProgressTasks}`}
+                      />
+                      <div
+                        style={{ width: `${block.totalInterns > 0 ? (block.pendingTasks / block.totalInterns) * 100 : 0}%` }}
+                        className="bg-rose-500 h-full transition-all duration-300"
+                        title={`Not Started: ${block.pendingTasks}`}
                       />
                     </div>
 
-                    {/* Accordion Content: Intern List */}
+                    {/* Accordion Expandable Intern Content */}
                     {isExpanded && (
-                      <div className="p-4 sm:p-5 bg-slate-50/50 border-t border-slate-100 space-y-3">
+                      <div className="p-4 sm:p-5 pt-3 border-t border-slate-100 bg-slate-50/40 space-y-4">
                         {filtered.length === 0 ? (
-                          <div className="text-center py-6 text-xs text-slate-400">
-                            No interns match the selected filters for this block.
+                          <div className="py-6 text-center text-xs text-slate-500">
+                            No interns match the applied filters in this block.
                           </div>
                         ) : (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -683,7 +802,7 @@ export default function HierarchicalTaskMonitor({
                                 intern={intern}
                                 isNudged={!!nudgedInterns[intern.internId]}
                                 onNudge={() => handleNudgeIntern(intern)}
-                                onWhatsApp={() => handleWhatsAppNudge(intern)}
+                                onPreviewSurvey={() => setPreviewIntern(intern)}
                                 renderStatusBadge={renderStatusBadge}
                               />
                             ))}
@@ -698,6 +817,17 @@ export default function HierarchicalTaskMonitor({
           )}
         </div>
       )}
+
+      {/* Stakeholder Responses Preview Modal for Intern Field Survey Tasks */}
+      {previewIntern && (
+        <StakeholderResponsesPreviewModal
+          isOpen={!!previewIntern}
+          onClose={() => setPreviewIntern(null)}
+          surveyTitle={previewIntern.taskName}
+          questions={MOCK_SURVEYS[0]?.questions || []}
+          totalInterviewedCount={previewIntern.submissionsCount}
+        />
+      )}
     </div>
   );
 }
@@ -708,7 +838,7 @@ interface InternTaskCardProps {
   intern: InternTaskItem;
   isNudged: boolean;
   onNudge: () => void;
-  onWhatsApp: () => void;
+  onPreviewSurvey?: () => void;
   renderStatusBadge: (status: InternTaskItem['status']) => React.ReactNode;
 }
 
@@ -716,7 +846,7 @@ function InternTaskCard({
   intern,
   isNudged,
   onNudge,
-  onWhatsApp,
+  onPreviewSurvey,
   renderStatusBadge,
 }: InternTaskCardProps) {
   return (
@@ -751,11 +881,24 @@ function InternTaskCard({
 
         {/* Survey Progress */}
         <div className="space-y-1">
-          <div className="flex justify-between text-[11px]">
+          <div className="flex justify-between items-center text-[11px]">
             <span className="text-slate-500">Surveys Submitted</span>
-            <span className="font-bold text-slate-700">
-              {intern.submissionsCount} / {intern.targetSubmissions}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-slate-700">
+                {intern.submissionsCount} / {intern.targetSubmissions}
+              </span>
+              {intern.isSurveyTask && onPreviewSurvey && (
+                <button
+                  type="button"
+                  onClick={onPreviewSurvey}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer active:scale-95 transition-all"
+                  title="Preview all stakeholder survey responses"
+                >
+                  <Eye size={13} weight="bold" />
+                  <span>Preview</span>
+                </button>
+              )}
+            </div>
           </div>
           <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
             <div
@@ -782,17 +925,6 @@ function InternTaskCard({
         </span>
 
         <div className="flex items-center gap-1.5">
-          {/* Quick WhatsApp Reminder */}
-          <button
-            type="button"
-            onClick={onWhatsApp}
-            className="p-1.5 rounded-lg border border-slate-200 bg-white text-emerald-600 hover:bg-emerald-50 transition-colors shadow-2xs cursor-pointer"
-            title="Send WhatsApp reminder"
-            aria-label="Send WhatsApp reminder"
-          >
-            <ChatCircleDots size={14} weight="bold" />
-          </button>
-
           {/* Direct Portal Nudge */}
           <button
             type="button"
