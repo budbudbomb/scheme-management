@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import type { InternDashboardStats } from '@/types/models';
-import StatCard from '@/components/shared/StatCard';
 import { SkeletonStatGrid } from '@/components/shared/SkeletonCard';
 import ErrorState from '@/components/shared/ErrorState';
 import { CheckSquare, ClipboardText, Calendar, MapPin } from '@phosphor-icons/react';
@@ -65,10 +64,45 @@ export default function InternDashboardPage() {
       {loading ? <SkeletonStatGrid count={3} /> : error ? (
         <ErrorState message={error} onRetry={load} />
       ) : stats && (
-        <div className="grid grid-cols-3 gap-4">
-          <StatCard label="Active Tasks" value={stats.myActiveTasks} icon={CheckSquare} iconColor="text-indigo-600" iconBg="bg-indigo-50" />
-          <StatCard label="Leave Balance" value={`${stats.leaveBalance.casual - stats.leaveBalance.casualUsed} CL`} icon={ClipboardText} iconColor="text-emerald-600" iconBg="bg-emerald-50" />
-          <StatCard label="Upcoming Meetings" value={stats.upcomingMeetings} icon={Calendar} iconColor="text-amber-600" iconBg="bg-amber-50" />
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            {
+              label: 'Active Tasks',
+              value: stats.myActiveTasks,
+              icon: CheckSquare,
+              iconColor: 'text-indigo-600',
+              iconBg: 'bg-indigo-50',
+            },
+            {
+              label: 'Leave Balance',
+              value: `${stats.leaveBalance.casual - stats.leaveBalance.casualUsed} CL`,
+              icon: ClipboardText,
+              iconColor: 'text-emerald-600',
+              iconBg: 'bg-emerald-50',
+            },
+            {
+              label: 'Upcoming Meetings',
+              value: stats.upcomingMeetings,
+              icon: Calendar,
+              iconColor: 'text-amber-600',
+              iconBg: 'bg-amber-50',
+            },
+          ].map(({ label, value, icon: Icon, iconColor, iconBg }) => (
+            <div
+              key={label}
+              className="card aspect-square flex flex-col items-center justify-center gap-1.5 p-2 text-center"
+            >
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}>
+                <Icon size={18} weight="fill" className={iconColor} />
+              </div>
+              <span className="text-xl font-extrabold text-slate-900 leading-none">
+                {typeof value === 'number' ? value.toLocaleString('en-IN') : value}
+              </span>
+              <span className="text-[10px] font-medium text-slate-500 leading-tight">
+                {label}
+              </span>
+            </div>
+          ))}
         </div>
       )}
 

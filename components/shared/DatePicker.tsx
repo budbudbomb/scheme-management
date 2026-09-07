@@ -69,6 +69,7 @@ export default function DatePicker({
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const portalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -109,10 +110,13 @@ export default function DatePicker({
     }
   }, [value]);
 
-  // Close when clicked outside
+  // Close when clicked outside (also ignores clicks inside the portal modal)
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const insideContainer = containerRef.current?.contains(target);
+      const insidePortal = portalRef.current?.contains(target);
+      if (!insideContainer && !insidePortal) {
         setIsOpen(false);
         setYearPickerOpen(false);
       }
@@ -449,6 +453,7 @@ export default function DatePicker({
           }}
         >
           <div
+            ref={portalRef}
             onClick={e => e.stopPropagation()}
             data-no-keyboard="true"
             className="w-full max-w-[340px] bg-white rounded-2xl border border-slate-200/90 shadow-2xl p-4 animate-in zoom-in-95 duration-150 space-y-3"

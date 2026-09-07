@@ -10,11 +10,11 @@ import {
   ChartLine,
   ArrowCircleUpRight,
   CheckSquare,
+  Timer,
 } from '@phosphor-icons/react';
 import AttendanceTrendChart from '@/components/charts/AttendanceTrendChart';
-
-import SurveyStatusDonut from '@/components/charts/SurveyStatusDonut';
 import SurveyDistrictChart from '@/components/charts/SurveyDistrictChart';
+import { AvgTimeByDivisionCard, WeeklyTrendCard, TimeDistributionCard } from '@/components/charts/SurveyTimeChart';
 import Link from 'next/link';
 import { cn } from '@/lib/utils/formatters';
 
@@ -25,9 +25,7 @@ interface SurveyStats {
   inProgress: number;
   notStarted: number;
   completionRate: number;
-  // attendance for rate card
-  attendanceToday: number;
-  attendanceRate: number;
+  avgSurveyTimeMin: number;
 }
 
 async function fetchStats(): Promise<SurveyStats> {
@@ -38,8 +36,7 @@ async function fetchStats(): Promise<SurveyStats> {
     inProgress: 812,
     notStarted: 448,
     completionRate: 72,
-    attendanceToday: 4210,
-    attendanceRate: 89.6,
+    avgSurveyTimeMin: 14.2,
   };
 }
 
@@ -55,15 +52,25 @@ interface KpiCardProps {
 
 function KpiCard({ label, value, sub, icon, trend, accent }: KpiCardProps) {
   return (
-    <div className={cn('card p-5 card-hover flex flex-col gap-3 border-t-4', `border-t-${accent}-600 border-${accent}-100`)}>
-      <div className="flex items-start justify-between gap-2">
-        <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', `bg-${accent}-50`)}>
+    <div
+      className={cn(
+        'card p-3 sm:p-5 card-hover flex flex-col justify-between gap-2 sm:gap-3 border-t-2 sm:border-t-4 transition-all',
+        `border-t-${accent}-600 border-${accent}-100`
+      )}
+    >
+      <div className="flex items-start justify-between gap-1.5 sm:gap-2">
+        <div
+          className={cn(
+            'w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 [&>svg]:w-3.5 [&>svg]:h-3.5 sm:[&>svg]:w-5 sm:[&>svg]:h-5',
+            `bg-${accent}-50`
+          )}
+        >
           {icon}
         </div>
         {trend && (
           <span
             className={cn(
-              'text-[11px] font-bold px-2 py-0.5 rounded-full',
+              'text-[10px] sm:text-[11px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full shrink-0',
               trend.positive ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
             )}
           >
@@ -71,13 +78,23 @@ function KpiCard({ label, value, sub, icon, trend, accent }: KpiCardProps) {
           </span>
         )}
       </div>
-      <div>
-        <div className="text-2xl sm:text-3xl font-black text-slate-900 leading-none">
+      <div className="min-w-0">
+        <div className="text-xl sm:text-3xl font-black text-slate-900 leading-tight tracking-tight">
           {typeof value === 'number' ? value.toLocaleString('en-IN') : value}
         </div>
-        <div className="text-sm text-slate-500 mt-1 font-medium">{label}</div>
-        {sub && <div className="text-xs text-slate-400 mt-0.5">{sub}</div>}
-        {trend && <div className="text-xs text-slate-400 mt-1">{trend.label}</div>}
+        <div className="text-xs sm:text-sm text-slate-600 sm:text-slate-500 mt-0.5 sm:mt-1 font-semibold sm:font-medium leading-snug line-clamp-2">
+          {label}
+        </div>
+        {sub && (
+          <div className="text-[10px] sm:text-xs text-slate-400 mt-0.5 leading-tight truncate sm:whitespace-normal">
+            {sub}
+          </div>
+        )}
+        {trend && (
+          <div className="hidden sm:block text-xs text-slate-400 mt-1">
+            {trend.label}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -134,7 +151,7 @@ export default function AdminDashboardPage() {
   useEffect(() => { load(); }, []);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Header */}
       <div>
         <h1 className="text-xl font-bold text-slate-900">State Dashboard</h1>
@@ -149,7 +166,7 @@ export default function AdminDashboardPage() {
       ) : error ? (
         <ErrorState message={error} onRetry={load} />
       ) : stats ? (
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-2.5 sm:gap-4">
           <KpiCard
             label="Survey Completion Rate"
             value={`${stats.completionRate}%`}
@@ -174,38 +191,42 @@ export default function AdminDashboardPage() {
             trend={{ value: 12, positive: true, label: 'vs last week' }}
           />
           <KpiCard
-            label="Today's Attendance Rate"
-            value={`${stats.attendanceRate}%`}
-            sub={`${stats.attendanceToday.toLocaleString('en-IN')} personnel present`}
-            accent="amber"
-            icon={<Users size={20} weight="fill" className="text-amber-600" />}
-            trend={{ value: 2, positive: false, label: 'vs yesterday' }}
+            label="Avg Survey Completion Time"
+            value={`${stats.avgSurveyTimeMin} min`}
+            sub="Per survey · across all roles"
+            accent="violet"
+            icon={<Timer size={20} weight="fill" className="text-violet-600" />}
+            trend={{ value: 8, positive: true, label: '↓ faster than last month' }}
           />
         </div>
       ) : null}
 
-      {/* ── Row 1: Drill-Down Chart + Survey Status Donut ────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <ChartCard
-          title="Survey Progress by Division"
-          subtitle="Division → District → Block · click any bar to drill down"
-          className="lg:col-span-2"
-        >
-          <SurveyDistrictChart />
-        </ChartCard>
-
-        <ChartCard title="Survey Status" subtitle="Overall distribution">
-          <SurveyStatusDonut />
-        </ChartCard>
-      </div>
-
-      {/* ── Row 2: Attendance Trend ───────────────────────────────────────── */}
+      {/* ── Row 1: Drill-Down Chart ────────────────────────────────────── */}
       <ChartCard
-        title="Attendance Trend"
-        subtitle="Last 30 days · Present vs Absent"
+        title="Survey Progress by Division"
+        subtitle="Division → District → Block · click any bar to drill down"
       >
-        <AttendanceTrendChart />
+        <SurveyDistrictChart />
       </ChartCard>
+
+      {/* ── Row 2: Drill-down (left 2 cols) + Weekly/Distribution (right 1 col) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:items-start">
+        {/* Left — drill-down + attendance stacked */}
+        <div className="lg:col-span-2 flex flex-col gap-5">
+          <AvgTimeByDivisionCard />
+          <ChartCard
+            title="Attendance Trend"
+            subtitle="Last 30 days · Present vs Absent"
+          >
+            <AttendanceTrendChart />
+          </ChartCard>
+        </div>
+        {/* Right — weekly trend + distribution stacked */}
+        <div className="flex flex-col gap-5">
+          <WeeklyTrendCard />
+          <TimeDistributionCard />
+        </div>
+      </div>
 
       {/* ── Quick Actions ────────────────────────────────────────────────── */}
       <div>

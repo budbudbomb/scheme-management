@@ -369,89 +369,123 @@ export default function AdminSurveysPage() {
 
       {/* ── Survey Details & Hierarchy Reviews Modal ── */}
       {selectedSurveyForModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[88vh] flex flex-col overflow-hidden border border-slate-200">
-            {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-slate-900 text-base">{selectedSurveyForModal.title}</h3>
-                  {selectedSurveyForModal.submissionStatus && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200 uppercase">
-                      {selectedSurveyForModal.submissionStatus.replace(/_/g, ' ')}
-                    </span>
-                  )}
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl max-w-2xl w-full max-h-[92vh] sm:max-h-[88vh] flex flex-col overflow-hidden border border-slate-200/80 animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200">
+
+            {/* ── Modal Header ── */}
+            <div className="relative px-5 pt-5 pb-4 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 overflow-hidden shrink-0">
+              {/* Decorative blobs */}
+              <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-indigo-500/20 blur-2xl pointer-events-none" />
+              <div className="absolute bottom-0 left-8 w-20 h-20 rounded-full bg-purple-500/15 blur-2xl pointer-events-none" />
+
+              {/* Drag handle — mobile only */}
+              <div className="sm:hidden w-10 h-1 rounded-full bg-white/20 mx-auto mb-4" />
+
+              <div className="flex items-start justify-between gap-3 relative z-10">
+                <div className="flex items-start gap-3 min-w-0">
+                  {/* Icon badge */}
+                  <div className="w-10 h-10 rounded-xl bg-indigo-500/30 border border-indigo-400/30 flex items-center justify-center shrink-0 mt-0.5">
+                    <ClipboardText size={20} weight="bold" className="text-indigo-200" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-white text-base leading-snug line-clamp-2">
+                      {selectedSurveyForModal.title}
+                    </h3>
+                    <div className="flex items-center flex-wrap gap-2 mt-1.5">
+                      {selectedSurveyForModal.submissionStatus && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-400/25 text-purple-200 border border-purple-400/30 uppercase tracking-wide">
+                          {selectedSurveyForModal.submissionStatus.replace(/_/g, ' ')}
+                        </span>
+                      )}
+                      <span className="text-[11px] text-slate-400 font-medium">
+                        {selectedSurveyForModal.questions?.length || 0} questions
+                      </span>
+                      <span className="text-slate-600 text-[11px]">•</span>
+                      <span className="text-[11px] text-slate-400 font-medium">
+                        {selectedSurveyForModal.responsesCount || 0} / {selectedSurveyForModal.participantsRequired || 100} interviewed
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Interviewed: {selectedSurveyForModal.responsesCount || 0} / {selectedSurveyForModal.participantsRequired || 100} •{' '}
-                  {selectedSurveyForModal.questions?.length || 0} Questions
-                </p>
+                <button
+                  type="button"
+                  onClick={() => setSelectedSurveyForModal(null)}
+                  className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 flex items-center justify-center text-white/70 hover:text-white transition-all cursor-pointer shrink-0 mt-0.5"
+                  aria-label="Close"
+                >
+                  <X size={16} weight="bold" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setSelectedSurveyForModal(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
-              >
-                <X size={18} weight="bold" />
-              </button>
             </div>
 
-            {/* Modal Tabs */}
-            <div className="px-6 border-b border-slate-200 flex gap-4 bg-white">
-              <button
-                type="button"
-                onClick={() => setActiveModalTab('questions')}
-                className={cn(
-                  'py-3 text-xs font-bold border-b-2 transition-colors cursor-pointer',
-                  activeModalTab === 'questions'
-                    ? 'border-indigo-600 text-indigo-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-800'
-                )}
-              >
-                Survey Questions ({selectedSurveyForModal.questions?.length || 0})
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveModalTab('feedback')}
-                className={cn(
-                  'py-3 text-xs font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5',
-                  activeModalTab === 'feedback'
-                    ? 'border-indigo-600 text-indigo-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-800'
-                )}
-              >
-                <span>Hierarchy Feedback & Reviews</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-purple-100 text-purple-700 font-bold">
-                  {selectedSurveyForModal.feedbacks?.length || 0}
-                </span>
-              </button>
+            {/* ── Tabs ── */}
+            <div className="flex gap-1 px-4 py-2.5 bg-slate-50 border-b border-slate-200 shrink-0">
+              {[
+                {
+                  key: 'questions',
+                  label: 'Survey Questions',
+                  count: selectedSurveyForModal.questions?.length || 0,
+                  countColor: 'bg-slate-200 text-slate-700',
+                },
+                {
+                  key: 'feedback',
+                  label: 'Hierarchy Reviews',
+                  count: selectedSurveyForModal.feedbacks?.length || 0,
+                  countColor: 'bg-purple-100 text-purple-700',
+                },
+              ].map(tab => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setActiveModalTab(tab.key as 'questions' | 'feedback')}
+                  className={cn(
+                    'flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer',
+                    activeModalTab === tab.key
+                      ? 'bg-white text-indigo-700 shadow-sm border border-slate-200'
+                      : 'text-slate-500 hover:text-slate-700 hover:bg-white/60'
+                  )}
+                >
+                  <span>{tab.label}</span>
+                  <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center', tab.countColor)}>
+                    {tab.count}
+                  </span>
+                </button>
+              ))}
             </div>
 
-            {/* Modal Tab Content */}
-            <div className="p-6 overflow-y-auto space-y-4 max-h-[60vh]">
+            {/* ── Tab Content ── */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3">
               {activeModalTab === 'questions' ? (
                 (!selectedSurveyForModal.questions || selectedSurveyForModal.questions.length === 0) ? (
-                  <p className="text-sm text-slate-400 italic">No questions defined for this survey yet.</p>
+                  <div className="text-center py-10 space-y-2">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto">
+                      <ClipboardText size={24} className="text-slate-400" />
+                    </div>
+                    <p className="text-sm font-semibold text-slate-500">No questions yet</p>
+                  </div>
                 ) : (
                   selectedSurveyForModal.questions.map((q: SurveyQuestion, idx: number) => (
-                    <div key={q.id || idx} className="p-4 rounded-xl border border-slate-200 space-y-2 bg-slate-50/50">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="w-5 h-5 rounded bg-slate-900 text-white text-xs font-bold flex items-center justify-center">
-                            {idx + 1}
-                          </span>
-                          <span className="text-xs font-bold text-slate-800">{q.question}</span>
-                          {q.required && <span className="text-rose-500 text-xs">*</span>}
-                        </div>
-                        <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-white text-slate-600 border border-slate-200">
-                          {q.type.replace('_', ' ')}
+                    <div key={q.id || idx} className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
+                      {/* Question header strip */}
+                      <div className="flex items-start gap-3 px-4 py-3">
+                        <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                          {idx + 1}
                         </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-slate-800 leading-snug">
+                            {q.question}
+                            {q.required && <span className="text-rose-500 ml-0.5">*</span>}
+                          </p>
+                          <span className="inline-block mt-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 tracking-wide">
+                            {q.type.replace(/_/g, ' ')}
+                          </span>
+                        </div>
                       </div>
 
-                      {q.options && q.options.length > 0 && (
-                        <div className="pl-7 flex flex-wrap gap-1.5 pt-1">
+                      {(q.options && q.options.length > 0) && (
+                        <div className="px-4 pb-3 pt-0 flex flex-wrap gap-1.5">
                           {q.options.map((opt: string, oIdx: number) => (
-                            <span key={oIdx} className="text-xs px-2.5 py-1 rounded-md bg-white border border-slate-200 text-slate-700">
+                            <span key={oIdx} className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 font-medium">
                               {opt}
                             </span>
                           ))}
@@ -459,99 +493,106 @@ export default function AdminSurveysPage() {
                       )}
 
                       {q.type === 'likert_scale' && (
-                        <div className="pl-7 text-xs text-purple-700 font-medium">
-                          5-Point Scale:{' '}
+                        <div className="px-4 pb-3 text-[11px] text-purple-700 font-medium">
                           {(q.likertConfig?.labels || [
                             q.likertConfig?.lowLabel || 'Very Dissatisfied',
                             'Dissatisfied',
                             q.likertConfig?.midLabel || 'Neutral',
                             'Satisfied',
                             q.likertConfig?.highLabel || 'Very Satisfied',
-                          ]).join('  →  ')}
+                          ]).join(' → ')}
                         </div>
                       )}
 
                       {q.type === 'dichotomous' && (
-                        <div className="pl-7 text-xs text-amber-700 font-medium">
-                          Binary Options: {q.dichotomousLabels?.[0] || 'Yes'} / {q.dichotomousLabels?.[1] || 'No'}
+                        <div className="px-4 pb-3 flex gap-1.5">
+                          {[q.dichotomousLabels?.[0] || 'Yes', q.dichotomousLabels?.[1] || 'No'].map((lbl, i) => (
+                            <span key={i} className="text-[11px] px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 font-semibold">{lbl}</span>
+                          ))}
                         </div>
                       )}
 
                       {q.type === 'descriptive' && (
-                        <div className="pl-7 text-xs text-slate-400 italic">
-                          Open descriptive text response
-                        </div>
+                        <div className="px-4 pb-3 text-[11px] text-slate-400 italic">Open text response</div>
                       )}
                     </div>
                   ))
                 )
               ) : (
-                /* Hierarchy Feedback Trail */
+                /* ── Hierarchy Feedback Tab ── */
                 (!selectedSurveyForModal.feedbacks || selectedSurveyForModal.feedbacks.length === 0) ? (
-                  <div className="text-center py-8 space-y-2">
-                    <p className="text-sm font-semibold text-slate-600">No hierarchy reviews submitted yet</p>
-                    <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                      When Interns submit to Fellows, Fellows to Program Coordinators, and PCs to CPM/SPM, their field observations and reviews appear here.
+                  <div className="text-center py-10 space-y-2">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto">
+                      <Users size={24} className="text-slate-400" />
+                    </div>
+                    <p className="text-sm font-semibold text-slate-500">No reviews submitted yet</p>
+                    <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
+                      Field observations from Interns, Fellows, and PCs will appear here as the survey progresses.
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {selectedSurveyForModal.feedbacks.map((fb: SurveyFeedback, fIdx: number) => {
-                      const roleColors: Record<string, string> = {
-                        intern: 'bg-amber-50 text-amber-800 border-amber-200',
-                        fellow: 'bg-blue-50 text-blue-800 border-blue-200',
-                        pc: 'bg-purple-50 text-purple-800 border-purple-200',
+                      const roleConfig: Record<string, { pill: string; border: string; avatar: string; initials: string }> = {
+                        intern:  { pill: 'bg-amber-50 text-amber-700 border-amber-200',  border: 'border-l-amber-400',  avatar: 'bg-amber-100 text-amber-700',  initials: 'IN' },
+                        fellow:  { pill: 'bg-blue-50 text-blue-700 border-blue-200',     border: 'border-l-blue-400',   avatar: 'bg-blue-100 text-blue-700',    initials: 'FL' },
+                        pc:      { pill: 'bg-purple-50 text-purple-700 border-purple-200', border: 'border-l-purple-400', avatar: 'bg-purple-100 text-purple-700', initials: 'PC' },
                       };
-                      const rolePill = roleColors[fb.role] || 'bg-slate-100 text-slate-800 border-slate-200';
+                      const cfg = roleConfig[fb.role] || { pill: 'bg-slate-100 text-slate-700 border-slate-200', border: 'border-l-slate-400', avatar: 'bg-slate-100 text-slate-700', initials: '??' };
+                      const nameInitials = fb.submittedBy.name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
 
                       return (
-                        <div key={fb.id || fIdx} className="p-4 rounded-xl border border-slate-200/90 bg-white space-y-3 shadow-2xs">
-                          {/* Author & Header */}
-                          <div className="flex items-center justify-between gap-2 flex-wrap">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-slate-900">{fb.submittedBy.name}</span>
-                              <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase', rolePill)}>
-                                {fb.role}
-                              </span>
-                              <span className="text-xs text-slate-400">→</span>
-                              <span className="text-[10px] font-semibold text-slate-500 uppercase">
-                                To {fb.submittedToRole}
-                              </span>
+                        <div key={fb.id || fIdx} className={cn('rounded-xl bg-white border border-slate-200/80 border-l-4 shadow-sm overflow-hidden', cfg.border)}>
+
+                          {/* Card Header */}
+                          <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
+                            {/* Avatar */}
+                            <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center text-[11px] font-extrabold shrink-0', cfg.avatar)}>
+                              {nameInitials}
                             </div>
-                            <span className="text-[11px] text-slate-400 font-medium">
-                              {formatDate(fb.createdAt)}
-                            </span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center flex-wrap gap-1.5">
+                                <span className="text-xs font-bold text-slate-900 truncate">{fb.submittedBy.name}</span>
+                                <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-full border uppercase tracking-wide', cfg.pill)}>
+                                  {fb.role}
+                                </span>
+                                <span className="text-[10px] text-slate-400">→</span>
+                                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">{fb.submittedToRole.replace(/_/g, ' ')}</span>
+                              </div>
+                              <p className="text-[10px] text-slate-400 mt-0.5">{formatDate(fb.createdAt)}</p>
+                            </div>
+                            {fb.stakeholdersInterviewedCount !== undefined && (
+                              <div className="flex flex-col items-center shrink-0 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
+                                <span className="text-base font-extrabold text-slate-900 leading-none">{fb.stakeholdersInterviewedCount}</span>
+                                <span className="text-[9px] text-slate-400 font-semibold mt-0.5 text-center leading-tight">Stakeholders<br/>Interviewed</span>
+                              </div>
+                            )}
                           </div>
 
-                          {/* Stakeholders interviewed metric */}
-                          {fb.stakeholdersInterviewedCount !== undefined && (
-                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700">
-                              <span>👥 Stakeholders Interviewed:</span>
-                              <span className="font-bold text-slate-900">{fb.stakeholdersInterviewedCount}</span>
+                          {/* Card Body */}
+                          <div className="p-4 space-y-2.5">
+                            {/* Field Observations */}
+                            <div className="rounded-lg bg-slate-50 border border-slate-100 p-3">
+                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">📋 Field Observations</p>
+                              <p className="text-xs text-slate-700 leading-relaxed">{fb.feedbackText}</p>
                             </div>
-                          )}
 
-                          {/* Observations / Feedback text */}
-                          <div className="bg-slate-50/70 p-3 rounded-lg border border-slate-100 text-xs text-slate-700 leading-relaxed">
-                            <span className="font-bold text-slate-900 block mb-1">Field Observations / Review:</span>
-                            {fb.feedbackText}
+                            {/* Ground Challenges */}
+                            {fb.challengesFaced && (
+                              <div className="rounded-lg bg-rose-50 border border-rose-100 p-3">
+                                <p className="text-[10px] font-bold text-rose-600 uppercase tracking-wider mb-1.5">⚠️ Ground Challenges</p>
+                                <p className="text-xs text-rose-800 leading-relaxed">{fb.challengesFaced}</p>
+                              </div>
+                            )}
+
+                            {/* Recommendations */}
+                            {fb.recommendations && (
+                              <div className="rounded-lg bg-emerald-50 border border-emerald-100 p-3">
+                                <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-1.5">💡 Recommendations</p>
+                                <p className="text-xs text-emerald-800 leading-relaxed">{fb.recommendations}</p>
+                              </div>
+                            )}
                           </div>
-
-                          {/* Challenges */}
-                          {fb.challengesFaced && (
-                            <div className="bg-rose-50/50 p-3 rounded-lg border border-rose-100 text-xs text-rose-900 leading-relaxed">
-                              <span className="font-bold text-rose-950 block mb-1">⚠️ Ground Challenges:</span>
-                              {fb.challengesFaced}
-                            </div>
-                          )}
-
-                          {/* Recommendations */}
-                          {fb.recommendations && (
-                            <div className="bg-emerald-50/50 p-3 rounded-lg border border-emerald-100 text-xs text-emerald-900 leading-relaxed">
-                              <span className="font-bold text-emerald-950 block mb-1">💡 Recommendations:</span>
-                              {fb.recommendations}
-                            </div>
-                          )}
                         </div>
                       );
                     })}
@@ -560,12 +601,12 @@ export default function AdminSurveysPage() {
               )}
             </div>
 
-            {/* Modal Footer */}
-            <div className="px-6 py-3 border-t border-slate-100 flex items-center justify-between bg-slate-50">
+            {/* ── Modal Footer ── */}
+            <div className="px-4 sm:px-5 py-3.5 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3 shrink-0">
               <button
                 type="button"
                 onClick={() => setSelectedSurveyForModal(null)}
-                className="px-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+                className="px-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 Close
               </button>
@@ -573,7 +614,7 @@ export default function AdminSurveysPage() {
                 {!selectedSurveyForModal.isAllocatedAsTask && (selectedSurveyForModal.responsesCount || 0) === 0 && (
                   <Link
                     href={`/admin/tasks/new?surveyId=${selectedSurveyForModal.id}&surveyName=${encodeURIComponent(selectedSurveyForModal.title)}`}
-                    className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-semibold hover:bg-slate-200 transition-colors flex items-center gap-1.5"
+                    className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-semibold hover:bg-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
                     <span>Allocate as Task</span>
                     <ArrowRight size={13} weight="bold" />
@@ -581,10 +622,10 @@ export default function AdminSurveysPage() {
                 )}
                 <Link
                   href={`/admin/surveys/${selectedSurveyForModal.id}/dashboard`}
-                  className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-indigo-600 transition-colors flex items-center gap-1.5 shadow-xs"
+                  className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
                 >
                   <ChartBar size={14} weight="bold" />
-                  <span>Open Full Dashboard</span>
+                  <span>Full Dashboard</span>
                 </Link>
               </div>
             </div>
