@@ -247,8 +247,8 @@ export default function FellowComplaintsPage() {
         </button>
       </div>
 
-      {/* ── KPI Metrics Section: 4 Circles in a Single Row (referencing 3rd ss) ── */}
-      <div className="flex items-center justify-between sm:justify-start sm:gap-5 overflow-x-auto no-scrollbar py-1 px-0.5">
+      {/* ── Mobile View: 4 Circles in a Single Row ── */}
+      <div className="sm:hidden flex items-center justify-between overflow-x-auto no-scrollbar py-1 px-0.5">
         {(activeTab === 'my_complaints'
           ? [
               {
@@ -330,7 +330,7 @@ export default function FellowComplaintsPage() {
               }}
               title={`Filter by ${item.label}`}
               className={cn(
-                'group shrink-0 w-[72px] h-[72px] sm:w-[76px] sm:h-[76px] rounded-full aspect-square flex flex-col items-center justify-center p-1 border transition-all duration-200 cursor-pointer select-none text-center',
+                'group shrink-0 w-[72px] h-[72px] rounded-full aspect-square flex flex-col items-center justify-center p-1 border transition-all duration-200 cursor-pointer select-none text-center',
                 isSelected
                   ? item.activeStyle
                   : 'bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/70 text-slate-700 shadow-2xs'
@@ -358,6 +358,124 @@ export default function FellowComplaintsPage() {
                 {item.label}
               </span>
             </button>
+          );
+        })}
+      </div>
+
+      {/* ── Desktop View: Executive KPI Square Cards (referencing 2nd ss) ── */}
+      <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {(activeTab === 'my_complaints'
+          ? [
+              {
+                key: 'all',
+                cardTitle: 'Total Complaints',
+                value: myStats.total,
+                icon: ChatCircleDots,
+                iconBg: 'bg-indigo-50',
+                iconColor: 'text-indigo-600',
+                valueColor: 'text-slate-900',
+                subtitle: 'Submitted to Coordinator',
+              },
+              {
+                key: 'pending',
+                cardTitle: 'Pending Review',
+                value: myStats.pending,
+                icon: Hourglass,
+                iconBg: 'bg-amber-50',
+                iconColor: 'text-amber-600',
+                valueColor: 'text-amber-600',
+                subtitle: 'Awaiting resolution',
+              },
+              {
+                key: 'resolved',
+                cardTitle: 'Resolved',
+                value: myStats.resolved,
+                icon: CheckCircle,
+                iconBg: 'bg-emerald-50',
+                iconColor: 'text-emerald-600',
+                valueColor: 'text-emerald-600',
+                subtitle: 'Successfully closed',
+              },
+              {
+                key: 'rejected',
+                cardTitle: 'Rejected',
+                value: myStats.rejected,
+                icon: XCircle,
+                iconBg: 'bg-rose-50',
+                iconColor: 'text-rose-600',
+                valueColor: 'text-slate-900',
+                subtitle: 'Returned with remarks',
+              },
+            ]
+          : [
+              {
+                key: 'all',
+                cardTitle: 'Total Intern Grievances',
+                value: internStats.total,
+                icon: Users,
+                iconBg: 'bg-indigo-50',
+                iconColor: 'text-indigo-600',
+                valueColor: 'text-slate-900',
+                subtitle: 'Reported by assigned interns',
+              },
+              {
+                key: 'pending',
+                cardTitle: 'Pending Review',
+                value: internStats.pending,
+                icon: Hourglass,
+                iconBg: 'bg-amber-50',
+                iconColor: 'text-amber-600',
+                valueColor: 'text-amber-600',
+                subtitle: 'Awaiting your action',
+              },
+              {
+                key: 'resolved',
+                cardTitle: 'Resolved',
+                value: internStats.resolved,
+                icon: CheckCircle,
+                iconBg: 'bg-emerald-50',
+                iconColor: 'text-emerald-600',
+                valueColor: 'text-emerald-600',
+                subtitle: 'Successfully closed',
+              },
+              {
+                key: 'rejected',
+                cardTitle: 'Rejected',
+                value: internStats.rejected,
+                icon: XCircle,
+                iconBg: 'bg-rose-50',
+                iconColor: 'text-rose-600',
+                valueColor: 'text-slate-900',
+                subtitle: 'Returned with remarks',
+              },
+            ]
+        ).map((item) => {
+          const Icon = item.icon;
+          const isSelected = statusFilter === item.key;
+          return (
+            <div
+              key={`kpi-card-${item.cardTitle}`}
+              onClick={() => {
+                setStatusFilter((prev) => (prev === item.key ? 'all' : (item.key as typeof statusFilter)));
+              }}
+              className={cn(
+                'card p-4 sm:p-5 border shadow-2xs hover:shadow-sm transition-all cursor-pointer select-none text-left',
+                isSelected
+                  ? 'border-indigo-500 ring-2 ring-indigo-200/70 bg-indigo-50/20'
+                  : 'border-slate-200/80 hover:border-slate-300 bg-white'
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{item.cardTitle}</span>
+                <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', item.iconBg)}>
+                  <Icon size={18} weight="bold" className={item.iconColor} />
+                </div>
+              </div>
+              <div className={cn('text-2xl sm:text-3xl font-extrabold mt-2', item.valueColor)}>
+                {item.value}
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">{item.subtitle}</p>
+            </div>
           );
         })}
       </div>
