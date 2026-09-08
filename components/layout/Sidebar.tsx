@@ -21,6 +21,7 @@ import {
   Fingerprint,
   ArrowCircleUpRight,
   BookOpen,
+  WarningCircle,
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils/formatters';
 import { useAuth } from '@/lib/auth/context';
@@ -42,6 +43,7 @@ function getNavItems(role: UserRole): NavItem[] {
       { href: `/${prefix}/surveys`, label: 'Surveys', icon: ClipboardText },
       { href: `/${prefix}/attendance`, label: 'Attendance', icon: Fingerprint },
       { href: `/${prefix}/leave`, label: 'Leave', icon: ClipboardText },
+      { href: `/${prefix}/complaints`, label: 'Complaints', icon: WarningCircle },
       { href: `/${prefix}/exit`, label: 'Exit', icon: ArrowCircleUpRight },
       { href: `/${prefix}/config`, label: 'Configuration', icon: GearSix },
     ],
@@ -51,6 +53,7 @@ function getNavItems(role: UserRole): NavItem[] {
       { href: `/${prefix}/tasks`, label: 'Tasks', icon: CheckSquare },
       { href: `/${prefix}/attendance`, label: 'Attendance', icon: Fingerprint },
       { href: `/${prefix}/leave`, label: 'Leave', icon: ShieldCheck },
+      { href: `/${prefix}/complaints`, label: 'Complaints', icon: WarningCircle },
       { href: `/${prefix}/exit`, label: 'Exit Approvals', icon: ArrowCircleUpRight },
     ],
     fellow: [
@@ -59,6 +62,7 @@ function getNavItems(role: UserRole): NavItem[] {
       { href: `/${prefix}/tasks`, label: 'My Tasks', icon: CheckSquare },
       { href: `/${prefix}/attendance`, label: 'Attendance', icon: MapPin },
       { href: `/${prefix}/leave`, label: 'Leave', icon: ShieldCheck },
+      { href: `/${prefix}/complaints`, label: 'Complaints', icon: WarningCircle },
       { href: `/${prefix}/exit`, label: 'Exit', icon: ArrowCircleUpRight },
     ],
     intern: [
@@ -67,6 +71,7 @@ function getNavItems(role: UserRole): NavItem[] {
       { href: `/${prefix}/tasks`, label: 'My Tasks', icon: CheckSquare },
       { href: `/${prefix}/attendance`, label: 'Attendance', icon: MapPin },
       { href: `/${prefix}/leave`, label: 'Leave', icon: ClipboardText },
+      { href: `/${prefix}/complaints`, label: 'Complaints', icon: WarningCircle },
       { href: `/${prefix}/exit`, label: 'Exit', icon: ArrowCircleUpRight },
     ],
     pmu: [

@@ -442,108 +442,106 @@ export default function PCLeavePage() {
           TAB 1: PC APPLY FOR LEAVE
       ══════════════════════════════════════════════════════════ */}
       {activeTab === 'apply' && (
-        <div className="space-y-4">
-          <div className="card overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ClipboardText size={16} weight="fill" className="text-slate-500" />
-                <span className="text-sm font-semibold text-slate-900">My Leave Applications</span>
-              </div>
-              <span className="text-xs text-slate-500">{pcLeaves.length} record(s)</span>
+        <div className="space-y-3.5">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <ClipboardText size={18} weight="fill" className="text-slate-500" />
+              <span className="text-sm font-bold text-slate-900">My Leave Applications</span>
             </div>
+            <span className="text-xs text-slate-500 font-medium">{pcLeaves.length} record(s)</span>
+          </div>
 
-            {pcLeaves.length === 0 ? (
-              <div className="p-10 text-center text-slate-400 text-sm">
-                No leave applications yet. Click &quot;Apply for Leave&quot; above to submit one.
-              </div>
-            ) : (
-              <div className="divide-y divide-slate-100">
-                {pcLeaves.map(app => {
-                  const tBadge = leaveTypeBadge(app.leaveType);
-                  const sBadge = statusBadge(app.status);
-                  const StatusIcon = sBadge.icon;
-                  return (
-                    <div key={app.id} className="p-4 sm:p-5 hover:bg-slate-50/50 transition space-y-3">
-                      {/* Top Row: Left = Chips (Leave Type + Days), Right = Status Badge on Top Right Corner */}
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={cn('badge border text-xs font-semibold', tBadge.cls)}>
-                            {tBadge.label}
-                          </span>
-                          <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200/70">
-                            {app.totalDays} {app.totalDays === 1 ? 'Day' : 'Days'}
-                          </span>
-                        </div>
-
-                        {/* Status Badge in Top Right Corner */}
-                        <span className={cn('badge border text-xs flex items-center gap-1 font-semibold shrink-0', sBadge.cls)}>
-                          <StatusIcon size={12} weight="fill" />
-                          {sBadge.label}
+          {pcLeaves.length === 0 ? (
+            <div className="card p-10 text-center text-slate-400 text-sm">
+              No leave applications yet. Click &quot;Apply for Leave&quot; above to submit one.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {pcLeaves.map(app => {
+                const tBadge = leaveTypeBadge(app.leaveType);
+                const sBadge = statusBadge(app.status);
+                const StatusIcon = sBadge.icon;
+                return (
+                  <div key={app.id} className="card p-4 sm:p-5 hover:border-slate-300 transition-all space-y-3 shadow-2xs">
+                    {/* Top Row: Left = Chips (Leave Type + Days), Right = Status Badge on Top Right Corner */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={cn('badge border text-xs font-semibold', tBadge.cls)}>
+                          {tBadge.label}
+                        </span>
+                        <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200/70">
+                          {app.totalDays} {app.totalDays === 1 ? 'Day' : 'Days'}
                         </span>
                       </div>
 
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2.5 text-xs text-slate-500">
-                        <div className="flex items-center gap-1.5 font-medium text-slate-700">
-                          <Calendar size={14} className="text-indigo-600 shrink-0" />
-                          <span>
-                            {formatDate(app.startDate)} &mdash; {formatDate(app.endDate)}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-slate-400 sm:before:content-['•'] sm:before:mr-1 sm:before:text-slate-300">
-                          <span>Applied on {formatDate(app.appliedAt)}</span>
-                        </div>
+                      {/* Status Badge in Top Right Corner */}
+                      <span className={cn('badge border text-xs flex items-center gap-1 font-semibold shrink-0', sBadge.cls)}>
+                        <StatusIcon size={12} weight="fill" />
+                        {sBadge.label}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2.5 text-xs text-slate-500">
+                      <div className="flex items-center gap-1.5 font-medium text-slate-700">
+                        <Calendar size={14} className="text-indigo-600 shrink-0" />
+                        <span>
+                          {formatDate(app.startDate)} &mdash; {formatDate(app.endDate)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-slate-400 sm:before:content-['•'] sm:before:mr-1 sm:before:text-slate-300">
+                        <span>Applied on {formatDate(app.appliedAt)}</span>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                      {/* 1. View details */}
+                      <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200/80 shadow-2xs">
+                        <span className="text-xs font-semibold text-slate-700">
+                          View details
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setViewReasonModal({
+                              applicant: 'You (Coordinator)',
+                              role: 'Program Coordinator',
+                              leaveType: tBadge.label,
+                              duration: `${formatDate(app.startDate)} — ${formatDate(app.endDate)} (${app.totalDays} ${app.totalDays === 1 ? 'Day' : 'Days'})`,
+                              reason: app.reason,
+                              documentName: app.documentName,
+                            })
+                          }
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200/80 px-2.5 py-0.5 rounded transition shadow-2xs cursor-pointer"
+                        >
+                          <Eye size={13} weight="bold" />
+                          View
+                        </button>
                       </div>
 
-                          {/* Action Buttons */}
-                          <div className="flex flex-wrap items-center gap-2.5 pt-2">
-                            {/* 1. Reason for Leave Heading & View Button */}
-                            <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200/80 shadow-2xs">
-                              <span className="text-xs font-semibold text-slate-700">
-                                Reason for Leave
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setViewReasonModal({
-                                    applicant: 'You (Coordinator)',
-                                    role: 'Program Coordinator',
-                                    leaveType: tBadge.label,
-                                    duration: `${formatDate(app.startDate)} — ${formatDate(app.endDate)} (${app.totalDays} ${app.totalDays === 1 ? 'Day' : 'Days'})`,
-                                    reason: app.reason,
-                                    documentName: app.documentName,
-                                  })
-                                }
-                                className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200/80 px-2.5 py-0.5 rounded transition shadow-2xs cursor-pointer"
-                              >
-                                <Eye size={13} weight="bold" />
-                                View
-                              </button>
-                            </div>
-
-                            {/* 2. Upload Document - ONLY IF ATTACHED */}
-                            {app.documentName && (
-                              <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200/80 shadow-2xs">
-                                <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5 truncate max-w-[200px]">
-                                  <FileText size={15} className="text-indigo-600 shrink-0" />
-                                  <span className="truncate">{app.documentName}</span>
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => setViewDocName(app.documentName || 'Document')}
-                                  className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200/80 px-2.5 py-0.5 rounded transition shadow-2xs cursor-pointer"
-                                >
-                                  <Eye size={13} weight="bold" />
-                                  View
-                                </button>
-                              </div>
-                            )}
-                          </div>
+                      {/* 2. Upload Document - ONLY IF ATTACHED */}
+                      {app.documentName && (
+                        <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200/80 shadow-2xs">
+                          <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5 truncate max-w-[200px]">
+                            <FileText size={15} className="text-indigo-600 shrink-0" />
+                            <span className="truncate">{app.documentName}</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setViewDocName(app.documentName || 'Document')}
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200/80 px-2.5 py-0.5 rounded transition shadow-2xs cursor-pointer"
+                          >
+                            <Eye size={13} weight="bold" />
+                            View
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -667,10 +665,10 @@ export default function PCLeavePage() {
 
                     {/* Action Buttons: Reason for Leave & Uploaded Document */}
                     <div className="flex flex-wrap items-center gap-2 pt-0.5">
-                      {/* 1. Reason for Leave */}
+                      {/* 1. View details */}
                       <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 shadow-2xs">
                         <span className="text-xs font-semibold text-slate-700">
-                          Reason for Leave
+                          View details
                         </span>
                         <button
                           type="button"

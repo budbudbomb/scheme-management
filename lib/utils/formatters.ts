@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
-import type { TaskStatus, TaskPriority, LeaveStatus, ExitStatus, Gender, Qualification } from '@/types/models';
+import type { TaskStatus, TaskPriority, LeaveStatus, ExitStatus, Gender, Qualification, ComplaintCategory, ComplaintPriority, ComplaintStatus } from '@/types/models';
 
 /** Tailwind class merge utility */
 export function cn(...inputs: ClassValue[]) {
@@ -156,4 +156,56 @@ export function downloadBlob(blob: Blob, filename: string) {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// ── Complaint Formatters ────────────────────────────────────
+
+export function complaintCategoryLabel(category: ComplaintCategory): string {
+  const map: Record<ComplaintCategory, string> = {
+    stipend: 'Stipend & Allowances',
+    field_travel: 'Field & Travel Logistics',
+    workload_tasks: 'Workload & Assignments',
+    infrastructure: 'Device, SIM & Portal',
+    interpersonal: 'Interpersonal Grievance',
+    other: 'Other Inquiry / Issue',
+  };
+  return map[category] ?? category;
+}
+
+export function complaintStatusLabel(status: ComplaintStatus): string {
+  const map: Record<ComplaintStatus, string> = {
+    pending: 'Pending Review',
+    resolved: 'Resolved',
+    rejected: 'Rejected',
+  };
+  return map[status] ?? status;
+}
+
+export function complaintStatusColor(status: ComplaintStatus): string {
+  const map: Record<ComplaintStatus, string> = {
+    pending: 'bg-amber-100 text-amber-800 border-amber-200',
+    resolved: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    rejected: 'bg-rose-100 text-rose-800 border-rose-200',
+  };
+  return map[status] ?? 'bg-slate-100 text-slate-700';
+}
+
+export function complaintPriorityLabel(priority: ComplaintPriority): string {
+  const map: Record<ComplaintPriority, string> = {
+    urgent: 'Urgent',
+    high: 'High',
+    medium: 'Medium',
+    low: 'Low',
+  };
+  return map[priority] ?? priority;
+}
+
+export function complaintPriorityColor(priority: ComplaintPriority): string {
+  const map: Record<ComplaintPriority, string> = {
+    urgent: 'bg-rose-100 text-rose-800 border-rose-200',
+    high: 'bg-orange-100 text-orange-800 border-orange-200',
+    medium: 'bg-sky-100 text-sky-800 border-sky-200',
+    low: 'bg-slate-100 text-slate-700 border-slate-200',
+  };
+  return map[priority] ?? 'bg-slate-100 text-slate-700';
 }

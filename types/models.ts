@@ -13,6 +13,9 @@ export type TaskPriority = 'high' | 'medium' | 'low';
 export type LeaveType = 'casual' | 'earned' | 'medical' | 'special';
 export type LeaveStatus = 'applied' | 'approved' | 'rejected';
 export type ExitStatus = 'pending' | 'approved' | 'rejected' | 'force_approved';
+export type ComplaintCategory = 'stipend' | 'field_travel' | 'workload_tasks' | 'infrastructure' | 'interpersonal' | 'other';
+export type ComplaintPriority = 'urgent' | 'high' | 'medium' | 'low';
+export type ComplaintStatus = 'pending' | 'resolved' | 'rejected';
 
 // ── Location hierarchy ──────────────────────────────────────
 
@@ -375,3 +378,54 @@ export interface InternDashboardStats {
   upcomingMeetings: number;
   attendanceThisMonth: number;
 }
+
+// ── Complaints ──────────────────────────────────────────────
+
+export interface Complaint {
+  id: string;
+  ticketNumber: string;
+  applicantId: string;
+  applicantName: string;
+  applicantRole: 'intern' | 'fellow' | 'pc';
+  assignedLocation: string; // block, district or division
+  category: ComplaintCategory;
+  priority?: ComplaintPriority;
+  subject: string;
+  description: string;
+  incidentDate?: string;
+  documentName?: string;
+  documentUrl?: string;
+  voiceNoteUrl?: string;
+  voiceNoteName?: string;
+  voiceNoteDuration?: number;
+  videoNoteUrl?: string;
+  videoNoteName?: string;
+  status: ComplaintStatus;
+  appliedAt: string;
+  targetRole: 'fellow' | 'pc' | 'spm_cpm'; // Role responsible for reviewing
+  reviewedBy?: string;
+  reviewerRole?: 'fellow' | 'pc' | 'spm_cpm';
+  reviewerComment?: string;
+  reviewedAt?: string;
+}
+
+export interface CreateComplaintRequest {
+  category: ComplaintCategory;
+  priority?: ComplaintPriority;
+  subject: string;
+  description: string;
+  incidentDate?: string;
+  documentName?: string;
+  documentUrl?: string;
+  voiceNoteUrl?: string;
+  voiceNoteName?: string;
+  voiceNoteDuration?: number;
+  videoNoteUrl?: string;
+  videoNoteName?: string;
+}
+
+export interface ReviewComplaintRequest {
+  status: 'resolved' | 'rejected';
+  comment?: string;
+}
+

@@ -749,114 +749,113 @@ export default function AdminLeavePage() {
           TAB 1: MY LEAVE
          ══════════════════════════════════════════════════════════════════ */}
       {activeTab === 'my_leave' && (
-        <div className="space-y-4">
-          {/* My Leaves Table */}
-          <div className="card overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ClipboardText size={16} weight="fill" className="text-slate-500" />
-                <span className="text-sm font-semibold text-slate-900">My Leave Applications</span>
-              </div>
-              <span className="text-xs text-slate-500">{currentMyLeavesList.length} record(s)</span>
+        <div className="space-y-3.5">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <ClipboardText size={18} weight="fill" className="text-slate-500" />
+              <span className="text-sm font-bold text-slate-900">My Leave Applications</span>
             </div>
-            {currentMyLeavesList.length === 0 ? (
-              <div className="text-center py-12 px-4">
-                <ClipboardText size={40} className="mx-auto text-slate-300 mb-2" />
-                <h3 className="text-sm font-semibold text-slate-700">No leave applications yet</h3>
-                <p className="text-xs text-slate-400 mt-1">Click &quot;Apply for Leave&quot; above to submit an application.</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-slate-100">
-                {currentMyLeavesList.map(item => {
-                  const tBadge = leaveTypeBadge(item.leaveType);
-                  const sBadge = statusBadge(item.status);
-                  const StatusIcon = sBadge.icon;
-                  const isPending = item.status === 'applied';
+            <span className="text-xs text-slate-500 font-medium">{currentMyLeavesList.length} record(s)</span>
+          </div>
 
-                  return (
-                    <div key={item.id} className="p-4 sm:p-5 hover:bg-slate-50/50 transition space-y-3">
-                      {/* Top Row: Left = Chips (Leave Type + Days), Right = Status Badge in Top Right Corner */}
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={cn('badge border text-xs font-semibold', tBadge.cls)}>
-                            {tBadge.label}
-                          </span>
-                          <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200/70">
-                            {item.totalDays} {item.totalDays === 1 ? 'Day' : 'Days'}
-                          </span>
-                          {item.isHalfDay && (
-                            <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
-                              Half Day
-                            </span>
-                          )}
-                        </div>
+          {currentMyLeavesList.length === 0 ? (
+            <div className="card text-center py-12 px-4">
+              <ClipboardText size={40} className="mx-auto text-slate-300 mb-2" />
+              <h3 className="text-sm font-semibold text-slate-700">No leave applications yet</h3>
+              <p className="text-xs text-slate-400 mt-1">Click &quot;Apply for Leave&quot; above to submit an application.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {currentMyLeavesList.map(item => {
+                const tBadge = leaveTypeBadge(item.leaveType);
+                const sBadge = statusBadge(item.status);
+                const StatusIcon = sBadge.icon;
+                const isPending = item.status === 'applied';
 
-                        {/* Status Badge in Top Right Corner */}
-                        <span className={cn('badge border text-xs flex items-center gap-1 font-semibold shrink-0', sBadge.cls)}>
-                          <StatusIcon size={12} weight="fill" />
-                          {sBadge.label}
+                return (
+                  <div key={item.id} className="card p-4 sm:p-5 hover:border-slate-300 transition-all space-y-3 shadow-2xs">
+                    {/* Top Row: Left = Chips (Leave Type + Days), Right = Status Badge in Top Right Corner */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={cn('badge border text-xs font-semibold', tBadge.cls)}>
+                          {tBadge.label}
+                        </span>
+                        <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200/70">
+                          {item.totalDays} {item.totalDays === 1 ? 'Day' : 'Days'}
+                        </span>
+                        {item.isHalfDay && (
+                          <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
+                            Half Day
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Status Badge in Top Right Corner */}
+                      <span className={cn('badge border text-xs flex items-center gap-1 font-semibold shrink-0', sBadge.cls)}>
+                        <StatusIcon size={12} weight="fill" />
+                        {sBadge.label}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2.5 text-xs text-slate-500">
+                      <div className="flex items-center gap-1.5 font-medium text-slate-700">
+                        <Calendar size={14} className="text-indigo-600 shrink-0" />
+                        <span>
+                          {formatDate(item.startDate)} &mdash; {formatDate(item.endDate)}
                         </span>
                       </div>
-
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2.5 text-xs text-slate-500">
-                        <div className="flex items-center gap-1.5 font-medium text-slate-700">
-                          <Calendar size={14} className="text-indigo-600 shrink-0" />
-                          <span>
-                            {formatDate(item.startDate)} &mdash; {formatDate(item.endDate)}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-slate-400 sm:before:content-['•'] sm:before:mr-1 sm:before:text-slate-300">
-                          <span>Applied on {formatDate(item.appliedAt)}</span>
-                        </div>
+                      <div className="flex items-center gap-1.5 text-slate-400 sm:before:content-['•'] sm:before:mr-1 sm:before:text-slate-300">
+                        <span>Applied on {formatDate(item.appliedAt)}</span>
                       </div>
+                    </div>
 
-                      {/* Action Buttons: Reason for Leave & Document */}
-                      <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 shadow-2xs">
-                            <span className="text-xs font-semibold text-slate-700">
-                              Reason for Leave
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedPcLeave({
-                                  id: item.id,
-                                  pcId: currentManager.id,
-                                  pcName: currentManager.name,
-                                  email: currentManager.email,
-                                  phone: currentManager.phone,
-                                  district: 'State HQ',
-                                  division: 'Bhopal',
-                                  leaveType: item.leaveType,
-                                  startDate: item.startDate,
-                                  endDate: item.endDate,
-                                  totalDays: item.totalDays,
-                                  reason: item.reason,
-                                  substituteName: item.approverName || 'None',
-                                  documentName: item.documentName,
-                                  status: item.status,
-                                  appliedAt: item.appliedAt,
-                                  approverComment: item.approverComment,
-                                });
-                                setPcModalMode('view');
-                              }}
-                              className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-lg transition shadow-2xs cursor-pointer"
-                            >
-                              <Eye size={13} weight="bold" />
-                              View
-                            </button>
-                          </div>
-
-                          {item.documentName && (
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 shadow-2xs">
-                              <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5 truncate max-w-[200px]">
-                                <FileText size={14} className="text-indigo-600 shrink-0" />
-                                <span className="truncate">{item.documentName}</span>
-                              </span>
-                            </div>
-                          )}
+                    {/* Action Buttons: View details & Document */}
+                    <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 shadow-2xs">
+                          <span className="text-xs font-semibold text-slate-700">
+                            View details
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedPcLeave({
+                                id: item.id,
+                                pcId: currentManager.id,
+                                pcName: currentManager.name,
+                                email: currentManager.email,
+                                phone: currentManager.phone,
+                                district: 'State HQ',
+                                division: 'Bhopal',
+                                leaveType: item.leaveType,
+                                startDate: item.startDate,
+                                endDate: item.endDate,
+                                totalDays: item.totalDays,
+                                reason: item.reason,
+                                substituteName: item.approverName || 'None',
+                                documentName: item.documentName,
+                                status: item.status,
+                                appliedAt: item.appliedAt,
+                                approverComment: item.approverComment,
+                              });
+                              setPcModalMode('view');
+                            }}
+                            className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-lg transition shadow-2xs cursor-pointer"
+                          >
+                            <Eye size={13} weight="bold" />
+                            View
+                          </button>
                         </div>
+
+                        {item.documentName && (
+                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 shadow-2xs">
+                            <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5 truncate max-w-[200px]">
+                              <FileText size={14} className="text-indigo-600 shrink-0" />
+                              <span className="truncate">{item.documentName}</span>
+                            </span>
+                          </div>
+                        )}
+                      </div>
 
                         {isPending && (
                           <button
@@ -879,7 +878,6 @@ export default function AdminLeavePage() {
                 })}
               </div>
             )}
-          </div>
         </div>
       )}
 

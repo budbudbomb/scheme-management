@@ -40,59 +40,84 @@ async function fetchStats(): Promise<SurveyStats> {
   };
 }
 
-// ─── Inline KPI Card (more impactful than StatCard for 4-up layout) ──────────
+const ACCENT_CONFIG: Record<string, { bg: string; border: string }> = {
+  indigo: { bg: 'bg-indigo-50', border: 'border-t-indigo-500' },
+  sky: { bg: 'bg-sky-50', border: 'border-t-sky-500' },
+  emerald: { bg: 'bg-emerald-50', border: 'border-t-emerald-500' },
+  violet: { bg: 'bg-violet-50', border: 'border-t-violet-500' },
+};
+
 interface KpiCardProps {
   label: string;
   value: string | number;
   sub?: string;
-  accent: string;         // Tailwind colour prefix e.g. 'indigo'
+  accent: 'indigo' | 'sky' | 'emerald' | 'violet';
   icon: React.ReactNode;
   trend?: { value: number; positive: boolean; label: string };
+  badge?: string;
 }
 
-function KpiCard({ label, value, sub, icon, trend, accent }: KpiCardProps) {
+function KpiCard({ label, value, sub, icon, trend, badge, accent }: KpiCardProps) {
+  const cfg = ACCENT_CONFIG[accent] ?? ACCENT_CONFIG.indigo;
+
   return (
     <div
       className={cn(
-        'card p-3 sm:p-5 card-hover flex flex-col justify-between gap-2 sm:gap-3 border-t-2 sm:border-t-4 transition-all',
-        `border-t-${accent}-600 border-${accent}-100`
+        'card p-4 sm:p-5 card-hover flex flex-col justify-start border-t-[3px] transition-all',
+        cfg.border
       )}
     >
-      <div className="flex items-start justify-between gap-1.5 sm:gap-2">
+      {/* Top row: Icon + Trend/Badge aligned to fixed min-height */}
+      <div className="flex items-center justify-between min-h-[32px] sm:min-h-[38px]">
         <div
           className={cn(
-            'w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 [&>svg]:w-3.5 [&>svg]:h-3.5 sm:[&>svg]:w-5 sm:[&>svg]:h-5',
-            `bg-${accent}-50`
+            'w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 [&>svg]:w-4 [&>svg]:h-4 sm:[&>svg]:w-5 sm:[&>svg]:h-5',
+            cfg.bg
           )}
         >
           {icon}
         </div>
-        {trend && (
+        {trend ? (
           <span
             className={cn(
-              'text-[10px] sm:text-[11px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full shrink-0',
-              trend.positive ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+              'text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1',
+              trend.positive
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
+                : 'bg-rose-50 text-rose-700 border border-rose-200/60'
             )}
           >
-            {trend.positive ? '▲' : '▼'} {Math.abs(trend.value)}%
+            <span>{trend.positive ? '▲' : '▼'}</span>
+            <span>{Math.abs(trend.value)}%</span>
           </span>
+        ) : badge ? (
+          <span className="text-[10px] sm:text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/60 shrink-0">
+            {badge}
+          </span>
+        ) : (
+          <span className="h-5" />
         )}
       </div>
-      <div className="min-w-0">
-        <div className="text-xl sm:text-3xl font-black text-slate-900 leading-tight tracking-tight">
+
+      {/* Metric content: strict top-down flow so all 4 values share the identical baseline */}
+      <div className="mt-3.5 sm:mt-4 min-w-0">
+        <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-none">
           {typeof value === 'number' ? value.toLocaleString('en-IN') : value}
         </div>
-        <div className="text-xs sm:text-sm text-slate-600 sm:text-slate-500 mt-0.5 sm:mt-1 font-semibold sm:font-medium leading-snug line-clamp-2">
+        <div className="text-xs sm:text-sm font-semibold text-slate-700 mt-2 leading-snug truncate">
           {label}
         </div>
         {sub && (
-          <div className="text-[10px] sm:text-xs text-slate-400 mt-0.5 leading-tight truncate sm:whitespace-normal">
+          <div className="text-[11px] sm:text-xs text-slate-400 mt-1 leading-tight truncate">
             {sub}
           </div>
         )}
-        {trend && (
-          <div className="hidden sm:block text-xs text-slate-400 mt-1">
+        {trend?.label ? (
+          <div className="text-[10px] sm:text-xs text-slate-400 mt-0.5 leading-tight truncate">
             {trend.label}
+          </div>
+        ) : (
+          <div className="text-[10px] sm:text-xs text-transparent select-none mt-0.5 leading-tight hidden sm:block">
+            &nbsp;
           </div>
         )}
       </div>
@@ -166,11 +191,11 @@ export default function AdminDashboardPage() {
       ) : error ? (
         <ErrorState message={error} onRetry={load} />
       ) : stats ? (
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
           <KpiCard
             label="Survey Completion Rate"
             value={`${stats.completionRate}%`}
-            sub={`${stats.completed.toLocaleString('en-IN')} of ${stats.totalDeployed.toLocaleString('en-IN')} surveys done`}
+            sub={`${stats.completed.toLocaleString('en-IN')} of ${stats.totalDeployed.toLocaleString('en-IN')} done`}
             accent="indigo"
             icon={<ChartLine size={20} weight="fill" className="text-indigo-600" />}
             trend={{ value: 6, positive: true, label: 'vs last month' }}
@@ -178,9 +203,10 @@ export default function AdminDashboardPage() {
           <KpiCard
             label="Total Surveys Deployed"
             value={stats.totalDeployed}
-            sub="Across all districts & blocks"
+            sub="Across all 52 districts & blocks"
             accent="sky"
             icon={<ClipboardText size={20} weight="fill" className="text-sky-600" />}
+            trend={{ value: 4, positive: true, label: 'vs last month' }}
           />
           <KpiCard
             label="Surveys Completed"
@@ -193,10 +219,10 @@ export default function AdminDashboardPage() {
           <KpiCard
             label="Avg Survey Completion Time"
             value={`${stats.avgSurveyTimeMin} min`}
-            sub="Per survey · across all roles"
+            sub="Target: 15 min · across all roles"
             accent="violet"
             icon={<Timer size={20} weight="fill" className="text-violet-600" />}
-            trend={{ value: 8, positive: true, label: '↓ faster than last month' }}
+            trend={{ value: 8, positive: true, label: 'faster than last month' }}
           />
         </div>
       ) : null}

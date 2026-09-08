@@ -12,6 +12,7 @@ import {
   Users,
   GearSix,
   ShieldCheck,
+  WarningCircle,
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils/formatters';
 import type { UserRole } from '@/types/models';
@@ -30,14 +31,15 @@ function getPrimaryNav(role: UserRole): BottomNavItem[] {
         { href: '/admin/dashboard', label: 'Home', icon: House },
         { href: '/admin/tasks', label: 'Tasks', icon: CheckSquare },
         { href: '/admin/surveys', label: 'Surveys', icon: ClipboardText },
-        { href: '/admin/users', label: 'Users', icon: Users },
-        { href: '/admin/leave', label: 'Leave', icon: ClipboardText },
+        { href: '/admin/complaints', label: 'Complaints', icon: WarningCircle },
+        { href: '/admin/leave', label: 'Leave', icon: ShieldCheck },
       ];
     case 'pc':
       return [
         { href: '/pc/dashboard', label: 'Home', icon: House },
         { href: '/pc/tasks', label: 'Tasks', icon: CheckSquare },
         { href: '/pc/attendance', label: 'Attendance', icon: Fingerprint },
+        { href: '/pc/complaints', label: 'Complaints', icon: WarningCircle },
         { href: '/pc/leave', label: 'Leave', icon: ShieldCheck },
       ];
     case 'fellow':
@@ -45,6 +47,7 @@ function getPrimaryNav(role: UserRole): BottomNavItem[] {
         { href: '/fellow/dashboard', label: 'Home', icon: House },
         { href: '/fellow/tasks', label: 'Tasks', icon: CheckSquare },
         { href: '/fellow/attendance', label: 'Attendance', icon: Fingerprint },
+        { href: '/fellow/complaints', label: 'Complaints', icon: WarningCircle },
         { href: '/fellow/leave', label: 'Leave', icon: ShieldCheck },
       ];
     case 'intern':
@@ -52,6 +55,7 @@ function getPrimaryNav(role: UserRole): BottomNavItem[] {
         { href: '/intern/dashboard', label: 'Home', icon: House },
         { href: '/intern/tasks', label: 'Tasks', icon: CheckSquare },
         { href: '/intern/attendance', label: 'Attendance', icon: Fingerprint },
+        { href: '/intern/complaints', label: 'Complaints', icon: WarningCircle },
         { href: '/intern/leave', label: 'Leave', icon: ClipboardText },
       ];
     default:
