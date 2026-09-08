@@ -87,6 +87,12 @@ export default function ComplaintDetailsModal({
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${complaintStatusColor(complaint.status)}`}>
                 {complaintStatusLabel(complaint.status)}
               </span>
+              {complaint.isEscalated && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200 shadow-2xs">
+                  <ArrowBendUpRight size={12} weight="bold" />
+                  Forwarded {complaint.escalations && complaint.escalations.length > 0 ? `from ${roleLabel(complaint.escalations[complaint.escalations.length - 1].forwarderRole)}` : ''}
+                </span>
+              )}
             </div>
             <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">{complaint.subject}</h2>
           </div>

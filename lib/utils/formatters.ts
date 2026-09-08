@@ -119,6 +119,7 @@ export function roleLabel(role: string): string {
     fellow: 'Fellow',
     intern: 'Intern',
     pmu: 'PMU',
+    spm_cpm: 'Senior Program Manager',
   };
   return map[role] ?? role;
 }

@@ -736,10 +736,10 @@ export const MOCK_COMPLAINTS: Complaint[] = [
   {
     id: 'cmp-07',
     ticketNumber: 'CMP-2026-0203',
-    applicantId: 'u-fellow-03',
-    applicantName: 'Anita Deshmukh',
-    applicantRole: 'fellow',
-    assignedLocation: 'Ujjain District',
+    applicantId: 'u-intern-03',
+    applicantName: 'Divya Sharma',
+    applicantRole: 'intern',
+    assignedLocation: 'Sanwer Block (Indore)',
     category: 'workload_tasks',
     priority: 'medium',
     subject: 'Urgent intern reassignment needed for pending block health surveys',
@@ -748,6 +748,17 @@ export const MOCK_COMPLAINTS: Complaint[] = [
     status: 'pending',
     appliedAt: '2026-09-04T10:15:00Z',
     targetRole: 'pc',
+    isEscalated: true,
+    escalations: [
+      {
+        forwardedBy: 'Vikram Singh',
+        forwarderRole: 'fellow',
+        forwardedToRole: 'pc',
+        forwardedToLabel: 'Program Coordinator (PC)',
+        reason: 'Requires inter-block reallocation of interns across administrative boundaries beyond Fellow authority.',
+        forwardedAt: '2026-09-05T09:30:00Z',
+      },
+    ],
   },
 
   // ── PC -> SPM/CPM ──
@@ -783,6 +794,17 @@ export const MOCK_COMPLAINTS: Complaint[] = [
     status: 'pending',
     appliedAt: '2026-09-01T16:30:00Z',
     targetRole: 'spm_cpm',
+    isEscalated: true,
+    escalations: [
+      {
+        forwardedBy: 'Suresh Tiwari',
+        forwarderRole: 'pc',
+        forwardedToRole: 'spm_cpm',
+        forwardedToLabel: 'Senior Program Manager (SPM / State PMU)',
+        reason: 'IT inventory procurement above division cap requires State PMU sanction and central dispatch approval.',
+        forwardedAt: '2026-09-03T11:15:00Z',
+      },
+    ],
   },
   {
     id: 'cmp-10',

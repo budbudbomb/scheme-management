@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { complaintApi } from '@/lib/api/complaints';
 import { useAuth } from '@/lib/auth/context';
 import type { Complaint } from '@/types/models';
+import { roleLabel } from '@/lib/utils/formatters';
 
 interface ReviewComplaintModalProps {
   complaint: Complaint | null;
@@ -99,6 +100,8 @@ export default function ReviewComplaintModal({
     }
   };
 
+  const lastEsc = complaint.escalations && complaint.escalations.length > 0 ? complaint.escalations[complaint.escalations.length - 1] : null;
+
   const modalContent = (
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-md animate-fade-in overflow-hidden">
       {/* Backdrop */}
@@ -129,7 +132,14 @@ export default function ReviewComplaintModal({
                 {isReject && 'Reject Complaint'}
                 {isForward && `Forward to ${nextTargetLabel}`}
               </h2>
-              <p className="text-xs text-slate-500 font-mono">{complaint.ticketNumber}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <p className="text-xs text-slate-500 font-mono">{complaint.ticketNumber}</p>
+                {complaint.isEscalated && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                    <ArrowBendUpRight size={10} weight="bold" /> Forwarded
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <button
@@ -148,6 +158,35 @@ export default function ReviewComplaintModal({
               Submitted by <span className="font-medium text-slate-700">{complaint.applicantName}</span> ({complaint.assignedLocation})
             </p>
           </div>
+
+          {/* Forwarded Callout Banner in Review Modal */}
+          {complaint.isEscalated && (
+            <div className="p-3 rounded-xl bg-purple-50/90 border border-purple-200 text-xs text-purple-950 space-y-1.5 shadow-2xs">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 font-bold text-purple-900">
+                  <ArrowBendUpRight size={15} weight="bold" className="text-purple-600 shrink-0" />
+                  <span>Forwarded Grievance</span>
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-200/70 text-purple-800">
+                  Escalated
+                </span>
+              </div>
+              {lastEsc ? (
+                <div className="text-purple-900 text-xs space-y-1">
+                  <p>
+                    Forwarded by <strong>{lastEsc.forwardedBy}</strong> ({roleLabel(lastEsc.forwarderRole)}):
+                  </p>
+                  <p className="bg-white/80 p-2 rounded-lg border border-purple-200/60 text-purple-800 italic">
+                    &ldquo;{lastEsc.reason}&rdquo;
+                  </p>
+                </div>
+              ) : (
+                <p className="text-[11px] text-purple-800">
+                  This complaint was forwarded up the administrative hierarchy for higher review.
+                </p>
+              )}
+            </div>
+          )}
 
           {isForward && (
             <div className="p-3 rounded-xl bg-indigo-50/70 border border-indigo-200/80 text-xs text-indigo-900 flex items-start gap-2">

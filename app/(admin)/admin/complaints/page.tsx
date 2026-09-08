@@ -556,6 +556,7 @@ export default function AdminComplaintsPage() {
               {filteredPcComplaints.map(item => {
                 const isPending = item.status === 'pending';
                 const initials = item.applicantName.split(' ').map(n => n[0]).join('').slice(0, 2);
+                const lastEsc = item.escalations && item.escalations.length > 0 ? item.escalations[item.escalations.length - 1] : null;
 
                 return (
                   <div key={item.id} className="card p-4 space-y-3 hover:border-slate-300 transition-all shadow-2xs">
@@ -577,7 +578,7 @@ export default function AdminComplaintsPage() {
                       </span>
                     </div>
 
-                    {/* Chips Row: Category + Ticket Number + Escalated Badge if any */}
+                    {/* Chips Row: Category + Ticket Number + Forwarded Badge if any */}
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
                         {complaintCategoryLabel(item.category)}
@@ -586,8 +587,8 @@ export default function AdminComplaintsPage() {
                         {item.ticketNumber}
                       </span>
                       {item.isEscalated && (
-                        <span className="badge border text-[11px] font-semibold bg-amber-50 text-amber-800 border-amber-200 flex items-center gap-1">
-                          <ArrowBendUpRight size={12} weight="bold" /> Escalated
+                        <span className="badge border text-[11px] font-bold bg-purple-100 text-purple-800 border-purple-200 flex items-center gap-1 shadow-2xs">
+                          <ArrowBendUpRight size={12} weight="bold" /> Forwarded from {lastEsc ? roleLabel(lastEsc.forwarderRole) : 'Coordinator'}
                         </span>
                       )}
                     </div>
@@ -603,6 +604,21 @@ export default function AdminComplaintsPage() {
 
                     {/* Subject */}
                     <p className="text-xs font-semibold text-slate-800 line-clamp-2">{item.subject}</p>
+
+                    {/* Forwarded Details Callout Banner */}
+                    {item.isEscalated && (
+                      <div className="p-2.5 rounded-xl bg-purple-50/85 border border-purple-200/90 text-xs text-purple-950 space-y-1">
+                        <div className="flex items-center gap-1.5 font-bold text-purple-900">
+                          <ArrowBendUpRight size={14} weight="bold" className="text-purple-600 shrink-0" />
+                          <span>Forwarded by {lastEsc ? `${lastEsc.forwardedBy} (${roleLabel(lastEsc.forwarderRole)})` : 'Coordinator'}</span>
+                        </div>
+                        {lastEsc?.reason && (
+                          <p className="text-[11px] text-purple-800 italic pl-5">
+                            &ldquo;{lastEsc.reason}&rdquo;
+                          </p>
+                        )}
+                      </div>
+                    )}
 
                     {/* Bottom Row: Left = View details, Right = Circular Action Buttons (Document, Voice, Video) on bottom right corner */}
                     <div className="flex items-center justify-between gap-2 pt-1">
@@ -716,7 +732,10 @@ export default function AdminComplaintsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredPcComplaints.map(item => (
+                  {filteredPcComplaints.map(item => {
+                    const lastEsc = item.escalations && item.escalations.length > 0 ? item.escalations[item.escalations.length - 1] : null;
+
+                    return (
                     <tr
                       key={item.id}
                       onClick={() => setSelectedComplaint(item)}
@@ -742,9 +761,20 @@ export default function AdminComplaintsPage() {
                         {formatDate(item.appliedAt, 'dd MMM yyyy')}
                       </td>
                       <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold border ${complaintStatusColor(item.status)}`}>
-                          {complaintStatusLabel(item.status)}
-                        </span>
+                        <div className="flex flex-col gap-1 items-start">
+                          <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold border ${complaintStatusColor(item.status)}`}>
+                            {complaintStatusLabel(item.status)}
+                          </span>
+                          {item.isEscalated && (
+                            <span
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200"
+                              title={lastEsc ? `Forwarded by ${lastEsc.forwardedBy}: "${lastEsc.reason}"` : 'Forwarded grievance'}
+                            >
+                              <ArrowBendUpRight size={11} weight="bold" />
+                              Forwarded from {lastEsc ? roleLabel(lastEsc.forwarderRole) : 'Coordinator'}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3.5 px-4 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
@@ -801,7 +831,8 @@ export default function AdminComplaintsPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  );
+                })}
                 </tbody>
               </table>
             </div>
@@ -862,7 +893,7 @@ export default function AdminComplaintsPage() {
                       </span>
                     </div>
 
-                    {/* Chips Row: Category + Ticket Number */}
+                    {/* Chips Row: Category + Ticket Number + Forwarded Badge */}
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
                         {complaintCategoryLabel(item.category)}
@@ -870,6 +901,11 @@ export default function AdminComplaintsPage() {
                       <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
                         {item.ticketNumber}
                       </span>
+                      {item.isEscalated && (
+                        <span className="badge border text-[11px] font-bold bg-purple-100 text-purple-800 border-purple-200 flex items-center gap-1 shadow-2xs">
+                          <ArrowBendUpRight size={12} weight="bold" /> Forwarded
+                        </span>
+                      )}
                     </div>
 
                     {/* Incident & Applied Dates */}
@@ -991,9 +1027,20 @@ export default function AdminComplaintsPage() {
                         {item.targetRole === 'fellow' ? 'Fellow' : item.targetRole === 'pc' ? 'Program Coordinator' : 'State PMU'}
                       </td>
                       <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold border ${complaintStatusColor(item.status)}`}>
-                          {complaintStatusLabel(item.status)}
-                        </span>
+                        <div className="flex flex-col gap-1 items-start">
+                          <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold border ${complaintStatusColor(item.status)}`}>
+                            {complaintStatusLabel(item.status)}
+                          </span>
+                          {item.isEscalated && (
+                            <span
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200"
+                              title="Forwarded grievance"
+                            >
+                              <ArrowBendUpRight size={11} weight="bold" />
+                              Forwarded
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3.5 px-4 text-right whitespace-nowrap">
                         <button
