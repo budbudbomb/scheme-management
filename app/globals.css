@@ -192,8 +192,7 @@
 
   /* Sidebar transition */
   .sidebar-transition {
-    transition: width 250ms var(--ease-in-out),
-                transform 250ms var(--ease-drawer);
+    transition: width 250ms var(--ease-in-out);
   }
 
   /* Page content transition */

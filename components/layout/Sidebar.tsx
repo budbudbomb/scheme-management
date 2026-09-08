@@ -97,7 +97,7 @@ export default function Sidebar({
   return (
     <aside
       className={cn(
-        'hidden lg:flex flex-col h-full bg-[#152033] text-slate-300 sidebar-transition overflow-hidden shrink-0 rounded-2xl border border-slate-800/80 shadow-[0_8px_30px_rgba(0,0,0,0.3)] shadow-[0_12px_40px_-5px_rgba(0,0,0,0.4)] select-none',
+        'relative z-20 hidden lg:flex flex-col h-full bg-[#152033] text-slate-300 sidebar-transition overflow-hidden shrink-0 rounded-2xl border border-slate-800/80 shadow-2xl shadow-black/40 select-none',
         open ? 'w-[256px]' : 'w-[72px]'
       )}
     >
@@ -133,11 +133,11 @@ export default function Sidebar({
                 <Link
                   href={item.href}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium',
-                    'transition-all duration-150 tap-target',
+                    'group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm border select-none',
+                    'transition-colors duration-150',
                     isActive
-                      ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 font-semibold shadow-2xs'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                      ? 'bg-indigo-600/25 text-white border-indigo-500/50 font-semibold shadow-xs'
+                      : 'border-transparent text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 font-medium'
                   )}
                   title={!open ? item.label : undefined}
                 >
@@ -145,13 +145,18 @@ export default function Sidebar({
                     size={20}
                     weight={isActive ? 'fill' : 'regular'}
                     className={cn(
-                      'shrink-0 transition-colors',
-                      isActive ? 'text-indigo-400' : 'text-slate-500'
+                      'shrink-0 transition-colors duration-150',
+                      isActive ? 'text-indigo-400' : 'text-slate-500 group-hover:text-slate-300'
                     )}
                   />
-                  {open && <span className="truncate">{item.label}</span>}
-                  {isActive && open && (
-                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />
+                  {open && <span className="truncate flex-1">{item.label}</span>}
+                  {open && (
+                    <span
+                      className={cn(
+                        'w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0 transition-opacity duration-150',
+                        isActive ? 'opacity-100' : 'opacity-0'
+                      )}
+                    />
                   )}
                 </Link>
               </li>
