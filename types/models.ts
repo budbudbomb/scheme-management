@@ -381,6 +381,15 @@ export interface InternDashboardStats {
 
 // ── Complaints ──────────────────────────────────────────────
 
+export interface ComplaintEscalation {
+  forwardedBy: string;
+  forwarderRole: 'fellow' | 'pc' | 'spm_cpm';
+  forwardedToRole: 'pc' | 'spm_cpm' | 'state_committee';
+  forwardedToLabel: string;
+  reason: string;
+  forwardedAt: string;
+}
+
 export interface Complaint {
   id: string;
   ticketNumber: string;
@@ -407,6 +416,8 @@ export interface Complaint {
   reviewerRole?: 'fellow' | 'pc' | 'spm_cpm';
   reviewerComment?: string;
   reviewedAt?: string;
+  isEscalated?: boolean;
+  escalations?: ComplaintEscalation[];
 }
 
 export interface CreateComplaintRequest {

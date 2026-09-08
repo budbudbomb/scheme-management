@@ -1,5 +1,5 @@
 import { get, post, patch } from './client';
-import type { Complaint, ComplaintStatus, ComplaintCategory, ComplaintPriority, CreateComplaintRequest } from '@/types/models';
+import type { Complaint, ComplaintStatus, ComplaintCategory, ComplaintPriority, CreateComplaintRequest, ComplaintEscalation } from '@/types/models';
 import { MOCK_COMPLAINTS } from './mockData';
 
 export interface ComplaintQuery {
@@ -166,6 +166,51 @@ export const complaintApi = {
         reviewerComment: comment,
         reviewedAt: new Date().toISOString(),
       };
+      dynamicComplaints[foundIdx] = updated;
+      return updated;
+    }
+  },
+
+  forward: async (
+    id: string,
+    reason: string,
+    reviewer: { name: string; role: 'fellow' | 'pc' | 'spm_cpm' }
+  ): Promise<Complaint> => {
+    try {
+      return await patch<Complaint>(`/complaints/${id}/forward`, { reason });
+    } catch {
+      const foundIdx = dynamicComplaints.findIndex(c => c.id === id);
+      if (foundIdx === -1) throw new Error('Complaint not found');
+
+      const comp = dynamicComplaints[foundIdx];
+      const nextTargetRole: 'fellow' | 'pc' | 'spm_cpm' =
+        reviewer.role === 'fellow' ? 'pc' : 'spm_cpm';
+
+      const nextTargetLabel =
+        reviewer.role === 'fellow'
+          ? 'Program Coordinator (PC)'
+          : reviewer.role === 'pc'
+          ? 'Senior Program Manager (SPM / State PMU)'
+          : 'State Grievance Committee';
+
+      const escalationItem: ComplaintEscalation = {
+        forwardedBy: reviewer.name,
+        forwarderRole: reviewer.role,
+        forwardedToRole: nextTargetRole,
+        forwardedToLabel: nextTargetLabel,
+        reason,
+        forwardedAt: new Date().toISOString(),
+      };
+
+      const updated: Complaint = {
+        ...comp,
+        targetRole: nextTargetRole,
+        status: 'pending',
+        isEscalated: true,
+        escalations: [...(comp.escalations || []), escalationItem],
+        reviewerComment: `Forwarded to ${nextTargetLabel} by ${reviewer.name}: "${reason}"`,
+      };
+
       dynamicComplaints[foundIdx] = updated;
       return updated;
     }

@@ -21,6 +21,7 @@ import {
   Microphone,
   VideoCamera,
   Hourglass,
+  ArrowBendUpRight,
 } from '@phosphor-icons/react';
 import { complaintApi } from '@/lib/api/complaints';
 import type { Complaint, ComplaintStatus } from '@/types/models';
@@ -56,7 +57,7 @@ export default function PCComplaintsPage() {
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [reviewActionData, setReviewActionData] = useState<{
     complaint: Complaint | null;
-    action: 'resolve' | 'reject' | null;
+    action: 'resolve' | 'reject' | 'forward' | null;
   }>({ complaint: null, action: null });
 
   // Audio / Video Note playback
@@ -761,7 +762,7 @@ export default function PCComplaintsPage() {
                       </span>
                     </div>
 
-                    {/* Chips Row: Category + Ticket Number */}
+                    {/* Chips Row: Category + Ticket Number + Escalated Badge if any */}
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
                         {complaintCategoryLabel(item.category)}
@@ -769,6 +770,11 @@ export default function PCComplaintsPage() {
                       <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
                         {item.ticketNumber}
                       </span>
+                      {item.isEscalated && (
+                        <span className="badge border text-[11px] font-semibold bg-amber-50 text-amber-800 border-amber-200 flex items-center gap-1">
+                          <ArrowBendUpRight size={12} weight="bold" /> Escalated
+                        </span>
+                      )}
                     </div>
 
                     {/* Incident & Applied Dates */}
@@ -846,25 +852,35 @@ export default function PCComplaintsPage() {
                       </div>
                     )}
 
-                    {/* Bottom Action Buttons: Approve / Reject 50-50 Grid */}
+                    {/* Bottom Action Buttons: Approve / Reject / Forward 3-Col Grid */}
                     {isPending && (
-                      <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100">
                         <button
                           type="button"
                           onClick={() => setReviewActionData({ complaint: item, action: 'resolve' })}
-                          className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition active:scale-95 cursor-pointer"
+                          className="inline-flex items-center justify-center gap-1 px-2 py-2.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition active:scale-95 cursor-pointer"
                         >
-                          <Check size={16} weight="bold" />
+                          <Check size={14} weight="bold" />
                           <span>Approve</span>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => setReviewActionData({ complaint: item, action: 'reject' })}
-                          className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition active:scale-95 cursor-pointer"
+                          className="inline-flex items-center justify-center gap-1 px-2 py-2.5 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition active:scale-95 cursor-pointer"
                         >
-                          <X size={16} weight="bold" />
+                          <X size={14} weight="bold" />
                           <span>Reject</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setReviewActionData({ complaint: item, action: 'forward' })}
+                          className="inline-flex items-center justify-center gap-1 px-2 py-2.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition active:scale-95 cursor-pointer"
+                          title="Forward up to Senior Program Manager (SPM)"
+                        >
+                          <ArrowBendUpRight size={14} weight="bold" />
+                          <span>Forward</span>
                         </button>
                       </div>
                     )}
@@ -956,6 +972,18 @@ export default function PCComplaintsPage() {
                                 >
                                   <X size={12} weight="bold" />
                                   Reject
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setReviewActionData({ complaint: item, action: 'forward' });
+                                  }}
+                                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition-colors cursor-pointer"
+                                  title="Forward up to Senior Program Manager"
+                                >
+                                  <ArrowBendUpRight size={12} weight="bold" />
+                                  Forward
                                 </button>
                               </>
                             ) : (

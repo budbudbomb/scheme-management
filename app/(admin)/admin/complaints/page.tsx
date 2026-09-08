@@ -22,6 +22,7 @@ import {
   Microphone,
   VideoCamera,
   Hourglass,
+  ArrowBendUpRight,
 } from '@phosphor-icons/react';
 import { complaintApi } from '@/lib/api/complaints';
 import type { Complaint, ComplaintStatus } from '@/types/models';
@@ -55,7 +56,7 @@ export default function AdminComplaintsPage() {
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [reviewActionData, setReviewActionData] = useState<{
     complaint: Complaint | null;
-    action: 'resolve' | 'reject' | null;
+    action: 'resolve' | 'reject' | 'forward' | null;
   }>({ complaint: null, action: null });
 
   // Audio / Video Note playback
@@ -576,7 +577,7 @@ export default function AdminComplaintsPage() {
                       </span>
                     </div>
 
-                    {/* Chips Row: Category + Ticket Number */}
+                    {/* Chips Row: Category + Ticket Number + Escalated Badge if any */}
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
                         {complaintCategoryLabel(item.category)}
@@ -584,6 +585,11 @@ export default function AdminComplaintsPage() {
                       <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
                         {item.ticketNumber}
                       </span>
+                      {item.isEscalated && (
+                        <span className="badge border text-[11px] font-semibold bg-amber-50 text-amber-800 border-amber-200 flex items-center gap-1">
+                          <ArrowBendUpRight size={12} weight="bold" /> Escalated
+                        </span>
+                      )}
                     </div>
 
                     {/* Incident & Applied Dates */}
@@ -654,13 +660,13 @@ export default function AdminComplaintsPage() {
                       </div>
                     </div>
 
-                    {/* Review Actions: 50-50 Approve & Reject on Mobile */}
+                    {/* Review Actions: 3-Col Resolve, Reject, Forward on Mobile */}
                     {isPending ? (
-                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+                      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100">
                         <button
                           type="button"
                           onClick={() => setReviewActionData({ complaint: item, action: 'resolve' })}
-                          className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                          className="w-full py-2 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center justify-center gap-1 shadow-xs transition-colors cursor-pointer"
                         >
                           <Check size={14} weight="bold" />
                           Resolve
@@ -668,10 +674,19 @@ export default function AdminComplaintsPage() {
                         <button
                           type="button"
                           onClick={() => setReviewActionData({ complaint: item, action: 'reject' })}
-                          className="w-full py-2 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                          className="w-full py-2 px-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs flex items-center justify-center gap-1 shadow-xs transition-colors cursor-pointer"
                         >
                           <X size={14} weight="bold" />
                           Reject
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setReviewActionData({ complaint: item, action: 'forward' })}
+                          className="w-full py-2 px-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs flex items-center justify-center gap-1 shadow-xs transition-colors cursor-pointer"
+                          title="Forward up to State Grievance Committee"
+                        >
+                          <ArrowBendUpRight size={14} weight="bold" />
+                          Forward
                         </button>
                       </div>
                     ) : (
@@ -765,6 +780,17 @@ export default function AdminComplaintsPage() {
                               >
                                 <X size={12} weight="bold" />
                                 Reject
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setReviewActionData({ complaint: item, action: 'forward' });
+                                }}
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition-colors cursor-pointer"
+                                title="Forward up to State Grievance Committee"
+                              >
+                                <ArrowBendUpRight size={12} weight="bold" />
+                                Forward
                               </button>
                             </>
                           ) : (

@@ -16,6 +16,7 @@ import {
   Microphone,
   VideoCamera,
   Play,
+  ArrowBendUpRight,
 } from '@phosphor-icons/react';
 import type { Complaint } from '@/types/models';
 import {
@@ -30,7 +31,7 @@ interface ComplaintDetailsModalProps {
   complaint: Complaint | null;
   onClose: () => void;
   canReview?: boolean;
-  onOpenReview?: (complaint: Complaint, action: 'resolve' | 'reject') => void;
+  onOpenReview?: (complaint: Complaint, action: 'resolve' | 'reject' | 'forward') => void;
 }
 
 export default function ComplaintDetailsModal({
@@ -238,6 +239,51 @@ export default function ComplaintDetailsModal({
             </div>
           )}
 
+          {/* Escalation & Forwarding Trail */}
+          {((complaint.escalations && complaint.escalations.length > 0) || complaint.isEscalated) && (
+            <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
+                  <ArrowBendUpRight size={14} weight="bold" />
+                </div>
+                <h4 className="text-xs sm:text-sm font-bold text-indigo-950">
+                  Escalation & Forwarding Trail
+                </h4>
+                <span className="ml-auto text-[11px] font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full border border-indigo-200/80">
+                  Hierarchical Escalation
+                </span>
+              </div>
+
+              {complaint.escalations && complaint.escalations.length > 0 ? (
+                <div className="space-y-2.5 pt-1">
+                  {complaint.escalations.map((esc, idx) => (
+                    <div key={idx} className="p-3 bg-white/95 border border-indigo-100 rounded-lg text-xs space-y-1.5 shadow-2xs">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="font-semibold text-slate-800">
+                          Forwarded by <strong className="text-indigo-900">{esc.forwardedBy}</strong> ({roleLabel(esc.forwarderRole)})
+                        </span>
+                        <span className="text-[11px] text-slate-400">
+                          {formatDate(esc.forwardedAt, 'dd MMM yyyy, HH:mm')}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[11px] text-indigo-700 font-medium">
+                        <ArrowBendUpRight size={13} weight="bold" />
+                        <span>Escalated to: <strong>{esc.forwardedToLabel}</strong></span>
+                      </div>
+                      <div className="text-slate-600 bg-slate-50 border border-slate-200/70 rounded p-2 text-xs italic">
+                        &ldquo;{esc.reason}&rdquo;
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-indigo-800">
+                  This grievance was forwarded up the hierarchy for higher administrative review.
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Review Status & Feedback */}
           {complaint.status !== 'pending' && (
             <div className={`p-4 rounded-xl border ${
@@ -280,7 +326,18 @@ export default function ComplaintDetailsModal({
           </button>
 
           {canReview && complaint.status === 'pending' && onOpenReview && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => {
+                  onClose();
+                  onOpenReview(complaint, 'forward');
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition-colors"
+                title="Forward up hierarchy"
+              >
+                <ArrowBendUpRight size={16} weight="bold" />
+                <span>Forward Up</span>
+              </button>
               <button
                 onClick={() => {
                   onClose();

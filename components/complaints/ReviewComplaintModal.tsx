@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, CheckCircle, XCircle, ChatText } from '@phosphor-icons/react';
+import { X, CheckCircle, XCircle, ChatText, ArrowBendUpRight } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { complaintApi } from '@/lib/api/complaints';
 import { useAuth } from '@/lib/auth/context';
@@ -10,7 +10,7 @@ import type { Complaint } from '@/types/models';
 
 interface ReviewComplaintModalProps {
   complaint: Complaint | null;
-  action: 'resolve' | 'reject' | null;
+  action: 'resolve' | 'reject' | 'forward' | null;
   reviewerRole: 'fellow' | 'pc' | 'spm_cpm';
   onClose: () => void;
   onSuccess: (updated: Complaint) => void;
@@ -54,11 +54,20 @@ export default function ReviewComplaintModal({
   if (!complaint || !action || !mounted) return null;
 
   const isResolve = action === 'resolve';
+  const isReject = action === 'reject';
+  const isForward = action === 'forward';
+
+  const nextTargetLabel =
+    reviewerRole === 'fellow'
+      ? 'Program Coordinator (PC)'
+      : reviewerRole === 'pc'
+      ? 'Senior Program Manager (SPM / State PMU)'
+      : 'State Grievance Committee';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isResolve && !comment.trim()) {
-      toast.error('Please specify the reason for rejection');
+      toast.error(isForward ? 'Please specify the reason for forwarding up the hierarchy' : 'Please specify the reason for rejection');
       return;
     }
 
@@ -73,9 +82,12 @@ export default function ReviewComplaintModal({
       if (isResolve) {
         updated = await complaintApi.resolve(complaint.id, comment.trim() || undefined, reviewer);
         toast.success(`Complaint ${complaint.ticketNumber} marked as Resolved`);
-      } else {
+      } else if (isReject) {
         updated = await complaintApi.reject(complaint.id, comment.trim(), reviewer);
         toast.success(`Complaint ${complaint.ticketNumber} has been rejected`);
+      } else {
+        updated = await complaintApi.forward(complaint.id, comment.trim(), reviewer);
+        toast.success(`Complaint ${complaint.ticketNumber} escalated to ${nextTargetLabel}`);
       }
 
       onSuccess(updated);
@@ -101,20 +113,28 @@ export default function ReviewComplaintModal({
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/80">
           <div className="flex items-center gap-3">
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-              isResolve ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'
+              isResolve
+                ? 'bg-emerald-500/10 text-emerald-600'
+                : isReject
+                ? 'bg-rose-500/10 text-rose-600'
+                : 'bg-indigo-500/10 text-indigo-600'
             }`}>
-              {isResolve ? <CheckCircle size={20} weight="duotone" /> : <XCircle size={20} weight="duotone" />}
+              {isResolve && <CheckCircle size={20} weight="duotone" />}
+              {isReject && <XCircle size={20} weight="duotone" />}
+              {isForward && <ArrowBendUpRight size={20} weight="bold" />}
             </div>
             <div>
               <h2 className="text-sm sm:text-base font-bold text-slate-900 leading-tight">
-                {isResolve ? 'Resolve Complaint' : 'Reject Complaint'}
+                {isResolve && 'Resolve Complaint'}
+                {isReject && 'Reject Complaint'}
+                {isForward && `Forward to ${nextTargetLabel}`}
               </h2>
               <p className="text-xs text-slate-500 font-mono">{complaint.ticketNumber}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -129,9 +149,20 @@ export default function ReviewComplaintModal({
             </p>
           </div>
 
+          {isForward && (
+            <div className="p-3 rounded-xl bg-indigo-50/70 border border-indigo-200/80 text-xs text-indigo-900 flex items-start gap-2">
+              <ArrowBendUpRight size={18} className="text-indigo-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold">Hierarchy Escalation:</span> If this grievance cannot be resolved at your level, it will be reassigned up the management hierarchy to <strong>{nextTargetLabel}</strong> for resolution.
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-              {isResolve ? 'Resolution Remarks / Corrective Actions' : 'Reason for Rejection *'}
+              {isResolve && 'Resolution Remarks / Corrective Actions'}
+              {isReject && 'Reason for Rejection *'}
+              {isForward && 'Reason for Forwarding / Escalation Justification *'}
             </label>
             <div className="relative">
               <ChatText size={16} className="absolute left-3 top-3 text-slate-400" />
@@ -143,14 +174,18 @@ export default function ReviewComplaintModal({
                 placeholder={
                   isResolve
                     ? 'Explain the steps taken to address this grievance (e.g. reimbursed allowance, replaced SIM card)...'
-                    : 'Provide the applicant with clear feedback on why this complaint is not actionable or rejected...'
+                    : isReject
+                    ? 'Provide the applicant with clear feedback on why this complaint is not actionable or rejected...'
+                    : 'Explain why this complaint requires higher-level action (e.g. budget allocation required, district administration coordination needed)...'
                 }
                 className="w-full pl-9 pr-3.5 py-2 text-sm rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
               />
             </div>
             {!isResolve && (
               <p className="text-[11px] text-slate-500 mt-1">
-                This explanation will be permanently visible to the applicant.
+                {isReject
+                  ? 'This explanation will be permanently visible to the applicant.'
+                  : 'This escalation note will be reviewed by the next authority in the hierarchy.'}
               </p>
             )}
           </div>
@@ -159,19 +194,25 @@ export default function ReviewComplaintModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs sm:text-sm font-medium border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-colors"
+              className="px-4 py-2 text-xs sm:text-sm font-medium border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className={`flex items-center gap-2 px-5 py-2 text-xs sm:text-sm font-semibold rounded-xl text-white shadow-sm transition-colors disabled:opacity-50 ${
-                isResolve ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'
+              className={`flex items-center gap-2 px-5 py-2 text-xs sm:text-sm font-semibold rounded-xl text-white shadow-sm transition-colors disabled:opacity-50 cursor-pointer ${
+                isResolve
+                  ? 'bg-emerald-600 hover:bg-emerald-700'
+                  : isReject
+                  ? 'bg-rose-600 hover:bg-rose-700'
+                  : 'bg-indigo-600 hover:bg-indigo-700'
               }`}
             >
               {loading && <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-              {isResolve ? 'Confirm Resolution' : 'Confirm Rejection'}
+              {isResolve && 'Confirm Resolution'}
+              {isReject && 'Confirm Rejection'}
+              {isForward && 'Forward Up Hierarchy'}
             </button>
           </div>
         </form>
