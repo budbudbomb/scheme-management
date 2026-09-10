@@ -78,6 +78,10 @@ function getNavItems(role: UserRole): NavItem[] {
       { href: '/pmu', label: 'Dashboard', icon: House },
       { href: '/admin/surveys', label: 'Surveys', icon: ClipboardText },
     ],
+    pm: [
+      { href: '/pm/dashboard', label: 'Dashboard', icon: House },
+      { href: '/pm/exit', label: 'Exit Management', icon: ArrowCircleUpRight },
+    ],
   } as Record<UserRole, NavItem[]>);
 
   return base(role)[role] ?? [];

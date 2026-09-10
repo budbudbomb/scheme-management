@@ -165,87 +165,90 @@ export default function FellowComplaintsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Complaint Management</h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5 line-clamp-2 sm:line-clamp-none">
-            Manage your grievances to Program Coordinator and review complaints submitted by your Interns
-          </p>
+      {/* ── FROZEN STICKY HEADER: Title + Description + Action + Tab Switcher (stays stable when scrolling up/down) ── */}
+      <div className="sticky top-0 z-20 bg-slate-50/95 lg:bg-white/95 backdrop-blur-md -mt-4 sm:-mt-6 lg:-mt-8 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-3.5 pb-3 sm:pt-5 sm:pb-4 border-b border-slate-200/80 shadow-2xs space-y-3 sm:space-y-4 transition-all">
+        {/* Header Row */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Complaint Management</h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5 line-clamp-2 sm:line-clamp-none">
+              Manage your grievances to Program Coordinator and review complaints submitted by your Interns
+            </p>
+          </div>
+          <button
+            id="fellow-add-complaint-btn"
+            type="button"
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-bold bg-[#172554] hover:bg-[#0f172a] text-white active:scale-95 transition-all shrink-0 shadow-xs cursor-pointer"
+          >
+            <Plus size={15} weight="bold" />
+            <span>Complaint</span>
+          </button>
         </div>
-        <button
-          id="fellow-add-complaint-btn"
-          type="button"
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-bold bg-[#172554] hover:bg-[#0f172a] text-white active:scale-95 transition-all shrink-0 shadow-xs cursor-pointer"
-        >
-          <Plus size={15} weight="bold" />
-          <span>Complaint</span>
-        </button>
-      </div>
 
-      {/* ── Sleek Segmented Tab Switch (Matching Leave page) ── */}
-      <div className="w-full max-w-md bg-slate-100/90 p-1 rounded-2xl border border-slate-200/90 grid grid-cols-2 gap-1 shadow-2xs">
-        {/* Tab 1: My Complaints */}
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab('my_complaints');
-            setStatusFilter('all');
-            setSearchQuery('');
-          }}
-          className={cn(
-            'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 select-none cursor-pointer text-center',
-            activeTab === 'my_complaints'
-              ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 font-bold ring-1 ring-black/5'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
-          )}
-        >
-          <ChatCircleDots
-            size={16}
-            weight={activeTab === 'my_complaints' ? 'fill' : 'bold'}
-            className={activeTab === 'my_complaints' ? 'text-indigo-600' : 'text-slate-500'}
-          />
-          <span className="truncate">My Complaints</span>
-          <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-slate-200/70 text-slate-700 font-bold">
-            {myComplaints.length}
-          </span>
-        </button>
+        {/* ── Sleek Segmented Tab Switch (Matching Leave page) ── */}
+        <div className="w-full max-w-md bg-slate-100/90 p-1 rounded-2xl border border-slate-200/90 grid grid-cols-2 gap-1 shadow-2xs">
+          {/* Tab 1: My Complaints */}
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('my_complaints');
+              setStatusFilter('all');
+              setSearchQuery('');
+            }}
+            className={cn(
+              'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 select-none cursor-pointer text-center',
+              activeTab === 'my_complaints'
+                ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 font-bold ring-1 ring-black/5'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+            )}
+          >
+            <ChatCircleDots
+              size={16}
+              weight={activeTab === 'my_complaints' ? 'fill' : 'bold'}
+              className={activeTab === 'my_complaints' ? 'text-indigo-600' : 'text-slate-500'}
+            />
+            <span className="truncate">My Complaints</span>
+            <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-slate-200/70 text-slate-700 font-bold">
+              {myComplaints.length}
+            </span>
+          </button>
 
-        {/* Tab 2: Review Intern Complaints */}
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab('review_interns');
-            setStatusFilter('all');
-            setSearchQuery('');
-          }}
-          className={cn(
-            'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 select-none cursor-pointer relative text-center',
-            activeTab === 'review_interns'
-              ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 font-bold ring-1 ring-black/5'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
-          )}
-        >
-          <Users
-            size={16}
-            weight={activeTab === 'review_interns' ? 'fill' : 'bold'}
-            className={activeTab === 'review_interns' ? 'text-indigo-600' : 'text-slate-500'}
-          />
-          <span className="truncate sm:hidden">Review Interns</span>
-          <span className="hidden sm:inline truncate">Review Intern Complaints</span>
-          {internStats.pending > 0 && (
-            <span className="flex items-center justify-center min-w-[18px] h-4.5 px-1.5 text-[10px] font-black bg-amber-100 text-amber-900 rounded-full border border-amber-300">
-              {internStats.pending}
-            </span>
-          )}
-          {internStats.pending > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600 border-2 border-white" />
-            </span>
-          )}
-        </button>
+          {/* Tab 2: Review Intern Complaints */}
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('review_interns');
+              setStatusFilter('all');
+              setSearchQuery('');
+            }}
+            className={cn(
+              'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 select-none cursor-pointer relative text-center',
+              activeTab === 'review_interns'
+                ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 font-bold ring-1 ring-black/5'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+            )}
+          >
+            <Users
+              size={16}
+              weight={activeTab === 'review_interns' ? 'fill' : 'bold'}
+              className={activeTab === 'review_interns' ? 'text-indigo-600' : 'text-slate-500'}
+            />
+            <span className="truncate sm:hidden">Review Interns</span>
+            <span className="hidden sm:inline truncate">Review Intern Complaints</span>
+            {internStats.pending > 0 && (
+              <span className="flex items-center justify-center min-w-[18px] h-4.5 px-1.5 text-[10px] font-black bg-amber-100 text-amber-900 rounded-full border border-amber-300">
+                {internStats.pending}
+              </span>
+            )}
+            {internStats.pending > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600 border-2 border-white" />
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* ── Mobile View: 4 Circles in a Single Row ── */}
@@ -363,7 +366,7 @@ export default function FellowComplaintsPage() {
         })}
       </div>
 
-      {/* ── Desktop View: Executive KPI Square Cards (referencing 2nd ss) ── */}
+      {/* ── Desktop View: Executive KPI Square Cards ── */}
       <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {(activeTab === 'my_complaints'
           ? [
@@ -460,22 +463,31 @@ export default function FellowComplaintsPage() {
                 setStatusFilter((prev) => (prev === item.key ? 'all' : (item.key as typeof statusFilter)));
               }}
               className={cn(
-                'card p-4 sm:p-5 border shadow-2xs hover:shadow-sm transition-all cursor-pointer select-none text-left',
+                'card p-3.5 sm:p-4 transition-all duration-200 cursor-pointer select-none relative overflow-hidden',
                 isSelected
-                  ? 'border-indigo-500 ring-2 ring-indigo-200/70 bg-indigo-50/20'
-                  : 'border-slate-200/80 hover:border-slate-300 bg-white'
+                  ? 'border-indigo-600 ring-2 ring-indigo-500/20 shadow-md bg-indigo-50/20'
+                  : 'hover:border-slate-300 hover:shadow-xs hover:bg-slate-50/40'
               )}
             >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{item.cardTitle}</span>
-                <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', item.iconBg)}>
-                  <Icon size={18} weight="bold" className={item.iconColor} />
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="text-xs font-semibold text-slate-500 line-clamp-1">{item.cardTitle}</span>
+                <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center shrink-0', item.iconBg)}>
+                  <Icon size={16} weight="fill" className={item.iconColor} />
                 </div>
               </div>
-              <div className={cn('text-2xl sm:text-3xl font-extrabold mt-2', item.valueColor)}>
-                {item.value}
+
+              <div className="flex items-baseline justify-between gap-1">
+                <span className={cn('text-2xl sm:text-3xl font-black tracking-tight leading-none', item.valueColor)}>
+                  {item.value}
+                </span>
+                {isSelected && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
+                    Active
+                  </span>
+                )}
               </div>
-              <p className="text-[11px] text-slate-400 mt-1">{item.subtitle}</p>
+
+              <p className="text-[11px] text-slate-400 mt-1.5 truncate">{item.subtitle}</p>
             </div>
           );
         })}

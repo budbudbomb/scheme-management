@@ -14,6 +14,7 @@ const ROLE_SCHEME: Record<UserRole, string> = {
   fellow: 'CMYPDP Fellow',
   intern: 'CMYIGGP Intern',
   pmu: 'PMU',
+  pm: 'Program Manager (HR)',
 };
 
 export default function TopBar({
@@ -29,20 +30,10 @@ export default function TopBar({
 
   return (
     <header className="h-16 border-b border-slate-200/90 bg-white flex items-center px-4 sm:px-6 gap-4 shrink-0 z-30 lg:rounded-t-2xl">
-      {/* Mobile hamburger */}
-      <button
-        onClick={onMenuToggle}
-        className="lg:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors tap-target"
-        aria-label="Toggle menu"
-        id="topbar-menu-toggle"
-      >
-        <List size={20} />
-      </button>
-
       {/* Desktop sidebar toggle */}
       <button
         onClick={onMenuToggle}
-        className="hidden lg:flex p-2 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors"
+        className="hidden lg:flex p-2 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors cursor-pointer"
         aria-label="Toggle sidebar"
         id="topbar-sidebar-toggle"
       >

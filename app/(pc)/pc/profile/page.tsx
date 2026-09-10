@@ -6,9 +6,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { usersApi } from '@/lib/api/users';
+import Link from 'next/link';
 import { cn, genderLabel, qualificationLabel } from '@/lib/utils/formatters';
 import { toast } from 'sonner';
-import { PencilSimple, Check, X } from '@phosphor-icons/react';
+import { PencilSimple, Check, X, ArrowCircleUpRight, Users } from '@phosphor-icons/react';
 import DetailList from '@/components/shared/DetailList';
 
 const schema = z.object({
@@ -115,6 +116,28 @@ export default function PcProfilePage() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Mobile-only Exit Management Shortcuts (Side by Side) */}
+      <div className="sm:hidden card p-4 bg-slate-50/90 border border-slate-200 shadow-2xs space-y-2">
+        <div className="text-xs font-bold text-slate-800">Program Exit Shortcuts</div>
+        <div className="grid grid-cols-2 gap-2.5">
+          <Link
+            href="/pc/exit?tab=my_exit"
+            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 shadow-2xs cursor-pointer active:scale-95 transition-all text-center"
+          >
+            <ArrowCircleUpRight size={15} weight="bold" />
+            <span>Apply for exit</span>
+          </Link>
+
+          <Link
+            href="/pc/exit?tab=reviews"
+            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold text-[#162F5E] bg-blue-50 border border-blue-200 hover:bg-blue-100 shadow-2xs cursor-pointer active:scale-95 transition-all text-center"
+          >
+            <Users size={15} weight="bold" />
+            <span>Review Exit</span>
+          </Link>
         </div>
       </div>
 

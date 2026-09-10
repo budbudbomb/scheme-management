@@ -24,6 +24,17 @@ const DEMO_USERS: Record<string, AuthUser> = {
     createdAt: '2026-01-01T00:00:00Z',
     qualification: 'post_graduate',
   },
+  'pm.hr@cmyp.mp.gov.in': {
+    id: 'pm-hr-01',
+    name: 'Sunil Sharma (HR Program Manager)',
+    email: 'pm.hr@cmyp.mp.gov.in',
+    role: 'pm',
+    status: 'active',
+    pmuDesignation: 'program_manager',
+    profileComplete: true,
+    createdAt: '2026-01-01T00:00:00Z',
+    qualification: 'post_graduate',
+  },
   'admin@cmyp.mp.gov.in': {
     id: 'usr-admin-01',
     name: 'Rajesh Sharma (State Admin)',

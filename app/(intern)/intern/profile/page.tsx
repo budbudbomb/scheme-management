@@ -7,9 +7,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { usersApi } from '@/lib/api/users';
+import Link from 'next/link';
 import { cn, genderLabel, qualificationLabel } from '@/lib/utils/formatters';
 import { toast } from 'sonner';
-import { PencilSimple, Check, X } from '@phosphor-icons/react';
+import { PencilSimple, Check, X, ArrowCircleUpRight } from '@phosphor-icons/react';
 import DetailList from '@/components/shared/DetailList';
 
 const schema = z.object({
@@ -102,6 +103,23 @@ export default function InternProfilePage() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Mobile-only Exit the Program Button */}
+      <div className="sm:hidden card p-4 bg-rose-50/70 border border-rose-200 shadow-2xs">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-xs font-bold text-slate-900">Program Exit</div>
+            <div className="text-2xs text-slate-500">Apply to conclude internship tenure & get certificate</div>
+          </div>
+          <Link
+            href="/intern/exit"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-600 text-white hover:bg-rose-700 shadow-xs cursor-pointer active:scale-95 transition-all shrink-0"
+          >
+            <ArrowCircleUpRight size={15} weight="bold" />
+            <span>Exit the program</span>
+          </Link>
         </div>
       </div>
 

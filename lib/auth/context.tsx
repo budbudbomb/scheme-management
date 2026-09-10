@@ -23,6 +23,7 @@ export function getDashboardPath(role: UserRole): string {
     case 'pc':      return '/pc/dashboard';
     case 'fellow':  return '/fellow/dashboard';
     case 'intern':  return '/intern/dashboard';
+    case 'pm':      return '/pm/dashboard';
     case 'pmu':     return '/pmu';
     default:        return '/login';
   }

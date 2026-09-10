@@ -406,8 +406,9 @@ export default function AdminNewSurveyPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/admin/surveys"
-            className="w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-600 flex items-center justify-center hover:bg-slate-50 transition-colors shadow-2xs"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-slate-200 bg-white text-slate-700 flex items-center justify-center hover:bg-slate-100 hover:border-slate-300 transition-all shadow-2xs active:scale-95 shrink-0"
             aria-label="Back to surveys"
+            title="Back"
           >
             <ArrowLeft size={18} weight="bold" />
           </Link>
@@ -443,8 +444,9 @@ export default function AdminNewSurveyPage() {
           <div className="flex items-center gap-2.5 min-w-0">
             <Link
               href="/admin/surveys"
-              className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-600 flex items-center justify-center hover:bg-slate-50 transition-colors shrink-0 shadow-2xs"
+              className="w-8 h-8 rounded-full border border-slate-200 bg-white text-slate-700 flex items-center justify-center hover:bg-slate-100 hover:border-slate-300 transition-all shrink-0 shadow-2xs active:scale-95"
               aria-label="Back to surveys"
+              title="Back"
             >
               <ArrowLeft size={16} weight="bold" />
             </Link>

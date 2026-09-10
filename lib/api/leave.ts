@@ -43,9 +43,9 @@ export const leaveApi = {
     try {
       return await post<LeaveApplication>('/leave/apply', data);
     } catch {
-      return {
+      const newApp: LeaveApplication = {
         id: `leave-new-${Date.now()}`,
-        applicant: { id: 'u-current', name: 'You', role: 'intern' },
+        applicant: { id: 'u-intern-01', name: 'Priya Patel', role: 'intern' },
         leaveType: data.leaveType,
         startDate: data.startDate,
         endDate: data.endDate,
@@ -53,6 +53,8 @@ export const leaveApi = {
         status: 'applied',
         appliedAt: new Date().toISOString(),
       };
+      MOCK_LEAVE_APPLICATIONS.unshift(newApp);
+      return newApp;
     }
   },
 

@@ -9,7 +9,21 @@ const ROLE_PATHS: Record<UserRole, string[]> = {
   fellow: ['/fellow'],
   intern: ['/intern'],
   pmu:    ['/pmu'],
+  pm:     ['/pm'],
 };
+
+// Role → default dashboard/landing path
+function getRoleDashboardPath(role: UserRole): string {
+  switch (role) {
+    case 'admin':   return '/admin/dashboard';
+    case 'pc':      return '/pc/dashboard';
+    case 'fellow':  return '/fellow/dashboard';
+    case 'intern':  return '/intern/dashboard';
+    case 'pm':      return '/pm/dashboard';
+    case 'pmu':     return '/pmu';
+    default:        return '/login';
+  }
+}
 
 // Public routes that don't require auth
 const PUBLIC_PATHS = ['/login', '/forgot-password'];
@@ -70,17 +84,14 @@ export function proxy(request: NextRequest) {
 
     // Root redirect
     if (pathname === '/') {
-      const dash = ROLE_PATHS[role]?.[0];
-      if (dash) return NextResponse.redirect(new URL(`${dash}/dashboard`, request.url));
+      return NextResponse.redirect(new URL(getRoleDashboardPath(role), request.url));
     }
 
     // Role path enforcement — redirect to own dashboard if accessing wrong role path
     const allowedPrefixes = ROLE_PATHS[role] ?? [];
     const isAllowed = allowedPrefixes.some((p) => pathname.startsWith(p));
     if (!isAllowed) {
-      const ownDash = ROLE_PATHS[role]?.[0];
-      if (ownDash) return NextResponse.redirect(new URL(`${ownDash}/dashboard`, request.url));
-      return NextResponse.redirect(new URL('/login', request.url));
+      return NextResponse.redirect(new URL(getRoleDashboardPath(role), request.url));
     }
   } catch {
     // Can't decode token — redirect to login

@@ -18,6 +18,8 @@ import {
   PencilSimple,
   ShieldCheck,
   CalendarBlank,
+  ArrowCircleUpRight,
+  Users,
 } from '@phosphor-icons/react';
 import {
   cn,
@@ -40,6 +42,7 @@ const ROLE_FULL_TITLE: Record<UserRole, string> = {
   fellow: 'CMYPDP Fellow (District Level)',
   intern: 'CMYIGGP Intern (Block Level)',
   pmu: 'State PMU Officer',
+  pm: 'Program Manager (HR)',
 };
 
 function categoryLabel(cat?: string): string {
@@ -248,6 +251,53 @@ export default function ProfileModal({ isOpen, onClose, role }: ProfileModalProp
               <PencilSimple size={14} weight="bold" />
               <span>Edit Full Profile Information</span>
             </button>
+          )}
+
+          {/* Exit the Program Shortcuts */}
+          {(role === 'intern' || role === 'fellow') && (
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  router.push(`/${role}/exit`);
+                }}
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all cursor-pointer shadow-2xs active:scale-[0.98]"
+              >
+                <ArrowCircleUpRight size={16} weight="bold" />
+                <span>Exit the program</span>
+              </button>
+            </div>
+          )}
+
+          {role === 'pc' && (
+            <div className="pt-1">
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    router.push('/pc/exit?tab=my_exit');
+                  }}
+                  className="flex items-center justify-center gap-1.5 py-3 px-3 rounded-xl text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all cursor-pointer shadow-2xs active:scale-[0.98]"
+                >
+                  <ArrowCircleUpRight size={16} weight="bold" />
+                  <span>Apply for exit</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    router.push('/pc/exit?tab=reviews');
+                  }}
+                  className="flex items-center justify-center gap-1.5 py-3 px-3 rounded-xl text-xs font-bold text-[#162F5E] bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-all cursor-pointer shadow-2xs active:scale-[0.98]"
+                >
+                  <Users size={16} weight="bold" />
+                  <span>Review Exit</span>
+                </button>
+              </div>
+            </div>
           )}
         </div>
 

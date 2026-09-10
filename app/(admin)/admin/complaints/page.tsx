@@ -157,79 +157,82 @@ export default function AdminComplaintsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Complaints & Grievances</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Review divisional Coordinator complaints and monitor state-wide grievance resolution
-          </p>
+      {/* ── FROZEN STICKY HEADER: Title + Description + Tab Switcher (stays stable when scrolling up/down) ── */}
+      <div className="sticky top-0 z-20 bg-slate-50/95 lg:bg-white/95 backdrop-blur-md -mt-4 sm:-mt-6 lg:-mt-8 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-3.5 pb-3 sm:pt-5 sm:pb-4 border-b border-slate-200/80 shadow-2xs space-y-3 sm:space-y-4 transition-all">
+        {/* Header Title + Description */}
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Complaints & Grievances</h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5 line-clamp-2 sm:line-clamp-none">
+              Review divisional Coordinator complaints and monitor state-wide grievance resolution
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* ── Sleek Segmented Tab Switch (Matching Leave page) ── */}
-      <div className="w-full max-w-md bg-slate-100/90 p-1 rounded-2xl border border-slate-200/90 grid grid-cols-2 gap-1 shadow-2xs">
-        {/* Tab 1: Review Coordinator Complaints */}
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab('review_pcs');
-            setStatusFilter('all');
-            setSearchQuery('');
-          }}
-          className={cn(
-            'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 select-none cursor-pointer relative text-center',
-            activeTab === 'review_pcs'
-              ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 font-bold ring-1 ring-black/5'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
-          )}
-        >
-          <ShieldCheck
-            size={16}
-            weight={activeTab === 'review_pcs' ? 'fill' : 'bold'}
-            className={activeTab === 'review_pcs' ? 'text-indigo-600' : 'text-slate-500'}
-          />
-          <span className="truncate sm:hidden">Review PCs</span>
-          <span className="hidden sm:inline truncate">Review Coordinators</span>
-          {pcStats.pending > 0 && (
-            <span className="flex items-center justify-center min-w-[18px] h-4.5 px-1.5 text-[10px] font-black bg-amber-100 text-amber-900 rounded-full border border-amber-300">
-              {pcStats.pending}
-            </span>
-          )}
-          {pcStats.pending > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600 border-2 border-white" />
-            </span>
-          )}
-        </button>
+        {/* ── Sleek Segmented Tab Switch (Matching Leave page) ── */}
+        <div className="w-full max-w-md bg-slate-100/90 p-1 rounded-2xl border border-slate-200/90 grid grid-cols-2 gap-1 shadow-2xs">
+          {/* Tab 1: Review Coordinator Complaints */}
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('review_pcs');
+              setStatusFilter('all');
+              setSearchQuery('');
+            }}
+            className={cn(
+              'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 select-none cursor-pointer relative text-center',
+              activeTab === 'review_pcs'
+                ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 font-bold ring-1 ring-black/5'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+            )}
+          >
+            <ShieldCheck
+              size={16}
+              weight={activeTab === 'review_pcs' ? 'fill' : 'bold'}
+              className={activeTab === 'review_pcs' ? 'text-indigo-600' : 'text-slate-500'}
+            />
+            <span className="truncate sm:hidden">Review PCs</span>
+            <span className="hidden sm:inline truncate">Review Coordinators</span>
+            {pcStats.pending > 0 && (
+              <span className="flex items-center justify-center min-w-[18px] h-4.5 px-1.5 text-[10px] font-black bg-amber-100 text-amber-900 rounded-full border border-amber-300">
+                {pcStats.pending}
+              </span>
+            )}
+            {pcStats.pending > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600 border-2 border-white" />
+              </span>
+            )}
+          </button>
 
-        {/* Tab 2: All Grievances (State-wide) */}
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab('all_grievances');
-            setStatusFilter('all');
-            setSearchQuery('');
-          }}
-          className={cn(
-            'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 select-none cursor-pointer text-center',
-            activeTab === 'all_grievances'
-              ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 font-bold ring-1 ring-black/5'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
-          )}
-        >
-          <Users
-            size={16}
-            weight={activeTab === 'all_grievances' ? 'fill' : 'bold'}
-            className={activeTab === 'all_grievances' ? 'text-indigo-600' : 'text-slate-500'}
-          />
-          <span className="truncate sm:hidden">All Grievances</span>
-          <span className="hidden sm:inline truncate">All Grievances (State-wide)</span>
-          <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-slate-200/70 text-slate-700 font-bold">
-            {allComplaints.length}
-          </span>
-        </button>
+          {/* Tab 2: All Grievances (State-wide) */}
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('all_grievances');
+              setStatusFilter('all');
+              setSearchQuery('');
+            }}
+            className={cn(
+              'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 select-none cursor-pointer text-center',
+              activeTab === 'all_grievances'
+                ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 font-bold ring-1 ring-black/5'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+            )}
+          >
+            <Users
+              size={16}
+              weight={activeTab === 'all_grievances' ? 'fill' : 'bold'}
+              className={activeTab === 'all_grievances' ? 'text-indigo-600' : 'text-slate-500'}
+            />
+            <span className="truncate sm:hidden">All Grievances</span>
+            <span className="hidden sm:inline truncate">All Grievances (State-wide)</span>
+            <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-slate-200/70 text-slate-700 font-bold">
+              {allComplaints.length}
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* ── Mobile View: 4 Circles in a Single Row ── */}
@@ -444,22 +447,31 @@ export default function AdminComplaintsPage() {
                 setStatusFilter((prev) => (prev === item.key ? 'all' : (item.key as typeof statusFilter)));
               }}
               className={cn(
-                'card p-4 sm:p-5 border shadow-2xs hover:shadow-sm transition-all cursor-pointer select-none text-left',
+                'card p-3.5 sm:p-4 transition-all duration-200 cursor-pointer select-none relative overflow-hidden',
                 isSelected
-                  ? 'border-indigo-500 ring-2 ring-indigo-200/70 bg-indigo-50/20'
-                  : 'border-slate-200/80 hover:border-slate-300 bg-white'
+                  ? 'border-indigo-600 ring-2 ring-indigo-500/20 shadow-md bg-indigo-50/20'
+                  : 'hover:border-slate-300 hover:shadow-xs hover:bg-slate-50/40'
               )}
             >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{item.cardTitle}</span>
-                <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', item.iconBg)}>
-                  <Icon size={18} weight="bold" className={item.iconColor} />
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="text-xs font-semibold text-slate-500 line-clamp-1">{item.cardTitle}</span>
+                <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center shrink-0', item.iconBg)}>
+                  <Icon size={16} weight="fill" className={item.iconColor} />
                 </div>
               </div>
-              <div className={cn('text-2xl sm:text-3xl font-extrabold mt-2', item.valueColor)}>
-                {item.value}
+
+              <div className="flex items-baseline justify-between gap-1">
+                <span className={cn('text-2xl sm:text-3xl font-black tracking-tight leading-none', item.valueColor)}>
+                  {item.value}
+                </span>
+                {isSelected && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
+                    Active
+                  </span>
+                )}
               </div>
-              <p className="text-[11px] text-slate-400 mt-1">{item.subtitle}</p>
+
+              <p className="text-[11px] text-slate-400 mt-1.5 truncate">{item.subtitle}</p>
             </div>
           );
         })}

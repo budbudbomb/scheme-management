@@ -73,7 +73,14 @@ export default function FellowNewTaskPage() {
   return (
     <div className="max-w-2xl">
       <div className="flex items-center gap-3 mb-6">
-        <Link href="/fellow/tasks" className="p-2 rounded-lg text-slate-400 hover:bg-slate-100"><ArrowLeft size={18} /></Link>
+        <Link
+          href="/fellow/tasks"
+          className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-slate-200 bg-white text-slate-700 hover:text-slate-900 hover:bg-slate-100 hover:border-slate-300 transition-all shadow-2xs active:scale-95 cursor-pointer shrink-0"
+          aria-label="Back"
+          title="Back"
+        >
+          <ArrowLeft size={18} weight="bold" />
+        </Link>
         <div>
           <h1 className="text-xl font-bold text-slate-900">Assign Task to Intern</h1>
           <p className="text-sm text-slate-500 mt-0.5">Create a task for Interns in your district</p>

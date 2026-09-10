@@ -107,23 +107,25 @@ export default function InternComplaintsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header with Top Right "+ Complaint" */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Complaint Management</h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5 line-clamp-2 sm:line-clamp-none">
-            Submit grievances and track approvals addressed to your assigned Fellow
-          </p>
+      {/* ── FROZEN STICKY HEADER: Title + Description + Action (stays stable when scrolling up/down) ── */}
+      <div className="sticky top-0 z-20 -mt-4 -mx-4 px-4 py-3.5 sm:-mt-6 sm:-mx-6 sm:px-6 sm:py-4 lg:-mt-8 lg:-mx-8 lg:px-8 bg-slate-50/95 lg:bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs transition-all">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Complaint Management</h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5 line-clamp-2 sm:line-clamp-none">
+              Submit grievances and track approvals addressed to your assigned Fellow
+            </p>
+          </div>
+          <button
+            id="intern-add-complaint-btn"
+            type="button"
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-bold bg-[#172554] hover:bg-[#0f172a] text-white active:scale-95 transition-all shrink-0 shadow-xs cursor-pointer"
+          >
+            <Plus size={15} weight="bold" />
+            <span>Complaint</span>
+          </button>
         </div>
-        <button
-          id="intern-add-complaint-btn"
-          type="button"
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-bold bg-[#172554] hover:bg-[#0f172a] text-white active:scale-95 transition-all shrink-0 shadow-xs cursor-pointer"
-        >
-          <Plus size={15} weight="bold" />
-          <span>Complaint</span>
-        </button>
       </div>
 
       {/* ── KPI Metrics Section: 4 Circles in a Single Row (referencing 3rd ss) ── */}

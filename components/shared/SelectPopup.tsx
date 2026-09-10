@@ -27,6 +27,7 @@ interface SelectPopupProps {
   placeholder?: string;
   className?: string;
   buttonClassName?: string;
+  variant?: 'default' | 'pill';
 }
 
 export default function SelectPopup({
@@ -37,6 +38,7 @@ export default function SelectPopup({
   placeholder = 'Select…',
   className,
   buttonClassName,
+  variant = 'default',
 }: SelectPopupProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -67,8 +69,8 @@ export default function SelectPopup({
   }, [options, search]);
 
   return (
-    <div className={cn('relative w-full', className)}>
-      {/* Trigger button resembling native select but clean */}
+    <div className={cn(variant === 'pill' ? 'shrink-0' : 'relative w-full', className)}>
+      {/* Trigger button resembling native select or pill */}
       <button
         type="button"
         onClick={() => {
@@ -76,8 +78,18 @@ export default function SelectPopup({
           setIsOpen(true);
         }}
         className={cn(
-          'w-full flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50 hover:bg-white focus:bg-white focus:border-indigo-500 focus:outline-none transition-all text-slate-700 cursor-pointer shadow-2xs select-none',
-          isOpen && 'border-indigo-500 bg-white ring-2 ring-indigo-500/20 shadow-xs',
+          variant === 'pill'
+            ? cn(
+                'inline-flex items-center justify-between gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-all cursor-pointer shadow-2xs select-none whitespace-nowrap',
+                value !== 'all' && value !== ''
+                  ? 'bg-blue-50 border-blue-300 text-blue-900 font-semibold'
+                  : 'bg-slate-50/80 border-slate-200 text-slate-700 hover:bg-white',
+                isOpen && 'border-[#162F5E] ring-2 ring-[#162F5E]/20 shadow-xs'
+              )
+            : cn(
+                'w-full flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50 hover:bg-white focus:bg-white focus:border-indigo-500 focus:outline-none transition-all text-slate-700 cursor-pointer shadow-2xs select-none',
+                isOpen && 'border-indigo-500 bg-white ring-2 ring-indigo-500/20 shadow-xs'
+              ),
           buttonClassName
         )}
       >
@@ -86,10 +98,11 @@ export default function SelectPopup({
           <span className="truncate">{displayLabel}</span>
         </div>
         <CaretDown
-          size={14}
+          size={variant === 'pill' ? 12 : 14}
+          weight={variant === 'pill' ? 'bold' : 'regular'}
           className={cn(
-            'text-slate-400 shrink-0 ml-1.5 transition-transform duration-200',
-            isOpen && 'rotate-180 text-indigo-600'
+            'text-slate-400 shrink-0 ml-1 transition-transform duration-200',
+            isOpen && (variant === 'pill' ? 'rotate-180 text-[#162F5E]' : 'rotate-180 text-indigo-600')
           )}
         />
       </button>
@@ -112,9 +125,16 @@ export default function SelectPopup({
             style={{ touchAction: 'auto' }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
+            {/* Frozen Header */}
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 shrink-0">
-              <h3 className="text-sm font-bold text-slate-900">{title}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-slate-900">{title}</h3>
+                {options.length > 0 && (
+                  <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                    {filteredOptions.length}
+                  </span>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
@@ -125,7 +145,7 @@ export default function SelectPopup({
               </button>
             </div>
 
-            {/* Optional search when many options */}
+            {/* Optional search when many options (Frozen below header) */}
             {options.length > 6 && (
               <div className="relative shrink-0 pt-0.5">
                 <input
@@ -133,15 +153,15 @@ export default function SelectPopup({
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={`Search ${title.toLowerCase()}…`}
-                  className="w-full pl-8 pr-3 py-1.5 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-indigo-500 focus:outline-none transition-all"
+                  className="w-full pl-8 pr-3 py-1.5 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-[#162F5E] focus:outline-none transition-all"
                   autoFocus
                 />
                 <MagnifyingGlass size={13} className="absolute left-2.5 top-2.5 text-slate-400" />
               </div>
             )}
 
-            {/* Options list */}
-            <div className="overflow-y-auto space-y-1 py-1 custom-scrollbar flex-1 max-h-[50vh]">
+            {/* Scrollable Options list */}
+            <div className="overflow-y-auto space-y-1 py-1 custom-scrollbar flex-1 max-h-[45vh]">
               {filteredOptions.length === 0 ? (
                 <div className="py-6 text-center text-xs text-slate-400">No options match &ldquo;{search}&rdquo;</div>
               ) : (
@@ -158,7 +178,7 @@ export default function SelectPopup({
                       className={cn(
                         'w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer text-left',
                         isSelected
-                          ? 'bg-indigo-50 text-indigo-700 font-bold border border-indigo-200/80 shadow-2xs'
+                          ? 'bg-blue-50 text-blue-900 font-bold border border-blue-200/80 shadow-2xs'
                           : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
                       )}
                     >
@@ -167,12 +187,33 @@ export default function SelectPopup({
                         <span className="truncate">{opt.label}</span>
                       </div>
                       {isSelected && (
-                        <Check size={15} weight="bold" className="text-indigo-600 shrink-0 ml-2" />
+                        <Check size={15} weight="bold" className="text-blue-700 shrink-0 ml-2" />
                       )}
                     </button>
                   );
                 })
               )}
+            </div>
+
+            {/* Frozen Footer */}
+            <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 shrink-0 bg-white">
+              <button
+                type="button"
+                onClick={() => {
+                  onChange('all');
+                  setIsOpen(false);
+                }}
+                className="text-xs font-semibold text-slate-500 hover:text-slate-800 px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Clear / All
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-[#162F5E] hover:bg-[#112447] active:scale-95 transition-all shadow-xs cursor-pointer"
+              >
+                Done
+              </button>
             </div>
           </div>
         </div>,

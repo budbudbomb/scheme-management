@@ -291,8 +291,13 @@ export default function CreateSurveyPage() {
     <div className="max-w-3xl space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Link href="/pc/surveys" className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors">
-          <ArrowLeft size={18} />
+        <Link
+          href="/pc/surveys"
+          className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-slate-200 bg-white text-slate-700 hover:text-slate-900 hover:bg-slate-100 hover:border-slate-300 transition-all shadow-2xs active:scale-95 cursor-pointer shrink-0"
+          aria-label="Back"
+          title="Back"
+        >
+          <ArrowLeft size={18} weight="bold" />
         </Link>
         <div className="flex-1">
           <h1 className="text-xl font-bold text-slate-900">Create Survey</h1>

@@ -13,6 +13,7 @@ import {
   GearSix,
   ShieldCheck,
   WarningCircle,
+  ArrowCircleUpRight,
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils/formatters';
 import type { UserRole } from '@/types/models';
@@ -58,6 +59,11 @@ function getPrimaryNav(role: UserRole): BottomNavItem[] {
         { href: '/intern/complaints', label: 'Complaints', icon: WarningCircle },
         { href: '/intern/leave', label: 'Leave', icon: ClipboardText },
       ];
+    case 'pm':
+      return [
+        { href: '/pm/dashboard', label: 'Home', icon: House },
+        { href: '/pm/exit', label: 'Exit', icon: ArrowCircleUpRight },
+      ];
     default:
       return [];
   }
@@ -72,7 +78,7 @@ export default function BottomNav({ role }: { role: UserRole }) {
 
   return (
     <nav
-      className="lg:hidden fixed bottom-3 sm:bottom-4 left-3 right-3 sm:left-1/2 sm:-translate-x-1/2 sm:w-[440px] z-40 bg-white/95 backdrop-blur-xl border border-[#1e3a8a]/35 rounded-[28px] shadow-[0_10px_35px_-5px_rgba(30,58,138,0.14),0_4px_12px_rgba(0,0,0,0.06)] px-2.5 py-1.5 mobile-bottom-nav"
+      className="lg:hidden fixed bottom-3 sm:bottom-4 z-40 bg-white/95 backdrop-blur-xl border border-[#1e3a8a]/35 rounded-[28px] shadow-[0_10px_35px_-5px_rgba(30,58,138,0.14),0_4px_12px_rgba(0,0,0,0.06)] px-2.5 py-1.5 mobile-bottom-nav left-3 right-3 sm:left-1/2 sm:-translate-x-1/2 sm:w-[440px]"
       aria-label="Mobile navigation"
     >
       <ul className="flex items-center justify-around gap-1">

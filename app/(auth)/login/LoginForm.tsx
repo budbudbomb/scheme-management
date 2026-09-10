@@ -37,6 +37,11 @@ const PMU_MANAGERS = [
     email: 'spm@cmyp.mp.gov.in',
     pass: 'spm123',
   },
+  {
+    role: 'Program Manager (HR)',
+    email: 'pm.hr@cmyp.mp.gov.in',
+    pass: 'pm123',
+  },
 ];
 
 const FIELD_ROLES = [
@@ -122,7 +127,7 @@ export default function LoginForm() {
         </label>
 
         {/* Row 1: PMU Leadership Roles */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {PMU_MANAGERS.map((acc) => {
             const isSelected = selectedRole === acc.role;
             return (

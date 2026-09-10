@@ -94,6 +94,8 @@ export function leaveStatusColor(status: LeaveStatus): string {
 export function exitStatusLabel(status: ExitStatus): string {
   const map: Record<ExitStatus, string> = {
     pending: 'Pending',
+    pending_pc_review: 'Under PC Review',
+    pending_pm_review: 'Under PM Review',
     approved: 'Approved',
     rejected: 'Rejected',
     force_approved: 'Force Approved',
@@ -104,6 +106,8 @@ export function exitStatusLabel(status: ExitStatus): string {
 export function exitStatusColor(status: ExitStatus): string {
   const map: Record<ExitStatus, string> = {
     pending: 'bg-amber-100 text-amber-800 border-amber-200',
+    pending_pc_review: 'bg-amber-100 text-amber-800 border-amber-200',
+    pending_pm_review: 'bg-blue-100 text-blue-800 border-blue-200',
     approved: 'bg-emerald-100 text-emerald-800 border-emerald-200',
     rejected: 'bg-rose-100 text-rose-800 border-rose-200',
     force_approved: 'bg-indigo-100 text-indigo-800 border-indigo-200',
@@ -119,6 +123,7 @@ export function roleLabel(role: string): string {
     fellow: 'Fellow',
     intern: 'Intern',
     pmu: 'PMU',
+    pm: 'Program Manager (HR)',
     spm_cpm: 'Senior Program Manager',
   };
   return map[role] ?? role;

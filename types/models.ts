@@ -3,7 +3,7 @@
 // Mirrors the backend API response shapes
 // ═══════════════════════════════════════════════════════════
 
-export type UserRole = 'admin' | 'pc' | 'fellow' | 'intern' | 'pmu';
+export type UserRole = 'admin' | 'pc' | 'fellow' | 'intern' | 'pmu' | 'pm';
 export type UserStatus = 'pending' | 'active' | 'inactive';  // pending = self-registered, awaiting admin allocation
 export type Gender = 'male' | 'female' | 'other';
 export type Category = 'general' | 'obc' | 'sc' | 'st' | 'other';
@@ -12,7 +12,7 @@ export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'overdue';
 export type TaskPriority = 'high' | 'medium' | 'low';
 export type LeaveType = 'casual' | 'earned' | 'medical' | 'special';
 export type LeaveStatus = 'applied' | 'approved' | 'rejected';
-export type ExitStatus = 'pending' | 'approved' | 'rejected' | 'force_approved';
+export type ExitStatus = 'pending' | 'pending_pc_review' | 'pending_pm_review' | 'approved' | 'rejected' | 'force_approved';
 export type ComplaintCategory = 'stipend' | 'field_travel' | 'workload_tasks' | 'infrastructure' | 'interpersonal' | 'other';
 export type ComplaintPriority = 'urgent' | 'high' | 'medium' | 'low';
 export type ComplaintStatus = 'pending' | 'resolved' | 'rejected';
@@ -202,17 +202,49 @@ export interface LeaveBalance {
 }
 
 // ── Exit ────────────────────────────────────────────────────
+ 
+export interface ExitPerformanceAudit {
+  tasksTotal: number;
+  tasksCompleted: number;
+  tasksPending: number;
+  surveysConducted: number;
+}
 
 export interface ExitRequest {
   id: string;
   applicant: AssigneeRef;
+  applicantRole?: UserRole;
   reason?: string;
   status: ExitStatus;
   appliedAt: string;
   incompleteTasks: number;
+
+  // PC review tier (for Fellows)
+  reviewedByPc?: AssigneeRef;
+  pcComment?: string;
+  pcReviewedAt?: string;
+
+  // Certificate eligibility & evaluation
+  certificateEligible?: boolean;
+  certificateEligibilityMarkedBy?: AssigneeRef;
+  certificateEligibilityNote?: string;
+
+  // Final PM decision tier
   approvedBy?: AssigneeRef;
   approverComment?: string;
+  approvedAt?: string;
+
+  // Certificate issuance (Program Manager only)
+  certificateIssued?: boolean;
+  certificateIssuedAt?: string;
   certificateUrl?: string;
+
+  performanceAudit?: ExitPerformanceAudit;
+
+  // Administrative location
+  division?: string;
+  district?: string;
+  block?: string;
 }
 
 export type QuestionType =

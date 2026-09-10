@@ -312,13 +312,13 @@ export function AvgTimeByDivisionCard() {
       </div>
 
       {/* Chart */}
-      <div className="h-[240px]">
+      <div className="h-[275px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={sortedData}
             layout="vertical"
-            margin={{ top: 0, right: 52, left: 8, bottom: 0 }}
-            barSize={12}
+            margin={{ top: 22, right: 48, left: 8, bottom: 0 }}
+            barSize={13}
             onClick={handleBarClick}
             style={{ cursor: canDrillDown ? 'pointer' : 'default' }}
           >
@@ -349,7 +349,33 @@ export function AvgTimeByDivisionCard() {
               stroke="#6366f1"
               strokeDasharray="5 3"
               strokeWidth={1.5}
-              label={{ value: `${TARGET}m target`, fontSize: 9, fill: '#6366f1', position: 'insideTopRight' }}
+              label={({ viewBox }: any) => {
+                const x = viewBox?.x ?? 0;
+                return (
+                  <g>
+                    <rect
+                      x={x - 32}
+                      y={2}
+                      width={64}
+                      height={16}
+                      rx={4}
+                      fill="#EEF2FF"
+                      stroke="#C7D2FE"
+                      strokeWidth={1}
+                    />
+                    <text
+                      x={x}
+                      y={13.5}
+                      textAnchor="middle"
+                      fill="#4F46E5"
+                      fontSize={9.5}
+                      fontWeight={700}
+                    >
+                      {TARGET}m target
+                    </text>
+                  </g>
+                );
+              }}
             />
             <Bar
               dataKey="avgMin"
@@ -378,6 +404,10 @@ export function AvgTimeByDivisionCard() {
               <span className="text-[10px] text-slate-500">{label}</span>
             </div>
           ))}
+          <div className="flex items-center gap-1.5">
+            <div className="w-3.5 border-t-2 border-dashed border-indigo-500" />
+            <span className="text-[10px] text-slate-500">Target ({TARGET}m)</span>
+          </div>
         </div>
         {canDrillDown && (
           <span className="text-[10px] text-indigo-500 font-semibold">
